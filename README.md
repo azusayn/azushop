@@ -1,5 +1,7 @@
-# For Job Interview
+# azushop
 
-I have to start a new project for my job interview
-I am so fucking tired of it
-Fuck the companies in China.
+## tools
+
+```bash
+  go install github.com/go-kratos/kratos/cmd/kratos/v2@latest
+```

@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package api.v1;
+
+// Authentication. 
+service AuthService {
+  // Login with password.
+  rpc Login(LoginRequest) returns (LoginResponse);
+  // Register creates a new user account with the provided information.
+  rpc Register(RegisterRequest) returns (RegisterResponse);
+}
+
+message RegisterRequest {
+  string name = 1;
+  string password = 2;
+}
+
+message RegisterResponse {}
+
+message LoginRequest {
+  string name = 1;
+  string password = 2;
+}
+
+message LoginResponse {
+  string access_token = 1;
+}
