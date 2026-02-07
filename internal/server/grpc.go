@@ -1,7 +1,8 @@
 package server
 
 import (
-	v1 "azushop/api/helloworld/v1"
+	auth "azushop/api/auth/v1"
+	helloworld "azushop/api/helloworld/v1"
 	"azushop/internal/conf"
 	"azushop/internal/service"
 
@@ -11,7 +12,10 @@ import (
 )
 
 // NewGRPCServer new a gRPC server.
-func NewGRPCServer(c *conf.Server, greeter *service.GreeterService, logger log.Logger) *grpc.Server {
+func NewGRPCServer(c *conf.Server,
+	greeter *service.GreeterService,
+	authService *service.AuthServiceService,
+	logger log.Logger) *grpc.Server {
 	var opts = []grpc.ServerOption{
 		grpc.Middleware(
 			recovery.Recovery(),
@@ -27,6 +31,7 @@ func NewGRPCServer(c *conf.Server, greeter *service.GreeterService, logger log.L
 		opts = append(opts, grpc.Timeout(c.Grpc.Timeout.AsDuration()))
 	}
 	srv := grpc.NewServer(opts...)
-	v1.RegisterGreeterServer(srv, greeter)
+	helloworld.RegisterGreeterServer(srv, greeter)
+	auth.RegisterAuthServiceServer(srv, authService)
 	return srv
 }
