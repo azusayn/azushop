@@ -38,4 +38,5 @@ message Data {
   }
   Database database = 1;
   Redis redis = 2;
+  string app_name = 3;
 }

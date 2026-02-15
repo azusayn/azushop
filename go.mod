@@ -3,7 +3,7 @@ module azushop
 go 1.25.5
 
 require (
-	github.com/azusayn/azutils v0.0.0-20260215053036-61a0f59a1ac3
+	github.com/azusayn/azutils v0.0.0-20260215135858-de81545b546b
 	github.com/go-kratos/kratos/v2 v2.8.4
 	github.com/google/wire v0.6.0
 	go.uber.org/automaxprocs v1.5.1

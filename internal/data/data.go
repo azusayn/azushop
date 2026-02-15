@@ -18,10 +18,11 @@ var ProviderSet = wire.NewSet(
 )
 
 type Data struct {
-	// TODO wrapped redis client
-	postgresClient *sql.DB
+	// TODO: wrapped redis client
 	// TODO: DDD design.
-	PrivateKey *rsa.PrivateKey
+	postgresClient *sql.DB
+	PrivateKey     *rsa.PrivateKey
+	AppName        string
 }
 
 func NewData(c *conf.Data) (*Data, func(), error) {
@@ -46,5 +47,6 @@ func NewData(c *conf.Data) (*Data, func(), error) {
 	return &Data{
 		PrivateKey:     key,
 		postgresClient: postgresClient,
+		AppName:        c.AppName,
 	}, cleanup, nil
 }
