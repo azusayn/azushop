@@ -8,6 +8,7 @@ import (
 
 	"github.com/azusayn/azutils/auth"
 	"github.com/google/wire"
+	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 // ProviderSet is data providers.

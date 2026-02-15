@@ -7,7 +7,7 @@ server:
     timeout: 1s
 data:
   database:
-    driver: postgres
+    driver: pgx
     source: postgres://root:root@127.0.0.1:5432/test?sslmode=disable
   redis:
     addr: 127.0.0.1:6379
