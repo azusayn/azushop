@@ -2,23 +2,49 @@ package data
 
 import (
 	"azushop/internal/conf"
+	"crypto/rsa"
+	"database/sql"
+	"log/slog"
 
-	"github.com/go-kratos/kratos/v2/log"
+	"github.com/azusayn/azutils/auth"
 	"github.com/google/wire"
 )
 
 // ProviderSet is data providers.
-var ProviderSet = wire.NewSet(NewData, NewGreeterRepo)
+var ProviderSet = wire.NewSet(
+	NewData,
+	NewGreeterRepo,
+	NewUserRepo,
+)
 
-// Data .
 type Data struct {
-	// TODO wrapped database client
+	// TODO wrapped redis client
+	postgresClient *sql.DB
+	// TODO: DDD design.
+	PrivateKey *rsa.PrivateKey
 }
 
-// NewData .
 func NewData(c *conf.Data) (*Data, func(), error) {
-	cleanup := func() {
-		log.Info("closing the data resources")
+	key, err := auth.GeneratePrivateKey()
+	if err != nil {
+		return nil, nil, err
 	}
-	return &Data{}, cleanup, nil
+
+	postgresClient, err := sql.Open(c.Database.Driver, c.Database.Source)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	cleanup := func() {
+		slog.Warn("close postgres connection...")
+		err := postgresClient.Close()
+		if err != nil {
+			slog.Warn(err.Error())
+		}
+	}
+
+	return &Data{
+		PrivateKey:     key,
+		postgresClient: postgresClient,
+	}, cleanup, nil
 }

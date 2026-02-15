@@ -10,7 +10,7 @@ service AuthService {
   // Login with password.
   rpc Login(LoginRequest) returns (LoginResponse){
     option (google.api.http) = {
-      post: "/v1/auth/login"
+      post: "/auth/v1/login"
       body: "*"
     };
   };
