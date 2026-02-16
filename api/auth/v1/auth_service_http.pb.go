@@ -20,15 +20,19 @@ var _ = binding.EncodeURL
 const _ = http.SupportPackageIsVersion1
 
 const OperationAuthServiceLogin = "/auth.v1.AuthService/Login"
+const OperationAuthServiceRegister = "/auth.v1.AuthService/Register"
 
 type AuthServiceHTTPServer interface {
 	// Login Login with password.
 	Login(context.Context, *LoginRequest) (*LoginResponse, error)
+	// Register Register creates a new user account with the provided information.
+	Register(context.Context, *RegisterRequest) (*RegisterResponse, error)
 }
 
 func RegisterAuthServiceHTTPServer(s *http.Server, srv AuthServiceHTTPServer) {
 	r := s.Route("/")
 	r.POST("/v1/auth/login", _AuthService_Login0_HTTP_Handler(srv))
+	r.POST("/v1/auth/register", _AuthService_Register0_HTTP_Handler(srv))
 }
 
 func _AuthService_Login0_HTTP_Handler(srv AuthServiceHTTPServer) func(ctx http.Context) error {
@@ -53,9 +57,33 @@ func _AuthService_Login0_HTTP_Handler(srv AuthServiceHTTPServer) func(ctx http.C
 	}
 }
 
+func _AuthService_Register0_HTTP_Handler(srv AuthServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in RegisterRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationAuthServiceRegister)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.Register(ctx, req.(*RegisterRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*RegisterResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
 type AuthServiceHTTPClient interface {
 	// Login Login with password.
 	Login(ctx context.Context, req *LoginRequest, opts ...http.CallOption) (rsp *LoginResponse, err error)
+	// Register Register creates a new user account with the provided information.
+	Register(ctx context.Context, req *RegisterRequest, opts ...http.CallOption) (rsp *RegisterResponse, err error)
 }
 
 type AuthServiceHTTPClientImpl struct {
@@ -72,6 +100,20 @@ func (c *AuthServiceHTTPClientImpl) Login(ctx context.Context, in *LoginRequest,
 	pattern := "/v1/auth/login"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationAuthServiceLogin))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// Register Register creates a new user account with the provided information.
+func (c *AuthServiceHTTPClientImpl) Register(ctx context.Context, in *RegisterRequest, opts ...http.CallOption) (*RegisterResponse, error) {
+	var out RegisterResponse
+	pattern := "/v1/auth/register"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationAuthServiceRegister))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
 	if err != nil {

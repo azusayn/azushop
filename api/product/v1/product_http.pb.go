@@ -19,9 +19,12 @@ var _ = binding.EncodeURL
 
 const _ = http.SupportPackageIsVersion1
 
+const OperationProductServiceCreateProduct = "/product.v1.ProductService/CreateProduct"
 const OperationProductServiceListProducts = "/product.v1.ProductService/ListProducts"
 
 type ProductServiceHTTPServer interface {
+	// CreateProduct Create a new product.
+	CreateProduct(context.Context, *CreateProductRequest) (*Product, error)
 	// ListProducts List all the products.
 	ListProducts(context.Context, *ListProductsRequest) (*ListProductsRespone, error)
 }
@@ -29,6 +32,7 @@ type ProductServiceHTTPServer interface {
 func RegisterProductServiceHTTPServer(s *http.Server, srv ProductServiceHTTPServer) {
 	r := s.Route("/")
 	r.GET("/v1/products", _ProductService_ListProducts0_HTTP_Handler(srv))
+	r.POST("/v1/products", _ProductService_CreateProduct0_HTTP_Handler(srv))
 }
 
 func _ProductService_ListProducts0_HTTP_Handler(srv ProductServiceHTTPServer) func(ctx http.Context) error {
@@ -50,7 +54,31 @@ func _ProductService_ListProducts0_HTTP_Handler(srv ProductServiceHTTPServer) fu
 	}
 }
 
+func _ProductService_CreateProduct0_HTTP_Handler(srv ProductServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in CreateProductRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationProductServiceCreateProduct)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.CreateProduct(ctx, req.(*CreateProductRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*Product)
+		return ctx.Result(200, reply)
+	}
+}
+
 type ProductServiceHTTPClient interface {
+	// CreateProduct Create a new product.
+	CreateProduct(ctx context.Context, req *CreateProductRequest, opts ...http.CallOption) (rsp *Product, err error)
 	// ListProducts List all the products.
 	ListProducts(ctx context.Context, req *ListProductsRequest, opts ...http.CallOption) (rsp *ListProductsRespone, err error)
 }
@@ -61,6 +89,20 @@ type ProductServiceHTTPClientImpl struct {
 
 func NewProductServiceHTTPClient(client *http.Client) ProductServiceHTTPClient {
 	return &ProductServiceHTTPClientImpl{client}
+}
+
+// CreateProduct Create a new product.
+func (c *ProductServiceHTTPClientImpl) CreateProduct(ctx context.Context, in *CreateProductRequest, opts ...http.CallOption) (*Product, error) {
+	var out Product
+	pattern := "/v1/products"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationProductServiceCreateProduct))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
 }
 
 // ListProducts List all the products.

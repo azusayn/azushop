@@ -15,6 +15,14 @@ service ProductService {
       get:"/v1/products"
     };
   };
+
+  // Create a new product. 
+  rpc CreateProduct(CreateProductRequest) returns (Product) {
+    option (google.api.http) = {
+      post: "/v1/products"
+      body: "*"
+    };
+  };
 }
 
 message ListProductsRequest {
@@ -32,4 +40,9 @@ message Product {
 
 message ListProductsRespone {
   repeated Product products = 1;
+}
+
+message CreateProductRequest {
+  // TODO: Field Mask.
+  Product product = 1;
 }

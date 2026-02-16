@@ -219,10 +219,10 @@ const file_api_auth_v1_auth_service_proto_rawDesc = "" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1a\n" +
 	"\bpassword\x18\x02 \x01(\tR\bpassword\"2\n" +
 	"\rLoginResponse\x12!\n" +
-	"\faccess_token\x18\x01 \x01(\tR\vaccessToken2\xa1\x01\n" +
+	"\faccess_token\x18\x01 \x01(\tR\vaccessToken2\xbf\x01\n" +
 	"\vAuthService\x12Q\n" +
-	"\x05Login\x12\x15.auth.v1.LoginRequest\x1a\x16.auth.v1.LoginResponse\"\x19\x82\xd3\xe4\x93\x02\x13:\x01*\"\x0e/v1/auth/login\x12?\n" +
-	"\bRegister\x12\x18.auth.v1.RegisterRequest\x1a\x19.auth.v1.RegisterResponseB\x18Z\x16azushop/api/auth/v1;v1b\x06proto3"
+	"\x05Login\x12\x15.auth.v1.LoginRequest\x1a\x16.auth.v1.LoginResponse\"\x19\x82\xd3\xe4\x93\x02\x13:\x01*\"\x0e/v1/auth/login\x12]\n" +
+	"\bRegister\x12\x18.auth.v1.RegisterRequest\x1a\x19.auth.v1.RegisterResponse\"\x1c\x82\xd3\xe4\x93\x02\x16:\x01*\"\x11/v1/auth/registerB\x18Z\x16azushop/api/auth/v1;v1b\x06proto3"
 
 var (
 	file_api_auth_v1_auth_service_proto_rawDescOnce sync.Once
