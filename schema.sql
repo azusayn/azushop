@@ -9,7 +9,7 @@ CREATE TABLE products(
   id BIGSERIAL PRIMARY KEY,
   product_name VARCHAR(255) NOT NULL,
   seller_id INT NOT NULL,
-  stock_quantity INT NOT NULL CHECK (stock_quantity >= 0),
+  stock_quantity BIGINT NOT NULL CHECK (stock_quantity >= 0),
   unit_price NUMERIC(10, 2) NOT NULL CHECK (unit_price >= 0),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
