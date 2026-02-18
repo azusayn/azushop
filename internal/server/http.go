@@ -2,7 +2,6 @@ package server
 
 import (
 	auth "azushop/api/auth/v1"
-	helloworld "azushop/api/helloworld/v1"
 	"azushop/internal/conf"
 	"azushop/internal/service"
 
@@ -13,7 +12,6 @@ import (
 
 // NewHTTPServer new an HTTP server.
 func NewHTTPServer(c *conf.Server,
-	greeter *service.GreeterService,
 	authService *service.AuthServiceService,
 	logger log.Logger) *http.Server {
 	var opts = []http.ServerOption{
@@ -31,7 +29,6 @@ func NewHTTPServer(c *conf.Server,
 		opts = append(opts, http.Timeout(c.Http.Timeout.AsDuration()))
 	}
 	srv := http.NewServer(opts...)
-	helloworld.RegisterGreeterHTTPServer(srv, greeter)
 	auth.RegisterAuthServiceHTTPServer(srv, authService)
 	return srv
 }

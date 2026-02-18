@@ -2,7 +2,6 @@ package server
 
 import (
 	auth "azushop/api/auth/v1"
-	helloworld "azushop/api/helloworld/v1"
 	"azushop/internal/conf"
 	"azushop/internal/service"
 
@@ -13,7 +12,6 @@ import (
 
 // NewGRPCServer new a gRPC server.
 func NewGRPCServer(c *conf.Server,
-	greeter *service.GreeterService,
 	authService *service.AuthServiceService,
 	logger log.Logger) *grpc.Server {
 	var opts = []grpc.ServerOption{
@@ -31,7 +29,6 @@ func NewGRPCServer(c *conf.Server,
 		opts = append(opts, grpc.Timeout(c.Grpc.Timeout.AsDuration()))
 	}
 	srv := grpc.NewServer(opts...)
-	helloworld.RegisterGreeterServer(srv, greeter)
 	auth.RegisterAuthServiceServer(srv, authService)
 	return srv
 }
