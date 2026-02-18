@@ -21,18 +21,22 @@ const _ = http.SupportPackageIsVersion1
 
 const OperationProductServiceCreateProduct = "/product.v1.ProductService/CreateProduct"
 const OperationProductServiceListProducts = "/product.v1.ProductService/ListProducts"
+const OperationProductServiceUpdateProduct = "/product.v1.ProductService/UpdateProduct"
 
 type ProductServiceHTTPServer interface {
 	// CreateProduct Create a new product.
 	CreateProduct(context.Context, *CreateProductRequest) (*Product, error)
 	// ListProducts List all the products.
-	ListProducts(context.Context, *ListProductsRequest) (*ListProductsRespone, error)
+	ListProducts(context.Context, *ListProductsRequest) (*ListProductsResponse, error)
+	// UpdateProduct Update a product's SKU and attributes information.
+	UpdateProduct(context.Context, *UpdateProductRequest) (*Product, error)
 }
 
 func RegisterProductServiceHTTPServer(s *http.Server, srv ProductServiceHTTPServer) {
 	r := s.Route("/")
 	r.GET("/v1/products", _ProductService_ListProducts0_HTTP_Handler(srv))
 	r.POST("/v1/products", _ProductService_CreateProduct0_HTTP_Handler(srv))
+	r.PATCH("/v1/products/{id}", _ProductService_UpdateProduct0_HTTP_Handler(srv))
 }
 
 func _ProductService_ListProducts0_HTTP_Handler(srv ProductServiceHTTPServer) func(ctx http.Context) error {
@@ -49,7 +53,7 @@ func _ProductService_ListProducts0_HTTP_Handler(srv ProductServiceHTTPServer) fu
 		if err != nil {
 			return err
 		}
-		reply := out.(*ListProductsRespone)
+		reply := out.(*ListProductsResponse)
 		return ctx.Result(200, reply)
 	}
 }
@@ -76,11 +80,38 @@ func _ProductService_CreateProduct0_HTTP_Handler(srv ProductServiceHTTPServer) f
 	}
 }
 
+func _ProductService_UpdateProduct0_HTTP_Handler(srv ProductServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in UpdateProductRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationProductServiceUpdateProduct)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.UpdateProduct(ctx, req.(*UpdateProductRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*Product)
+		return ctx.Result(200, reply)
+	}
+}
+
 type ProductServiceHTTPClient interface {
 	// CreateProduct Create a new product.
 	CreateProduct(ctx context.Context, req *CreateProductRequest, opts ...http.CallOption) (rsp *Product, err error)
 	// ListProducts List all the products.
-	ListProducts(ctx context.Context, req *ListProductsRequest, opts ...http.CallOption) (rsp *ListProductsRespone, err error)
+	ListProducts(ctx context.Context, req *ListProductsRequest, opts ...http.CallOption) (rsp *ListProductsResponse, err error)
+	// UpdateProduct Update a product's SKU and attributes information.
+	UpdateProduct(ctx context.Context, req *UpdateProductRequest, opts ...http.CallOption) (rsp *Product, err error)
 }
 
 type ProductServiceHTTPClientImpl struct {
@@ -106,13 +137,27 @@ func (c *ProductServiceHTTPClientImpl) CreateProduct(ctx context.Context, in *Cr
 }
 
 // ListProducts List all the products.
-func (c *ProductServiceHTTPClientImpl) ListProducts(ctx context.Context, in *ListProductsRequest, opts ...http.CallOption) (*ListProductsRespone, error) {
-	var out ListProductsRespone
+func (c *ProductServiceHTTPClientImpl) ListProducts(ctx context.Context, in *ListProductsRequest, opts ...http.CallOption) (*ListProductsResponse, error) {
+	var out ListProductsResponse
 	pattern := "/v1/products"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationProductServiceListProducts))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// UpdateProduct Update a product's SKU and attributes information.
+func (c *ProductServiceHTTPClientImpl) UpdateProduct(ctx context.Context, in *UpdateProductRequest, opts ...http.CallOption) (*Product, error) {
+	var out Product
+	pattern := "/v1/products/{id}"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationProductServiceUpdateProduct))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "PATCH", path, in, &out, opts...)
 	if err != nil {
 		return nil, err
 	}

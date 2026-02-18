@@ -5,15 +5,24 @@ CREATE TABLE users (
   salt VARCHAR(255) NOT NULL
 )
 
-CREATE TABLE products(
+CREATE TABLE products (
   id BIGSERIAL PRIMARY KEY,
   product_name VARCHAR(255) NOT NULL,
   seller_id INT NOT NULL,
-  stock_quantity BIGINT NOT NULL CHECK (stock_quantity >= 0),
-  unit_price NUMERIC(10, 2) NOT NULL CHECK (unit_price >= 0),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   FOREIGN KEY (seller_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 CREATE INDEX idx_products_seller_id ON products(seller_id);
+
+CREATE TABLE skus (
+  id BIGSERIAL PRIMARY KEY,
+  product_id BIGINT NOT NULL,
+  attrs JSONB,
+  unit_price NUMERIC(10, 2) NOT NULL CHECK (unit_price >= 0),
+  stock_quantity BIGINT NOT NULL CHECK (stock_quantity >= 0),
+  FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_skus_product_id ON skus(product_id);

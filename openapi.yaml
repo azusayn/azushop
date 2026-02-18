@@ -6,7 +6,7 @@ info:
     title: ProductService API
     description: |-
         TODO: scope.
-         product management.
+         product management api only for merchants
     version: 0.0.1
 paths:
     /v1/products:
@@ -30,7 +30,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ListProductsRespone'
+                                $ref: '#/components/schemas/ListProductsResponse'
                 default:
                     description: Default error response
                     content:
@@ -61,15 +61,44 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/Status'
+    /v1/products/{id}:
+        patch:
+            tags:
+                - ProductService
+            description: Update a product's SKU and attributes information.
+            operationId: ProductService_UpdateProduct
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/UpdateProductRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Product'
+                default:
+                    description: Default error response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Status'
 components:
     schemas:
         CreateProductRequest:
             type: object
             properties:
                 product:
-                    allOf:
-                        - $ref: '#/components/schemas/Product'
-                    description: 'TODO: Field Mask.'
+                    $ref: '#/components/schemas/Product'
         GoogleProtobufAny:
             type: object
             properties:
@@ -78,7 +107,7 @@ components:
                     description: The type of the serialized message.
             additionalProperties: true
             description: Contains an arbitrary serialized message along with a @type that describes the type of the serialized message.
-        ListProductsRespone:
+        ListProductsResponse:
             type: object
             properties:
                 products:
@@ -94,12 +123,25 @@ components:
                     type: string
                 sellerId:
                     type: integer
+                    description: 'TODO: just extract it from token.'
                     format: int32
-                intstockQuantity:
+                skus:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/Sku'
+        Sku:
+            type: object
+            properties:
+                id:
+                    type: string
+                productId:
+                    type: string
+                attrs:
+                    type: object
+                stockQuantity:
                     type: string
                 unitPrice:
-                    type: number
-                    format: float
+                    type: string
         Status:
             type: object
             properties:
@@ -116,5 +158,21 @@ components:
                         $ref: '#/components/schemas/GoogleProtobufAny'
                     description: A list of messages that carry the error details.  There is a common set of message types for APIs to use.
             description: 'The `Status` type defines a logical error model that is suitable for different programming environments, including REST APIs and RPC APIs. It is used by [gRPC](https://github.com/grpc). Each `Status` message contains three pieces of data: error code, error message, and error details. You can find out more about this error model and how to work with it in the [API Design Guide](https://cloud.google.com/apis/design/errors).'
+        UpdateProductRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                sellerId:
+                    type: integer
+                    description: 'TODO: just extract seller_id from token.'
+                    format: int32
+                skus:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/Sku'
+                updateMask:
+                    type: string
+                    format: field-mask
 tags:
     - name: ProductService

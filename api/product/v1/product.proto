@@ -3,14 +3,16 @@ syntax = "proto3";
 package product.v1;
 
 import "google/api/annotations.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/field_mask.proto";
 
 option go_package = "azushop/api/product/v1;v1";
 
 // TODO: scope.
-// product management.
+// product management api only for merchants
 service ProductService {
   // List all the products.
-  rpc ListProducts(ListProductsRequest) returns (ListProductsRespone) {
+  rpc ListProducts(ListProductsRequest) returns (ListProductsResponse) {
     option (google.api.http) = {
       get:"/v1/products"
     };
@@ -23,6 +25,15 @@ service ProductService {
       body: "*"
     };
   };
+
+  // Update a product's SKU and attributes information.
+  rpc UpdateProduct(UpdateProductRequest) returns (Product) {
+    option (google.api.http) = {
+      patch: "/v1/products/{id}"
+      body: "*"
+    };
+  };
+
 }
 
 message ListProductsRequest {
@@ -30,19 +41,34 @@ message ListProductsRequest {
   int64 page_size = 2;
 }
 
+message Sku {
+  int64 id = 1;
+  int64 product_id = 2;
+  google.protobuf.Struct attrs = 3;
+  int64 stock_quantity = 4;
+  string unit_price = 5;
+}
+
 message Product {
   int64 id = 1;
   string product_name = 2;
+  // TODO: just extract it from token.
   int32 seller_id = 3;
-  int64 intstock_quantity = 4;
-  float unit_price = 5;
+  repeated Sku skus = 4;
 }
 
-message ListProductsRespone {
+message ListProductsResponse {
   repeated Product products = 1;
 }
 
 message CreateProductRequest {
-  // TODO: Field Mask.
   Product product = 1;
+}
+
+message UpdateProductRequest {
+  int64 id = 1;
+  // TODO: just extract seller_id from token.
+  int32 seller_id = 2;
+  repeated Sku skus = 3;
+  google.protobuf.FieldMask update_mask = 4;
 }
