@@ -12,11 +12,10 @@ import (
 	"azushop/internal/data"
 	"azushop/internal/server"
 	"azushop/internal/service"
+
 	"github.com/go-kratos/kratos/v2"
 	"github.com/go-kratos/kratos/v2/log"
-)
 
-import (
 	_ "go.uber.org/automaxprocs"
 )
 
@@ -29,7 +28,7 @@ func wireApp(confServer *conf.Server, confData *conf.Data, logger log.Logger) (*
 		return nil, nil, err
 	}
 	userRepo := data.NewUserRepo(dataData)
-	userUsecase := biz.NewUserUsercase(userRepo)
+	userUsecase := biz.NewUserUsecase(userRepo)
 	authConfig := service.NewAuthConfig(dataData)
 	authServiceService := service.NewAuthServiceService(userUsecase, authConfig)
 	grpcServer := server.NewGRPCServer(confServer, authServiceService, logger)
