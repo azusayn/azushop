@@ -25,8 +25,9 @@ const (
 )
 
 type ListProductsRequest struct {
-	state     protoimpl.MessageState `protogen:"open.v1"`
-	PageToken int64                  `protobuf:"varint,1,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// use 0 for the first request.
+	PageToken int64 `protobuf:"varint,1,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	// max 100
 	PageSize      int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -310,7 +311,7 @@ func (x *CreateProductRequest) GetProduct() *Product {
 	return nil
 }
 
-type UpdateProductRequest struct {
+type UpsertProductRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Id    int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
 	// TODO: just extract seller_id from token.
@@ -321,20 +322,20 @@ type UpdateProductRequest struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *UpdateProductRequest) Reset() {
-	*x = UpdateProductRequest{}
+func (x *UpsertProductRequest) Reset() {
+	*x = UpsertProductRequest{}
 	mi := &file_api_product_v1_product_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *UpdateProductRequest) String() string {
+func (x *UpsertProductRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*UpdateProductRequest) ProtoMessage() {}
+func (*UpsertProductRequest) ProtoMessage() {}
 
-func (x *UpdateProductRequest) ProtoReflect() protoreflect.Message {
+func (x *UpsertProductRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_api_product_v1_product_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -346,33 +347,33 @@ func (x *UpdateProductRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UpdateProductRequest.ProtoReflect.Descriptor instead.
-func (*UpdateProductRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use UpsertProductRequest.ProtoReflect.Descriptor instead.
+func (*UpsertProductRequest) Descriptor() ([]byte, []int) {
 	return file_api_product_v1_product_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *UpdateProductRequest) GetId() int64 {
+func (x *UpsertProductRequest) GetId() int64 {
 	if x != nil {
 		return x.Id
 	}
 	return 0
 }
 
-func (x *UpdateProductRequest) GetSellerId() int32 {
+func (x *UpsertProductRequest) GetSellerId() int32 {
 	if x != nil {
 		return x.SellerId
 	}
 	return 0
 }
 
-func (x *UpdateProductRequest) GetSkus() []*Sku {
+func (x *UpsertProductRequest) GetSkus() []*Sku {
 	if x != nil {
 		return x.Skus
 	}
 	return nil
 }
 
-func (x *UpdateProductRequest) GetUpdateMask() *fieldmaskpb.FieldMask {
+func (x *UpsertProductRequest) GetUpdateMask() *fieldmaskpb.FieldMask {
 	if x != nil {
 		return x.UpdateMask
 	}
@@ -406,7 +407,7 @@ const file_api_product_v1_product_proto_rawDesc = "" +
 	"\bproducts\x18\x01 \x03(\v2\x13.product.v1.ProductR\bproducts\"E\n" +
 	"\x14CreateProductRequest\x12-\n" +
 	"\aproduct\x18\x01 \x01(\v2\x13.product.v1.ProductR\aproduct\"\xa5\x01\n" +
-	"\x14UpdateProductRequest\x12\x0e\n" +
+	"\x14UpsertProductRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x1b\n" +
 	"\tseller_id\x18\x02 \x01(\x05R\bsellerId\x12#\n" +
 	"\x04skus\x18\x03 \x03(\v2\x0f.product.v1.SkuR\x04skus\x12;\n" +
@@ -415,7 +416,7 @@ const file_api_product_v1_product_proto_rawDesc = "" +
 	"\x0eProductService\x12g\n" +
 	"\fListProducts\x12\x1f.product.v1.ListProductsRequest\x1a .product.v1.ListProductsResponse\"\x14\x82\xd3\xe4\x93\x02\x0e\x12\f/v1/products\x12_\n" +
 	"\rCreateProduct\x12 .product.v1.CreateProductRequest\x1a\x13.product.v1.Product\"\x17\x82\xd3\xe4\x93\x02\x11:\x01*\"\f/v1/products\x12d\n" +
-	"\rUpdateProduct\x12 .product.v1.UpdateProductRequest\x1a\x13.product.v1.Product\"\x1c\x82\xd3\xe4\x93\x02\x16:\x01*2\x11/v1/products/{id}B\x1bZ\x19azushop/api/product/v1;v1b\x06proto3"
+	"\rUpsertProduct\x12 .product.v1.UpsertProductRequest\x1a\x13.product.v1.Product\"\x1c\x82\xd3\xe4\x93\x02\x16:\x01*2\x11/v1/products/{id}B\x1bZ\x19azushop/api/product/v1;v1b\x06proto3"
 
 var (
 	file_api_product_v1_product_proto_rawDescOnce sync.Once
@@ -436,7 +437,7 @@ var file_api_product_v1_product_proto_goTypes = []any{
 	(*Product)(nil),               // 2: product.v1.Product
 	(*ListProductsResponse)(nil),  // 3: product.v1.ListProductsResponse
 	(*CreateProductRequest)(nil),  // 4: product.v1.CreateProductRequest
-	(*UpdateProductRequest)(nil),  // 5: product.v1.UpdateProductRequest
+	(*UpsertProductRequest)(nil),  // 5: product.v1.UpsertProductRequest
 	(*structpb.Struct)(nil),       // 6: google.protobuf.Struct
 	(*fieldmaskpb.FieldMask)(nil), // 7: google.protobuf.FieldMask
 }
@@ -445,14 +446,14 @@ var file_api_product_v1_product_proto_depIdxs = []int32{
 	1, // 1: product.v1.Product.skus:type_name -> product.v1.Sku
 	2, // 2: product.v1.ListProductsResponse.products:type_name -> product.v1.Product
 	2, // 3: product.v1.CreateProductRequest.product:type_name -> product.v1.Product
-	1, // 4: product.v1.UpdateProductRequest.skus:type_name -> product.v1.Sku
-	7, // 5: product.v1.UpdateProductRequest.update_mask:type_name -> google.protobuf.FieldMask
+	1, // 4: product.v1.UpsertProductRequest.skus:type_name -> product.v1.Sku
+	7, // 5: product.v1.UpsertProductRequest.update_mask:type_name -> google.protobuf.FieldMask
 	0, // 6: product.v1.ProductService.ListProducts:input_type -> product.v1.ListProductsRequest
 	4, // 7: product.v1.ProductService.CreateProduct:input_type -> product.v1.CreateProductRequest
-	5, // 8: product.v1.ProductService.UpdateProduct:input_type -> product.v1.UpdateProductRequest
+	5, // 8: product.v1.ProductService.UpsertProduct:input_type -> product.v1.UpsertProductRequest
 	3, // 9: product.v1.ProductService.ListProducts:output_type -> product.v1.ListProductsResponse
 	2, // 10: product.v1.ProductService.CreateProduct:output_type -> product.v1.Product
-	2, // 11: product.v1.ProductService.UpdateProduct:output_type -> product.v1.Product
+	2, // 11: product.v1.ProductService.UpsertProduct:output_type -> product.v1.Product
 	9, // [9:12] is the sub-list for method output_type
 	6, // [6:9] is the sub-list for method input_type
 	6, // [6:6] is the sub-list for extension type_name

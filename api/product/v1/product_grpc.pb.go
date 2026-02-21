@@ -21,7 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	ProductService_ListProducts_FullMethodName  = "/product.v1.ProductService/ListProducts"
 	ProductService_CreateProduct_FullMethodName = "/product.v1.ProductService/CreateProduct"
-	ProductService_UpdateProduct_FullMethodName = "/product.v1.ProductService/UpdateProduct"
+	ProductService_UpsertProduct_FullMethodName = "/product.v1.ProductService/UpsertProduct"
 )
 
 // ProductServiceClient is the client API for ProductService service.
@@ -36,7 +36,7 @@ type ProductServiceClient interface {
 	// Create a new product.
 	CreateProduct(ctx context.Context, in *CreateProductRequest, opts ...grpc.CallOption) (*Product, error)
 	// Update a product's SKU and attributes information.
-	UpdateProduct(ctx context.Context, in *UpdateProductRequest, opts ...grpc.CallOption) (*Product, error)
+	UpsertProduct(ctx context.Context, in *UpsertProductRequest, opts ...grpc.CallOption) (*Product, error)
 }
 
 type productServiceClient struct {
@@ -67,10 +67,10 @@ func (c *productServiceClient) CreateProduct(ctx context.Context, in *CreateProd
 	return out, nil
 }
 
-func (c *productServiceClient) UpdateProduct(ctx context.Context, in *UpdateProductRequest, opts ...grpc.CallOption) (*Product, error) {
+func (c *productServiceClient) UpsertProduct(ctx context.Context, in *UpsertProductRequest, opts ...grpc.CallOption) (*Product, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Product)
-	err := c.cc.Invoke(ctx, ProductService_UpdateProduct_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, ProductService_UpsertProduct_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +89,7 @@ type ProductServiceServer interface {
 	// Create a new product.
 	CreateProduct(context.Context, *CreateProductRequest) (*Product, error)
 	// Update a product's SKU and attributes information.
-	UpdateProduct(context.Context, *UpdateProductRequest) (*Product, error)
+	UpsertProduct(context.Context, *UpsertProductRequest) (*Product, error)
 	mustEmbedUnimplementedProductServiceServer()
 }
 
@@ -106,8 +106,8 @@ func (UnimplementedProductServiceServer) ListProducts(context.Context, *ListProd
 func (UnimplementedProductServiceServer) CreateProduct(context.Context, *CreateProductRequest) (*Product, error) {
 	return nil, status.Error(codes.Unimplemented, "method CreateProduct not implemented")
 }
-func (UnimplementedProductServiceServer) UpdateProduct(context.Context, *UpdateProductRequest) (*Product, error) {
-	return nil, status.Error(codes.Unimplemented, "method UpdateProduct not implemented")
+func (UnimplementedProductServiceServer) UpsertProduct(context.Context, *UpsertProductRequest) (*Product, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpsertProduct not implemented")
 }
 func (UnimplementedProductServiceServer) mustEmbedUnimplementedProductServiceServer() {}
 func (UnimplementedProductServiceServer) testEmbeddedByValue()                        {}
@@ -166,20 +166,20 @@ func _ProductService_CreateProduct_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ProductService_UpdateProduct_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UpdateProductRequest)
+func _ProductService_UpsertProduct_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpsertProductRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ProductServiceServer).UpdateProduct(ctx, in)
+		return srv.(ProductServiceServer).UpsertProduct(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: ProductService_UpdateProduct_FullMethodName,
+		FullMethod: ProductService_UpsertProduct_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ProductServiceServer).UpdateProduct(ctx, req.(*UpdateProductRequest))
+		return srv.(ProductServiceServer).UpsertProduct(ctx, req.(*UpsertProductRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -200,8 +200,8 @@ var ProductService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _ProductService_CreateProduct_Handler,
 		},
 		{
-			MethodName: "UpdateProduct",
-			Handler:    _ProductService_UpdateProduct_Handler,
+			MethodName: "UpsertProduct",
+			Handler:    _ProductService_UpsertProduct_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

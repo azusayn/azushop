@@ -27,7 +27,7 @@ service ProductService {
   };
 
   // Update a product's SKU and attributes information.
-  rpc UpdateProduct(UpdateProductRequest) returns (Product) {
+  rpc UpsertProduct(UpsertProductRequest) returns (Product) {
     option (google.api.http) = {
       patch: "/v1/products/{id}"
       body: "*"
@@ -67,7 +67,7 @@ message CreateProductRequest {
   Product product = 1;
 }
 
-message UpdateProductRequest {
+message UpsertProductRequest {
   int64 id = 1;
   // TODO: just extract seller_id from token.
   int32 seller_id = 2;

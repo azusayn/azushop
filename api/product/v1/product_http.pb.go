@@ -21,22 +21,22 @@ const _ = http.SupportPackageIsVersion1
 
 const OperationProductServiceCreateProduct = "/product.v1.ProductService/CreateProduct"
 const OperationProductServiceListProducts = "/product.v1.ProductService/ListProducts"
-const OperationProductServiceUpdateProduct = "/product.v1.ProductService/UpdateProduct"
+const OperationProductServiceUpsertProduct = "/product.v1.ProductService/UpsertProduct"
 
 type ProductServiceHTTPServer interface {
 	// CreateProduct Create a new product.
 	CreateProduct(context.Context, *CreateProductRequest) (*Product, error)
 	// ListProducts List all the products.
 	ListProducts(context.Context, *ListProductsRequest) (*ListProductsResponse, error)
-	// UpdateProduct Update a product's SKU and attributes information.
-	UpdateProduct(context.Context, *UpdateProductRequest) (*Product, error)
+	// UpsertProduct Update a product's SKU and attributes information.
+	UpsertProduct(context.Context, *UpsertProductRequest) (*Product, error)
 }
 
 func RegisterProductServiceHTTPServer(s *http.Server, srv ProductServiceHTTPServer) {
 	r := s.Route("/")
 	r.GET("/v1/products", _ProductService_ListProducts0_HTTP_Handler(srv))
 	r.POST("/v1/products", _ProductService_CreateProduct0_HTTP_Handler(srv))
-	r.PATCH("/v1/products/{id}", _ProductService_UpdateProduct0_HTTP_Handler(srv))
+	r.PATCH("/v1/products/{id}", _ProductService_UpsertProduct0_HTTP_Handler(srv))
 }
 
 func _ProductService_ListProducts0_HTTP_Handler(srv ProductServiceHTTPServer) func(ctx http.Context) error {
@@ -80,9 +80,9 @@ func _ProductService_CreateProduct0_HTTP_Handler(srv ProductServiceHTTPServer) f
 	}
 }
 
-func _ProductService_UpdateProduct0_HTTP_Handler(srv ProductServiceHTTPServer) func(ctx http.Context) error {
+func _ProductService_UpsertProduct0_HTTP_Handler(srv ProductServiceHTTPServer) func(ctx http.Context) error {
 	return func(ctx http.Context) error {
-		var in UpdateProductRequest
+		var in UpsertProductRequest
 		if err := ctx.Bind(&in); err != nil {
 			return err
 		}
@@ -92,9 +92,9 @@ func _ProductService_UpdateProduct0_HTTP_Handler(srv ProductServiceHTTPServer) f
 		if err := ctx.BindVars(&in); err != nil {
 			return err
 		}
-		http.SetOperation(ctx, OperationProductServiceUpdateProduct)
+		http.SetOperation(ctx, OperationProductServiceUpsertProduct)
 		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
-			return srv.UpdateProduct(ctx, req.(*UpdateProductRequest))
+			return srv.UpsertProduct(ctx, req.(*UpsertProductRequest))
 		})
 		out, err := h(ctx, &in)
 		if err != nil {
@@ -110,8 +110,8 @@ type ProductServiceHTTPClient interface {
 	CreateProduct(ctx context.Context, req *CreateProductRequest, opts ...http.CallOption) (rsp *Product, err error)
 	// ListProducts List all the products.
 	ListProducts(ctx context.Context, req *ListProductsRequest, opts ...http.CallOption) (rsp *ListProductsResponse, err error)
-	// UpdateProduct Update a product's SKU and attributes information.
-	UpdateProduct(ctx context.Context, req *UpdateProductRequest, opts ...http.CallOption) (rsp *Product, err error)
+	// UpsertProduct Update a product's SKU and attributes information.
+	UpsertProduct(ctx context.Context, req *UpsertProductRequest, opts ...http.CallOption) (rsp *Product, err error)
 }
 
 type ProductServiceHTTPClientImpl struct {
@@ -150,12 +150,12 @@ func (c *ProductServiceHTTPClientImpl) ListProducts(ctx context.Context, in *Lis
 	return &out, nil
 }
 
-// UpdateProduct Update a product's SKU and attributes information.
-func (c *ProductServiceHTTPClientImpl) UpdateProduct(ctx context.Context, in *UpdateProductRequest, opts ...http.CallOption) (*Product, error) {
+// UpsertProduct Update a product's SKU and attributes information.
+func (c *ProductServiceHTTPClientImpl) UpsertProduct(ctx context.Context, in *UpsertProductRequest, opts ...http.CallOption) (*Product, error) {
 	var out Product
 	pattern := "/v1/products/{id}"
 	path := binding.EncodeURL(pattern, in, false)
-	opts = append(opts, http.Operation(OperationProductServiceUpdateProduct))
+	opts = append(opts, http.Operation(OperationProductServiceUpsertProduct))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "PATCH", path, in, &out, opts...)
 	if err != nil {
