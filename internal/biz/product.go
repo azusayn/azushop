@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 
+	"google.golang.org/protobuf/types/known/fieldmaskpb"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -26,6 +27,7 @@ type Product struct {
 
 type ProductRepo interface {
 	ListProducts(ctx context.Context, pageToken int64, pageSize int32) ([]*Product, error)
+	UpsertProduct(ctx context.Context, product *Product, paths []string) error
 }
 
 type ProductUsecase struct {
@@ -67,4 +69,12 @@ func (uc *ProductUsecase) ListProducts(ctx context.Context, pageToken int64, pag
 		})
 	}
 	return pbProducts, nil
+}
+
+func (uc *ProductUsecase) UpsertProduct(ctx context.Context, product *Product, updateMask *fieldmaskpb.FieldMask) error {
+	err := uc.repo.UpsertProduct(ctx, product, updateMask.Paths)
+	if err != nil {
+		return err
+	}
+	return nil
 }

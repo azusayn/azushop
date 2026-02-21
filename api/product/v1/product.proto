@@ -27,7 +27,7 @@ service ProductService {
   };
 
   // Update a product's SKU and attributes information.
-  rpc UpsertProduct(UpsertProductRequest) returns (Product) {
+  rpc UpsertProduct(UpsertProductRequest) returns (UpsertProductResponse) {
     option (google.api.http) = {
       patch: "/v1/products/{id}"
       body: "*"
@@ -69,8 +69,13 @@ message CreateProductRequest {
 
 message UpsertProductRequest {
   int64 id = 1;
+  string product_name = 2;
   // TODO: just extract seller_id from token.
-  int32 seller_id = 2;
-  repeated Sku skus = 3;
-  google.protobuf.FieldMask update_mask = 4;
+  int32 seller_id = 3;
+  repeated Sku skus = 4;
+  google.protobuf.FieldMask update_mask = 5;
+}
+
+message UpsertProductResponse {
+
 }

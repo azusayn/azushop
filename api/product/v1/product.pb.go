@@ -312,12 +312,13 @@ func (x *CreateProductRequest) GetProduct() *Product {
 }
 
 type UpsertProductRequest struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	Id    int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	state       protoimpl.MessageState `protogen:"open.v1"`
+	Id          int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	ProductName string                 `protobuf:"bytes,2,opt,name=product_name,json=productName,proto3" json:"product_name,omitempty"`
 	// TODO: just extract seller_id from token.
-	SellerId      int32                  `protobuf:"varint,2,opt,name=seller_id,json=sellerId,proto3" json:"seller_id,omitempty"`
-	Skus          []*Sku                 `protobuf:"bytes,3,rep,name=skus,proto3" json:"skus,omitempty"`
-	UpdateMask    *fieldmaskpb.FieldMask `protobuf:"bytes,4,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
+	SellerId      int32                  `protobuf:"varint,3,opt,name=seller_id,json=sellerId,proto3" json:"seller_id,omitempty"`
+	Skus          []*Sku                 `protobuf:"bytes,4,rep,name=skus,proto3" json:"skus,omitempty"`
+	UpdateMask    *fieldmaskpb.FieldMask `protobuf:"bytes,5,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -359,6 +360,13 @@ func (x *UpsertProductRequest) GetId() int64 {
 	return 0
 }
 
+func (x *UpsertProductRequest) GetProductName() string {
+	if x != nil {
+		return x.ProductName
+	}
+	return ""
+}
+
 func (x *UpsertProductRequest) GetSellerId() int32 {
 	if x != nil {
 		return x.SellerId
@@ -378,6 +386,42 @@ func (x *UpsertProductRequest) GetUpdateMask() *fieldmaskpb.FieldMask {
 		return x.UpdateMask
 	}
 	return nil
+}
+
+type UpsertProductResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpsertProductResponse) Reset() {
+	*x = UpsertProductResponse{}
+	mi := &file_api_product_v1_product_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpsertProductResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpsertProductResponse) ProtoMessage() {}
+
+func (x *UpsertProductResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_product_v1_product_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpsertProductResponse.ProtoReflect.Descriptor instead.
+func (*UpsertProductResponse) Descriptor() ([]byte, []int) {
+	return file_api_product_v1_product_proto_rawDescGZIP(), []int{6}
 }
 
 var File_api_product_v1_product_proto protoreflect.FileDescriptor
@@ -406,17 +450,19 @@ const file_api_product_v1_product_proto_rawDesc = "" +
 	"\x14ListProductsResponse\x12/\n" +
 	"\bproducts\x18\x01 \x03(\v2\x13.product.v1.ProductR\bproducts\"E\n" +
 	"\x14CreateProductRequest\x12-\n" +
-	"\aproduct\x18\x01 \x01(\v2\x13.product.v1.ProductR\aproduct\"\xa5\x01\n" +
+	"\aproduct\x18\x01 \x01(\v2\x13.product.v1.ProductR\aproduct\"\xc8\x01\n" +
 	"\x14UpsertProductRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x1b\n" +
-	"\tseller_id\x18\x02 \x01(\x05R\bsellerId\x12#\n" +
-	"\x04skus\x18\x03 \x03(\v2\x0f.product.v1.SkuR\x04skus\x12;\n" +
-	"\vupdate_mask\x18\x04 \x01(\v2\x1a.google.protobuf.FieldMaskR\n" +
-	"updateMask2\xc0\x02\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\x12!\n" +
+	"\fproduct_name\x18\x02 \x01(\tR\vproductName\x12\x1b\n" +
+	"\tseller_id\x18\x03 \x01(\x05R\bsellerId\x12#\n" +
+	"\x04skus\x18\x04 \x03(\v2\x0f.product.v1.SkuR\x04skus\x12;\n" +
+	"\vupdate_mask\x18\x05 \x01(\v2\x1a.google.protobuf.FieldMaskR\n" +
+	"updateMask\"\x17\n" +
+	"\x15UpsertProductResponse2\xce\x02\n" +
 	"\x0eProductService\x12g\n" +
 	"\fListProducts\x12\x1f.product.v1.ListProductsRequest\x1a .product.v1.ListProductsResponse\"\x14\x82\xd3\xe4\x93\x02\x0e\x12\f/v1/products\x12_\n" +
-	"\rCreateProduct\x12 .product.v1.CreateProductRequest\x1a\x13.product.v1.Product\"\x17\x82\xd3\xe4\x93\x02\x11:\x01*\"\f/v1/products\x12d\n" +
-	"\rUpsertProduct\x12 .product.v1.UpsertProductRequest\x1a\x13.product.v1.Product\"\x1c\x82\xd3\xe4\x93\x02\x16:\x01*2\x11/v1/products/{id}B\x1bZ\x19azushop/api/product/v1;v1b\x06proto3"
+	"\rCreateProduct\x12 .product.v1.CreateProductRequest\x1a\x13.product.v1.Product\"\x17\x82\xd3\xe4\x93\x02\x11:\x01*\"\f/v1/products\x12r\n" +
+	"\rUpsertProduct\x12 .product.v1.UpsertProductRequest\x1a!.product.v1.UpsertProductResponse\"\x1c\x82\xd3\xe4\x93\x02\x16:\x01*2\x11/v1/products/{id}B\x1bZ\x19azushop/api/product/v1;v1b\x06proto3"
 
 var (
 	file_api_product_v1_product_proto_rawDescOnce sync.Once
@@ -430,7 +476,7 @@ func file_api_product_v1_product_proto_rawDescGZIP() []byte {
 	return file_api_product_v1_product_proto_rawDescData
 }
 
-var file_api_product_v1_product_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_api_product_v1_product_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_api_product_v1_product_proto_goTypes = []any{
 	(*ListProductsRequest)(nil),   // 0: product.v1.ListProductsRequest
 	(*Sku)(nil),                   // 1: product.v1.Sku
@@ -438,22 +484,23 @@ var file_api_product_v1_product_proto_goTypes = []any{
 	(*ListProductsResponse)(nil),  // 3: product.v1.ListProductsResponse
 	(*CreateProductRequest)(nil),  // 4: product.v1.CreateProductRequest
 	(*UpsertProductRequest)(nil),  // 5: product.v1.UpsertProductRequest
-	(*structpb.Struct)(nil),       // 6: google.protobuf.Struct
-	(*fieldmaskpb.FieldMask)(nil), // 7: google.protobuf.FieldMask
+	(*UpsertProductResponse)(nil), // 6: product.v1.UpsertProductResponse
+	(*structpb.Struct)(nil),       // 7: google.protobuf.Struct
+	(*fieldmaskpb.FieldMask)(nil), // 8: google.protobuf.FieldMask
 }
 var file_api_product_v1_product_proto_depIdxs = []int32{
-	6, // 0: product.v1.Sku.attrs:type_name -> google.protobuf.Struct
+	7, // 0: product.v1.Sku.attrs:type_name -> google.protobuf.Struct
 	1, // 1: product.v1.Product.skus:type_name -> product.v1.Sku
 	2, // 2: product.v1.ListProductsResponse.products:type_name -> product.v1.Product
 	2, // 3: product.v1.CreateProductRequest.product:type_name -> product.v1.Product
 	1, // 4: product.v1.UpsertProductRequest.skus:type_name -> product.v1.Sku
-	7, // 5: product.v1.UpsertProductRequest.update_mask:type_name -> google.protobuf.FieldMask
+	8, // 5: product.v1.UpsertProductRequest.update_mask:type_name -> google.protobuf.FieldMask
 	0, // 6: product.v1.ProductService.ListProducts:input_type -> product.v1.ListProductsRequest
 	4, // 7: product.v1.ProductService.CreateProduct:input_type -> product.v1.CreateProductRequest
 	5, // 8: product.v1.ProductService.UpsertProduct:input_type -> product.v1.UpsertProductRequest
 	3, // 9: product.v1.ProductService.ListProducts:output_type -> product.v1.ListProductsResponse
 	2, // 10: product.v1.ProductService.CreateProduct:output_type -> product.v1.Product
-	2, // 11: product.v1.ProductService.UpsertProduct:output_type -> product.v1.Product
+	6, // 11: product.v1.ProductService.UpsertProduct:output_type -> product.v1.UpsertProductResponse
 	9, // [9:12] is the sub-list for method output_type
 	6, // [6:9] is the sub-list for method input_type
 	6, // [6:6] is the sub-list for extension type_name
@@ -472,7 +519,7 @@ func file_api_product_v1_product_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_product_v1_product_proto_rawDesc), len(file_api_product_v1_product_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

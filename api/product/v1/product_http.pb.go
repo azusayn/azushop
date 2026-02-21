@@ -29,7 +29,7 @@ type ProductServiceHTTPServer interface {
 	// ListProducts List all the products.
 	ListProducts(context.Context, *ListProductsRequest) (*ListProductsResponse, error)
 	// UpsertProduct Update a product's SKU and attributes information.
-	UpsertProduct(context.Context, *UpsertProductRequest) (*Product, error)
+	UpsertProduct(context.Context, *UpsertProductRequest) (*UpsertProductResponse, error)
 }
 
 func RegisterProductServiceHTTPServer(s *http.Server, srv ProductServiceHTTPServer) {
@@ -100,7 +100,7 @@ func _ProductService_UpsertProduct0_HTTP_Handler(srv ProductServiceHTTPServer) f
 		if err != nil {
 			return err
 		}
-		reply := out.(*Product)
+		reply := out.(*UpsertProductResponse)
 		return ctx.Result(200, reply)
 	}
 }
@@ -111,7 +111,7 @@ type ProductServiceHTTPClient interface {
 	// ListProducts List all the products.
 	ListProducts(ctx context.Context, req *ListProductsRequest, opts ...http.CallOption) (rsp *ListProductsResponse, err error)
 	// UpsertProduct Update a product's SKU and attributes information.
-	UpsertProduct(ctx context.Context, req *UpsertProductRequest, opts ...http.CallOption) (rsp *Product, err error)
+	UpsertProduct(ctx context.Context, req *UpsertProductRequest, opts ...http.CallOption) (rsp *UpsertProductResponse, err error)
 }
 
 type ProductServiceHTTPClientImpl struct {
@@ -151,8 +151,8 @@ func (c *ProductServiceHTTPClientImpl) ListProducts(ctx context.Context, in *Lis
 }
 
 // UpsertProduct Update a product's SKU and attributes information.
-func (c *ProductServiceHTTPClientImpl) UpsertProduct(ctx context.Context, in *UpsertProductRequest, opts ...http.CallOption) (*Product, error) {
-	var out Product
+func (c *ProductServiceHTTPClientImpl) UpsertProduct(ctx context.Context, in *UpsertProductRequest, opts ...http.CallOption) (*UpsertProductResponse, error) {
+	var out UpsertProductResponse
 	pattern := "/v1/products/{id}"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationProductServiceUpsertProduct))

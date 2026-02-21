@@ -36,7 +36,7 @@ type ProductServiceClient interface {
 	// Create a new product.
 	CreateProduct(ctx context.Context, in *CreateProductRequest, opts ...grpc.CallOption) (*Product, error)
 	// Update a product's SKU and attributes information.
-	UpsertProduct(ctx context.Context, in *UpsertProductRequest, opts ...grpc.CallOption) (*Product, error)
+	UpsertProduct(ctx context.Context, in *UpsertProductRequest, opts ...grpc.CallOption) (*UpsertProductResponse, error)
 }
 
 type productServiceClient struct {
@@ -67,9 +67,9 @@ func (c *productServiceClient) CreateProduct(ctx context.Context, in *CreateProd
 	return out, nil
 }
 
-func (c *productServiceClient) UpsertProduct(ctx context.Context, in *UpsertProductRequest, opts ...grpc.CallOption) (*Product, error) {
+func (c *productServiceClient) UpsertProduct(ctx context.Context, in *UpsertProductRequest, opts ...grpc.CallOption) (*UpsertProductResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(Product)
+	out := new(UpsertProductResponse)
 	err := c.cc.Invoke(ctx, ProductService_UpsertProduct_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -89,7 +89,7 @@ type ProductServiceServer interface {
 	// Create a new product.
 	CreateProduct(context.Context, *CreateProductRequest) (*Product, error)
 	// Update a product's SKU and attributes information.
-	UpsertProduct(context.Context, *UpsertProductRequest) (*Product, error)
+	UpsertProduct(context.Context, *UpsertProductRequest) (*UpsertProductResponse, error)
 	mustEmbedUnimplementedProductServiceServer()
 }
 
@@ -106,7 +106,7 @@ func (UnimplementedProductServiceServer) ListProducts(context.Context, *ListProd
 func (UnimplementedProductServiceServer) CreateProduct(context.Context, *CreateProductRequest) (*Product, error) {
 	return nil, status.Error(codes.Unimplemented, "method CreateProduct not implemented")
 }
-func (UnimplementedProductServiceServer) UpsertProduct(context.Context, *UpsertProductRequest) (*Product, error) {
+func (UnimplementedProductServiceServer) UpsertProduct(context.Context, *UpsertProductRequest) (*UpsertProductResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method UpsertProduct not implemented")
 }
 func (UnimplementedProductServiceServer) mustEmbedUnimplementedProductServiceServer() {}

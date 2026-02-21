@@ -88,7 +88,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/Product'
+                                $ref: '#/components/schemas/UpsertProductResponse'
                 default:
                     description: Default error response
                     content:
@@ -166,6 +166,8 @@ components:
             properties:
                 id:
                     type: string
+                productName:
+                    type: string
                 sellerId:
                     type: integer
                     description: 'TODO: just extract seller_id from token.'
@@ -177,5 +179,8 @@ components:
                 updateMask:
                     type: string
                     format: field-mask
+        UpsertProductResponse:
+            type: object
+            properties: {}
 tags:
     - name: ProductService
