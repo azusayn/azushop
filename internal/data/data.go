@@ -9,6 +9,8 @@ import (
 	"github.com/azusayn/azutils/auth"
 	"github.com/google/wire"
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 // ProviderSet is data providers.
@@ -21,6 +23,7 @@ type Data struct {
 	// TODO: wrapped redis client
 	// TODO: DDD design.
 	postgresClient *sql.DB
+	gormClient     *gorm.DB
 	PrivateKey     *rsa.PrivateKey
 	AppName        string
 }
@@ -36,6 +39,13 @@ func NewData(c *conf.Data) (*Data, func(), error) {
 		return nil, nil, err
 	}
 
+	pgConfig := postgres.Config{Conn: postgresClient}
+	gormClient, err := gorm.Open(postgres.New(pgConfig), &gorm.Config{})
+	if err != nil {
+		postgresClient.Close()
+		return nil, nil, err
+	}
+
 	cleanup := func() {
 		slog.Warn("close postgres connection...")
 		err := postgresClient.Close()
@@ -47,6 +57,7 @@ func NewData(c *conf.Data) (*Data, func(), error) {
 	return &Data{
 		PrivateKey:     key,
 		postgresClient: postgresClient,
+		gormClient:     gormClient,
 		AppName:        c.AppName,
 	}, cleanup, nil
 }
