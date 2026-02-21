@@ -16,14 +16,16 @@ paths:
             description: List all the products.
             operationId: ProductService_ListProducts
             parameters:
-                - name: page
+                - name: pageToken
                   in: query
                   schema:
                     type: string
                 - name: pageSize
                   in: query
+                  description: max 100
                   schema:
-                    type: string
+                    type: integer
+                    format: int32
             responses:
                 "200":
                     description: OK

@@ -25,9 +25,10 @@ const (
 )
 
 type ListProductsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Page          int64                  `protobuf:"varint,1,opt,name=page,proto3" json:"page,omitempty"`
-	PageSize      int64                  `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	PageToken int64                  `protobuf:"varint,1,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	// max 100
+	PageSize      int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -62,14 +63,14 @@ func (*ListProductsRequest) Descriptor() ([]byte, []int) {
 	return file_api_product_v1_product_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *ListProductsRequest) GetPage() int64 {
+func (x *ListProductsRequest) GetPageToken() int64 {
 	if x != nil {
-		return x.Page
+		return x.PageToken
 	}
 	return 0
 }
 
-func (x *ListProductsRequest) GetPageSize() int64 {
+func (x *ListProductsRequest) GetPageSize() int32 {
 	if x != nil {
 		return x.PageSize
 	}
@@ -383,10 +384,11 @@ var File_api_product_v1_product_proto protoreflect.FileDescriptor
 const file_api_product_v1_product_proto_rawDesc = "" +
 	"\n" +
 	"\x1capi/product/v1/product.proto\x12\n" +
-	"product.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a google/protobuf/field_mask.proto\"F\n" +
-	"\x13ListProductsRequest\x12\x12\n" +
-	"\x04page\x18\x01 \x01(\x03R\x04page\x12\x1b\n" +
-	"\tpage_size\x18\x02 \x01(\x03R\bpageSize\"\xa9\x01\n" +
+	"product.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a google/protobuf/field_mask.proto\"Q\n" +
+	"\x13ListProductsRequest\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\x01 \x01(\x03R\tpageToken\x12\x1b\n" +
+	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\"\xa9\x01\n" +
 	"\x03Sku\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x1d\n" +
 	"\n" +

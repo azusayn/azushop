@@ -25,7 +25,7 @@ type Product struct {
 }
 
 type ProductRepo interface {
-	ListProducts(ctx context.Context, page, pageSize int64) ([]*Product, error)
+	ListProducts(ctx context.Context, pageToken int64, pageSize int32) ([]*Product, error)
 }
 
 type ProductUsecase struct {
@@ -38,8 +38,8 @@ func NewProductUsecase(repo ProductRepo) *ProductUsecase {
 	}
 }
 
-func (uc *ProductUsecase) ListProducts(ctx context.Context, page, pageSize int64) ([]*pb.Product, error) {
-	products, err := uc.repo.ListProducts(ctx, page, pageSize)
+func (uc *ProductUsecase) ListProducts(ctx context.Context, pageToken int64, pageSize int32) ([]*pb.Product, error) {
+	products, err := uc.repo.ListProducts(ctx, pageToken, pageSize)
 	if err != nil {
 		return nil, err
 	}

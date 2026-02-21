@@ -26,7 +26,7 @@ func (s *ProductService) ListProducts(ctx context.Context, req *pb.ListProductsR
 	if req.PageSize > maxPageSize {
 		return nil, status.Error(codes.OutOfRange, codes.OutOfRange.String())
 	}
-	products, err := s.uc.ListProducts(ctx, req.Page, req.PageSize)
+	products, err := s.uc.ListProducts(ctx, req.PageToken, req.PageSize)
 	if err != nil {
 		return nil, err
 	}

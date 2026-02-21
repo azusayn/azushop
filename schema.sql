@@ -16,6 +16,7 @@ CREATE TABLE products (
 
 CREATE INDEX idx_products_seller_id ON products(seller_id);
 
+-- TODO: lock stock design
 CREATE TABLE skus (
   id BIGSERIAL PRIMARY KEY,
   product_id BIGINT NOT NULL,

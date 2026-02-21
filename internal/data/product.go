@@ -3,6 +3,7 @@ package data
 import (
 	"azushop/internal/biz"
 	"context"
+	"encoding/json"
 )
 
 type ProductRepo struct {
@@ -14,34 +15,65 @@ func NewProductRepo(data *Data) biz.ProductRepo {
 }
 
 // TODO: cache and search
-func (repo *ProductRepo) ListProducts(ctx context.Context, page, pageSize int64) ([]*biz.Product, error) {
+func (repo *ProductRepo) ListProducts(ctx context.Context, pageToken int64, pageSize int32) ([]*biz.Product, error) {
 	client := repo.data.postgresClient
-	var products []*biz.Product
-	stmt := "select id, product_name, seller_id from products limit $1 offset $2"
-	rows, err := client.QueryContext(ctx, stmt, pageSize, page*pageSize)
+
+	// product id -> []Sku
+	skusMap := make(map[int64][]*biz.Sku)
+	productMap := make(map[int64]*biz.Product)
+	stmt := `
+		SELECT p.id, p.product_name, p.seller_id, 
+		s.id, s.attrs, s.unit_price, s.stock_quantity 
+		FROM (
+			SELECT id, product_name, seller_id 
+			FROM products 
+			WHERE id > $1 
+			ORDER BY id 
+			LIMIT $2
+		) p 
+		LEFT JOIN skus s ON p.id=s.product_id`
+	rows, err := client.QueryContext(ctx, stmt, pageToken, pageSize)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	for rows.Next() {
-		var product biz.Product
-		if err := rows.Scan(&product.ID, &product.ProductName, &product.SellerID); err != nil {
+		var (
+			productID     int64
+			productName   string
+			sellerID      int32
+			skuID         int64
+			attrs         json.RawMessage
+			unitPrice     string
+			stockQuantity int64
+		)
+		if err := rows.Scan(&productID, &productName, &sellerID, &skuID, &attrs, &unitPrice, &stockQuantity); err != nil {
 			return nil, err
 		}
-		stmt := "select id, attrs, stock_quantity, unit_price from skus where product_id=$1"
-		rows, err := client.QueryContext(ctx, stmt, product.ID)
-		if err != nil {
-			return nil, err
+		sku := &biz.Sku{
+			ID:            skuID,
+			Attrs:         attrs,
+			UnitPrice:     unitPrice,
+			StockQuantity: stockQuantity,
 		}
-		for rows.Next() {
-			var sku biz.Sku
-			if err := rows.Scan(&sku.ID, &sku.Attrs, &sku.StockQuantity, &sku.UnitPrice); err != nil {
-				return nil, err
-			}
-			product.Skus = append(product.Skus, &sku)
+		if skus, ok := skusMap[productID]; ok {
+			skusMap[productID] = append(skus, sku)
+			continue
 		}
-		rows.Close()
-		products = append(products, &product)
+		productMap[productID] = &biz.Product{
+			ID:          productID,
+			ProductName: productName,
+			SellerID:    sellerID,
+		}
+		skusMap[productID] = []*biz.Sku{sku}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	var products []*biz.Product
+	for productID, product := range productMap {
+		product.Skus = skusMap[productID]
+		products = append(products, product)
 	}
 	return products, nil
 }
