@@ -1,20 +1,19 @@
 package biz
 
 import (
-	pb "azushop/api/product/v1"
 	"context"
 	"encoding/json"
 
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
-	"google.golang.org/protobuf/types/known/structpb"
 )
 
 type Sku struct {
-	ID            int64
-	ProductID     int64
-	Attrs         json.RawMessage
-	StockQuantity int64
-	UnitPrice     string
+	ID               int64
+	ProductID        int64
+	Attrs            json.RawMessage
+	StockQuantity    int64
+	ReservedQuantity int64
+	UnitPrice        string
 }
 
 type Product struct {
@@ -26,7 +25,7 @@ type Product struct {
 }
 
 type ProductRepo interface {
-	ListProducts(ctx context.Context, pageToken int64, pageSize int32) ([]*Product, error)
+	ListProductsBySellerId(ctx context.Context, sellerID int32, pageToken int64, pageSize int32) ([]*Product, error)
 	UpsertProduct(ctx context.Context, product *Product, paths []string) error
 }
 
@@ -40,35 +39,12 @@ func NewProductUsecase(repo ProductRepo) *ProductUsecase {
 	}
 }
 
-func (uc *ProductUsecase) ListProducts(ctx context.Context, pageToken int64, pageSize int32) ([]*pb.Product, error) {
-	products, err := uc.repo.ListProducts(ctx, pageToken, pageSize)
+func (uc *ProductUsecase) ListProductsBySellerId(ctx context.Context, sellerID int32, pageToken int64, pageSize int32) ([]*Product, error) {
+	products, err := uc.repo.ListProductsBySellerId(ctx, sellerID, pageToken, pageSize)
 	if err != nil {
 		return nil, err
 	}
-	var pbProducts []*pb.Product
-	for _, p := range products {
-		var pbSkus []*pb.Sku
-		for _, sku := range p.Skus {
-			var s structpb.Struct
-			if err := s.UnmarshalJSON(sku.Attrs); err != nil {
-				return nil, err
-			}
-			pbSkus = append(pbSkus, &pb.Sku{
-				Id:            sku.ID,
-				ProductId:     sku.ProductID,
-				Attrs:         &s,
-				StockQuantity: sku.StockQuantity,
-				UnitPrice:     sku.UnitPrice,
-			})
-		}
-		pbProducts = append(pbProducts, &pb.Product{
-			Id:          p.ID,
-			ProductName: p.ProductName,
-			SellerId:    p.SellerID,
-			Skus:        pbSkus,
-		})
-	}
-	return pbProducts, nil
+	return products, nil
 }
 
 func (uc *ProductUsecase) UpsertProduct(ctx context.Context, product *Product, updateMask *fieldmaskpb.FieldMask) error {

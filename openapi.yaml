@@ -4,17 +4,15 @@
 openapi: 3.0.3
 info:
     title: ProductService API
-    description: |-
-        TODO: scope.
-         product management api only for merchants
+    description: api for both merchants and customers.
     version: 0.0.1
 paths:
-    /v1/products:
+    /v1/merchant/products:
         get:
             tags:
                 - ProductService
-            description: List all the products.
-            operationId: ProductService_ListProducts
+            description: list all the products of the merchant.
+            operationId: ProductService_ListMerchantProducts
             parameters:
                 - name: pageToken
                   in: query
@@ -33,31 +31,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ListProductsResponse'
-                default:
-                    description: Default error response
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/Status'
-        post:
-            tags:
-                - ProductService
-            description: Create a new product.
-            operationId: ProductService_CreateProduct
-            requestBody:
-                content:
-                    application/json:
-                        schema:
-                            $ref: '#/components/schemas/CreateProductRequest'
-                required: true
-            responses:
-                "200":
-                    description: OK
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/Product'
+                                $ref: '#/components/schemas/ListMerchantProductsResponse'
                 default:
                     description: Default error response
                     content:
@@ -68,7 +42,7 @@ paths:
         patch:
             tags:
                 - ProductService
-            description: Update a product's SKU and attributes information.
+            description: insert or update a product's details.
             operationId: ProductService_UpsertProduct
             parameters:
                 - name: id
@@ -95,13 +69,45 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/Status'
+    /v1/sellers/{sellerId}/products:
+        get:
+            tags:
+                - ProductService
+            description: list products by seller_id, generally used by customers.
+            operationId: ProductService_ListProductsBySellerId
+            parameters:
+                - name: sellerId
+                  in: path
+                  required: true
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pageToken
+                  in: query
+                  description: use 0 for the first request.
+                  schema:
+                    type: string
+                - name: pageSize
+                  in: query
+                  description: max 100
+                  schema:
+                    type: integer
+                    format: int32
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListProductsBySellerIdResponse'
+                default:
+                    description: Default error response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Status'
 components:
     schemas:
-        CreateProductRequest:
-            type: object
-            properties:
-                product:
-                    $ref: '#/components/schemas/Product'
         GoogleProtobufAny:
             type: object
             properties:
@@ -110,13 +116,45 @@ components:
                     description: The type of the serialized message.
             additionalProperties: true
             description: Contains an arbitrary serialized message along with a @type that describes the type of the serialized message.
-        ListProductsResponse:
+        ListMerchantProductsResponse:
+            type: object
+            properties:
+                products:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/MerchantProduct'
+        ListProductsBySellerIdResponse:
             type: object
             properties:
                 products:
                     type: array
                     items:
                         $ref: '#/components/schemas/Product'
+        MerchantProduct:
+            type: object
+            properties:
+                id:
+                    type: string
+                productName:
+                    type: string
+                sellerId:
+                    type: integer
+                    description: 'TODO: just extract it from token.'
+                    format: int32
+                skus:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/MerchantSku'
+        MerchantSku:
+            type: object
+            properties:
+                skuDetail:
+                    $ref: '#/components/schemas/SkuDetail'
+                stockQuantity:
+                    type: string
+                reservedQuantity:
+                    type: string
+            description: sku message only used by merchant.
         Product:
             type: object
             properties:
@@ -135,14 +173,17 @@ components:
         Sku:
             type: object
             properties:
-                id:
+                skuDetail:
+                    $ref: '#/components/schemas/SkuDetail'
+                availableQuantity:
                     type: string
-                productId:
+        SkuDetail:
+            type: object
+            properties:
+                id:
                     type: string
                 attrs:
                     type: object
-                stockQuantity:
-                    type: string
                 unitPrice:
                     type: string
         Status:
@@ -172,10 +213,10 @@ components:
                     type: integer
                     description: 'TODO: just extract seller_id from token.'
                     format: int32
-                skus:
+                skuDetails:
                     type: array
                     items:
-                        $ref: '#/components/schemas/Sku'
+                        $ref: '#/components/schemas/SkuDetail'
                 updateMask:
                     type: string
                     format: field-mask

@@ -8,47 +8,47 @@ import "google/protobuf/field_mask.proto";
 
 option go_package = "azushop/api/product/v1;v1";
 
-// TODO: scope.
-// product management api only for merchants
+// api for both merchants and customers.
 service ProductService {
-  // List all the products.
-  rpc ListProducts(ListProductsRequest) returns (ListProductsResponse) {
+  // list products by seller_id, generally used by customers.
+  rpc ListProductsBySellerId(ListProductsBySellerIdRequest) returns (ListProductsBySellerIdResponse) {
     option (google.api.http) = {
-      get:"/v1/products"
+      get:"/v1/sellers/{seller_id}/products"
+    };
+  };
+  
+  // list all the products of the merchant.
+  rpc ListMerchantProducts(ListMerchantProductsRequest) returns (ListMerchantProductsResponse) {
+    option (google.api.http) = {
+      get: "/v1/merchant/products"
     };
   };
 
-  // Create a new product. 
-  rpc CreateProduct(CreateProductRequest) returns (Product) {
-    option (google.api.http) = {
-      post: "/v1/products"
-      body: "*"
-    };
-  };
-
-  // Update a product's SKU and attributes information.
+  // insert or update a product's details.
   rpc UpsertProduct(UpsertProductRequest) returns (UpsertProductResponse) {
     option (google.api.http) = {
       patch: "/v1/products/{id}"
       body: "*"
     };
   };
-
 }
 
-message ListProductsRequest {
-  // use 0 for the first request.
-  int64 page_token = 1;
-  // max 100
-  int32 page_size = 2;
+message SkuDetail {
+  int64 id = 1;
+  google.protobuf.Struct attrs = 2;
+  string unit_price = 3;
 }
 
 message Sku {
-  int64 id = 1;
-  int64 product_id = 2;
-  google.protobuf.Struct attrs = 3;
-  int64 stock_quantity = 4;
-  string unit_price = 5;
+  SkuDetail sku_detail = 1;
+  int64 available_quantity = 2;
+}
+
+// sku message only used by merchant.
+message MerchantSku {
+  SkuDetail sku_detail = 1;
+  int64 stock_quantity = 2;
+  int64 reserved_quantity = 3;
 }
 
 message Product {
@@ -59,12 +59,35 @@ message Product {
   repeated Sku skus = 4;
 }
 
-message ListProductsResponse {
+message MerchantProduct {
+  int64 id = 1;
+  string product_name = 2;
+  // TODO: just extract it from token.
+  int32 seller_id = 3;
+  repeated MerchantSku skus = 4;
+}
+
+message ListProductsBySellerIdRequest {
+  // use 0 for the first request.
+  int64 page_token = 1;
+  // max 100
+  int32 page_size = 2;
+  int32 seller_id = 3;
+}
+
+message ListProductsBySellerIdResponse {
   repeated Product products = 1;
 }
 
-message CreateProductRequest {
-  Product product = 1;
+message ListMerchantProductsRequest {
+  // use 0 for the first request.
+  int64 page_token = 1;
+  // max 100
+  int32 page_size = 2;
+}
+
+message ListMerchantProductsResponse {
+  repeated MerchantProduct products = 1;
 }
 
 message UpsertProductRequest {
@@ -72,10 +95,8 @@ message UpsertProductRequest {
   string product_name = 2;
   // TODO: just extract seller_id from token.
   int32 seller_id = 3;
-  repeated Sku skus = 4;
+  repeated SkuDetail sku_details = 4;
   google.protobuf.FieldMask update_mask = 5;
 }
 
-message UpsertProductResponse {
-
-}
+message UpsertProductResponse {}
