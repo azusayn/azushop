@@ -2,6 +2,7 @@ package data
 
 import (
 	"azushop/internal/conf"
+	"context"
 	"crypto/rsa"
 	"database/sql"
 	"log/slog"
@@ -9,6 +10,7 @@ import (
 	"github.com/azusayn/azutils/auth"
 	"github.com/google/wire"
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -46,10 +48,22 @@ func NewData(c *conf.Data) (*Data, func(), error) {
 		return nil, nil, err
 	}
 
+	redisClient := redis.NewClient(&redis.Options{
+		Addr: c.Redis.Addr,
+	})
+	if err := redisClient.Ping(context.Background()).Err(); err != nil {
+		postgresClient.Close()
+		return nil, nil, err
+	}
+
 	cleanup := func() {
 		slog.Warn("close postgres connection...")
-		err := postgresClient.Close()
-		if err != nil {
+		if err := postgresClient.Close(); err != nil {
+			slog.Warn(err.Error())
+
+		}
+		slog.Warn("close redis connection...")
+		if err = redisClient.Close(); err != nil {
 			slog.Warn(err.Error())
 		}
 	}
