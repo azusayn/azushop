@@ -5,7 +5,10 @@ import (
 	"context"
 	"crypto/rsa"
 	"database/sql"
+	"encoding/json"
+	"errors"
 	"log/slog"
+	"time"
 
 	"github.com/azusayn/azutils/auth"
 	"github.com/google/wire"
@@ -26,6 +29,7 @@ type Data struct {
 	// TODO: DDD design.
 	postgresClient *sql.DB
 	gormClient     *gorm.DB
+	redisClient    *redis.Client
 	PrivateKey     *rsa.PrivateKey
 	AppName        string
 }
@@ -74,4 +78,41 @@ func NewData(c *conf.Data) (*Data, func(), error) {
 		gormClient:     gormClient,
 		AppName:        c.AppName,
 	}, cleanup, nil
+}
+
+func GetCache[T any](ctx context.Context, data *Data, key string) (T, bool) {
+	var zero T
+	val, err := func() (T, error) {
+		client := data.redisClient
+		bytes, err := client.Get(ctx, key).Bytes()
+		if err != nil {
+			return zero, err
+		}
+		var val T
+		if err := json.Unmarshal(bytes, &val); err != nil {
+			return zero, err
+		}
+		return val, nil
+	}()
+	if err != nil {
+		if !errors.Is(err, redis.Nil) {
+			slog.Warn(err.Error())
+		}
+		return zero, false
+	}
+	return val, true
+}
+
+func SetCache[T any](ctx context.Context, data *Data, key string, val T, expiration time.Duration) {
+	err := func() error {
+		client := data.redisClient
+		bytes, err := json.Marshal(val)
+		if err != nil {
+			return err
+		}
+		return client.Set(ctx, key, bytes, expiration).Err()
+	}()
+	if err != nil {
+		slog.Warn(err.Error())
+	}
 }

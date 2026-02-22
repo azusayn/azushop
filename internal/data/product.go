@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 )
 
 type ProductRepo struct {
@@ -16,12 +17,21 @@ func NewProductRepo(data *Data) biz.ProductRepo {
 	return &ProductRepo{data: data}
 }
 
-// TODO: cache and search
-func (repo *ProductRepo) ListProducts(ctx context.Context, pageToken int64, pageSize int32) ([]*biz.Product, error) {
-	client := repo.data.postgresClient
+func cacheKeyProduct(pageToken int64, pageSize int32) string {
+	return fmt.Sprintf("product:%d:%d", pageToken, pageSize)
+}
 
+func (repo *ProductRepo) ListProducts(ctx context.Context, pageToken int64, pageSize int32) ([]*biz.Product, error) {
+	key := cacheKeyProduct(pageToken, pageSize)
+	cachedProducts, found := GetCache[[]*biz.Product](ctx, repo.data, key)
+	if found {
+		return cachedProducts, nil
+	}
+
+	client := repo.data.postgresClient
 	// product id -> []Sku
 	skusMap := make(map[int64][]*biz.Sku)
+	// product id -> Product
 	productMap := make(map[int64]*biz.Product)
 	stmt := `
 		SELECT p.id, p.product_name, p.seller_id, 
@@ -78,6 +88,9 @@ func (repo *ProductRepo) ListProducts(ctx context.Context, pageToken int64, page
 		product.Skus = skusMap[productID]
 		products = append(products, product)
 	}
+
+	SetCache(ctx, repo.data, key, products, time.Duration(0))
+
 	return products, nil
 }
 
