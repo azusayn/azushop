@@ -23,6 +23,7 @@ CREATE TABLE skus (
   attrs JSONB,
   unit_price NUMERIC(10, 2) NOT NULL CHECK (unit_price >= 0),
   stock_quantity BIGINT NOT NULL CHECK (stock_quantity >= 0),
+  reserved_quantity BIGINT NOT NULL CHECK (stock_quantity >= reserved_quantity),
   FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
 );
 

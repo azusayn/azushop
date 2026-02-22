@@ -21,7 +21,7 @@ func cacheKeyProduct(pageToken int64, pageSize int32) string {
 	return fmt.Sprintf("product:%d:%d", pageToken, pageSize)
 }
 
-func (repo *ProductRepo) ListProducts(ctx context.Context, pageToken int64, pageSize int32) ([]*biz.Product, error) {
+func (repo *ProductRepo) ListProductsBySellerId(ctx context.Context, sellerID int32, pageToken int64, pageSize int32) ([]*biz.Product, error) {
 	key := cacheKeyProduct(pageToken, pageSize)
 	cachedProducts, found := GetCache[[]*biz.Product](ctx, repo.data, key)
 	if found {
@@ -34,40 +34,49 @@ func (repo *ProductRepo) ListProducts(ctx context.Context, pageToken int64, page
 	// product id -> Product
 	productMap := make(map[int64]*biz.Product)
 	stmt := `
-		SELECT p.id, p.product_name, p.seller_id, 
-		s.id, s.attrs, s.unit_price, s.stock_quantity 
+		SELECT p.id, p.product_name, s.id, s.attrs, 
+			s.unit_price, s.stock_quantity, s.reserved_quantity
 		FROM (
-			SELECT id, product_name, seller_id 
+			SELECT id, product_name
 			FROM products 
-			WHERE id > $1 
+			WHERE id > $1 AND seller_id=$2
 			ORDER BY id 
-			LIMIT $2
+			LIMIT $3
 		) p 
 		LEFT JOIN skus s ON p.id=s.product_id
 	`
-	rows, err := client.QueryContext(ctx, stmt, pageToken, pageSize)
+	rows, err := client.QueryContext(ctx, stmt, pageToken, sellerID, pageSize)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	for rows.Next() {
 		var (
-			productID     int64
-			productName   string
-			sellerID      int32
-			skuID         int64
-			attrs         json.RawMessage
-			unitPrice     string
-			stockQuantity int64
+			productID        int64
+			productName      string
+			skuID            int64
+			attrs            json.RawMessage
+			unitPrice        string
+			stockQuantity    int64
+			reservedQuantiry int64
 		)
-		if err := rows.Scan(&productID, &productName, &sellerID, &skuID, &attrs, &unitPrice, &stockQuantity); err != nil {
+		if err := rows.Scan(
+			&productID,
+			&productName,
+			&skuID,
+			&attrs,
+			&unitPrice,
+			&stockQuantity,
+			&reservedQuantiry,
+		); err != nil {
 			return nil, err
 		}
 		sku := &biz.Sku{
-			ID:            skuID,
-			Attrs:         attrs,
-			UnitPrice:     unitPrice,
-			StockQuantity: stockQuantity,
+			ID:               skuID,
+			Attrs:            attrs,
+			UnitPrice:        unitPrice,
+			StockQuantity:    stockQuantity,
+			ReservedQuantity: reservedQuantiry,
 		}
 		if skus, ok := skusMap[productID]; ok {
 			skusMap[productID] = append(skus, sku)

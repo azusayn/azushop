@@ -19,63 +19,63 @@ var _ = binding.EncodeURL
 
 const _ = http.SupportPackageIsVersion1
 
-const OperationProductServiceCreateProduct = "/product.v1.ProductService/CreateProduct"
-const OperationProductServiceListProducts = "/product.v1.ProductService/ListProducts"
+const OperationProductServiceListMerchantProducts = "/product.v1.ProductService/ListMerchantProducts"
+const OperationProductServiceListProductsBySellerId = "/product.v1.ProductService/ListProductsBySellerId"
 const OperationProductServiceUpsertProduct = "/product.v1.ProductService/UpsertProduct"
 
 type ProductServiceHTTPServer interface {
-	// CreateProduct Create a new product.
-	CreateProduct(context.Context, *CreateProductRequest) (*Product, error)
-	// ListProducts List all the products.
-	ListProducts(context.Context, *ListProductsRequest) (*ListProductsResponse, error)
-	// UpsertProduct Update a product's SKU and attributes information.
+	// ListMerchantProducts list all the products of the merchant.
+	ListMerchantProducts(context.Context, *ListMerchantProductsRequest) (*ListMerchantProductsResponse, error)
+	// ListProductsBySellerId list products by seller_id, generally used by customers.
+	ListProductsBySellerId(context.Context, *ListProductsBySellerIdRequest) (*ListProductsBySellerIdResponse, error)
+	// UpsertProduct insert or update a product's details.
 	UpsertProduct(context.Context, *UpsertProductRequest) (*UpsertProductResponse, error)
 }
 
 func RegisterProductServiceHTTPServer(s *http.Server, srv ProductServiceHTTPServer) {
 	r := s.Route("/")
-	r.GET("/v1/products", _ProductService_ListProducts0_HTTP_Handler(srv))
-	r.POST("/v1/products", _ProductService_CreateProduct0_HTTP_Handler(srv))
+	r.GET("/v1/sellers/{seller_id}/products", _ProductService_ListProductsBySellerId0_HTTP_Handler(srv))
+	r.GET("/v1/merchant/products", _ProductService_ListMerchantProducts0_HTTP_Handler(srv))
 	r.PATCH("/v1/products/{id}", _ProductService_UpsertProduct0_HTTP_Handler(srv))
 }
 
-func _ProductService_ListProducts0_HTTP_Handler(srv ProductServiceHTTPServer) func(ctx http.Context) error {
+func _ProductService_ListProductsBySellerId0_HTTP_Handler(srv ProductServiceHTTPServer) func(ctx http.Context) error {
 	return func(ctx http.Context) error {
-		var in ListProductsRequest
+		var in ListProductsBySellerIdRequest
 		if err := ctx.BindQuery(&in); err != nil {
 			return err
 		}
-		http.SetOperation(ctx, OperationProductServiceListProducts)
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationProductServiceListProductsBySellerId)
 		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
-			return srv.ListProducts(ctx, req.(*ListProductsRequest))
+			return srv.ListProductsBySellerId(ctx, req.(*ListProductsBySellerIdRequest))
 		})
 		out, err := h(ctx, &in)
 		if err != nil {
 			return err
 		}
-		reply := out.(*ListProductsResponse)
+		reply := out.(*ListProductsBySellerIdResponse)
 		return ctx.Result(200, reply)
 	}
 }
 
-func _ProductService_CreateProduct0_HTTP_Handler(srv ProductServiceHTTPServer) func(ctx http.Context) error {
+func _ProductService_ListMerchantProducts0_HTTP_Handler(srv ProductServiceHTTPServer) func(ctx http.Context) error {
 	return func(ctx http.Context) error {
-		var in CreateProductRequest
-		if err := ctx.Bind(&in); err != nil {
-			return err
-		}
+		var in ListMerchantProductsRequest
 		if err := ctx.BindQuery(&in); err != nil {
 			return err
 		}
-		http.SetOperation(ctx, OperationProductServiceCreateProduct)
+		http.SetOperation(ctx, OperationProductServiceListMerchantProducts)
 		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
-			return srv.CreateProduct(ctx, req.(*CreateProductRequest))
+			return srv.ListMerchantProducts(ctx, req.(*ListMerchantProductsRequest))
 		})
 		out, err := h(ctx, &in)
 		if err != nil {
 			return err
 		}
-		reply := out.(*Product)
+		reply := out.(*ListMerchantProductsResponse)
 		return ctx.Result(200, reply)
 	}
 }
@@ -106,11 +106,11 @@ func _ProductService_UpsertProduct0_HTTP_Handler(srv ProductServiceHTTPServer) f
 }
 
 type ProductServiceHTTPClient interface {
-	// CreateProduct Create a new product.
-	CreateProduct(ctx context.Context, req *CreateProductRequest, opts ...http.CallOption) (rsp *Product, err error)
-	// ListProducts List all the products.
-	ListProducts(ctx context.Context, req *ListProductsRequest, opts ...http.CallOption) (rsp *ListProductsResponse, err error)
-	// UpsertProduct Update a product's SKU and attributes information.
+	// ListMerchantProducts list all the products of the merchant.
+	ListMerchantProducts(ctx context.Context, req *ListMerchantProductsRequest, opts ...http.CallOption) (rsp *ListMerchantProductsResponse, err error)
+	// ListProductsBySellerId list products by seller_id, generally used by customers.
+	ListProductsBySellerId(ctx context.Context, req *ListProductsBySellerIdRequest, opts ...http.CallOption) (rsp *ListProductsBySellerIdResponse, err error)
+	// UpsertProduct insert or update a product's details.
 	UpsertProduct(ctx context.Context, req *UpsertProductRequest, opts ...http.CallOption) (rsp *UpsertProductResponse, err error)
 }
 
@@ -122,26 +122,12 @@ func NewProductServiceHTTPClient(client *http.Client) ProductServiceHTTPClient {
 	return &ProductServiceHTTPClientImpl{client}
 }
 
-// CreateProduct Create a new product.
-func (c *ProductServiceHTTPClientImpl) CreateProduct(ctx context.Context, in *CreateProductRequest, opts ...http.CallOption) (*Product, error) {
-	var out Product
-	pattern := "/v1/products"
-	path := binding.EncodeURL(pattern, in, false)
-	opts = append(opts, http.Operation(OperationProductServiceCreateProduct))
-	opts = append(opts, http.PathTemplate(pattern))
-	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return &out, nil
-}
-
-// ListProducts List all the products.
-func (c *ProductServiceHTTPClientImpl) ListProducts(ctx context.Context, in *ListProductsRequest, opts ...http.CallOption) (*ListProductsResponse, error) {
-	var out ListProductsResponse
-	pattern := "/v1/products"
+// ListMerchantProducts list all the products of the merchant.
+func (c *ProductServiceHTTPClientImpl) ListMerchantProducts(ctx context.Context, in *ListMerchantProductsRequest, opts ...http.CallOption) (*ListMerchantProductsResponse, error) {
+	var out ListMerchantProductsResponse
+	pattern := "/v1/merchant/products"
 	path := binding.EncodeURL(pattern, in, true)
-	opts = append(opts, http.Operation(OperationProductServiceListProducts))
+	opts = append(opts, http.Operation(OperationProductServiceListMerchantProducts))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {
@@ -150,7 +136,21 @@ func (c *ProductServiceHTTPClientImpl) ListProducts(ctx context.Context, in *Lis
 	return &out, nil
 }
 
-// UpsertProduct Update a product's SKU and attributes information.
+// ListProductsBySellerId list products by seller_id, generally used by customers.
+func (c *ProductServiceHTTPClientImpl) ListProductsBySellerId(ctx context.Context, in *ListProductsBySellerIdRequest, opts ...http.CallOption) (*ListProductsBySellerIdResponse, error) {
+	var out ListProductsBySellerIdResponse
+	pattern := "/v1/sellers/{seller_id}/products"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationProductServiceListProductsBySellerId))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// UpsertProduct insert or update a product's details.
 func (c *ProductServiceHTTPClientImpl) UpsertProduct(ctx context.Context, in *UpsertProductRequest, opts ...http.CallOption) (*UpsertProductResponse, error) {
 	var out UpsertProductResponse
 	pattern := "/v1/products/{id}"
