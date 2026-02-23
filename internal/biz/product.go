@@ -2,19 +2,9 @@ package biz
 
 import (
 	"context"
-	"encoding/json"
 
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 )
-
-type Sku struct {
-	ID               int64
-	ProductID        int64
-	Attrs            json.RawMessage
-	StockQuantity    int64
-	ReservedQuantity int64
-	UnitPrice        string
-}
 
 type Product struct {
 	ID          int64
