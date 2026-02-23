@@ -23,7 +23,11 @@ func (r *InventoryRepo) CreateSKU(ctx context.Context, productID int64, skus []*
 func (r *InventoryRepo) UpdateSKU(ctx context.Context, skus []*biz.Sku) error {
 	gormClient := r.data.gormClient
 	for _, sku := range skus {
-		if err := gormClient.WithContext(ctx).Save(sku).Error; err != nil {
+		vals := map[string]interface{}{
+			"unit_price": sku.UnitPrice,
+			"attrs":      sku.Attrs,
+		}
+		if err := gormClient.WithContext(ctx).Model(sku).Updates(vals).Error; err != nil {
 			return err
 		}
 	}
