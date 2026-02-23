@@ -11,11 +11,20 @@ import (
 	"github.com/azusayn/azutils/crypto"
 )
 
+type UserRoleType string
+
+const (
+	UserRoleCustomer      UserRoleType = "customer"
+	UserRoleMerchant      UserRoleType = "merchant"
+	UserRoleAdministrator UserRoleType = "admin"
+)
+
 type User struct {
 	ID           int64
 	Name         string
 	PasswordHash string
 	Salt         string
+	Role         UserRoleType
 }
 
 type UserRepo interface {
@@ -43,15 +52,13 @@ func (uc *UserUsecase) Register(ctx context.Context, name, password string) erro
 	salt := crypto.GenerateRandomBytes(16)
 	passwordHash := crypto.Sha256(password, salt)
 
-	if err := uc.repo.Save(ctx, &User{
+	return uc.repo.Save(ctx, &User{
 		Name:         name,
 		PasswordHash: passwordHash,
 		Salt:         salt,
-	}); err != nil {
-		return err
-	}
-
-	return nil
+		// TODO: merchant register interface.
+		Role: UserRoleCustomer,
+	})
 }
 
 func (uc *UserUsecase) Login(
@@ -64,20 +71,13 @@ func (uc *UserUsecase) Login(
 	if err := auth.CheckUsername(name); err != nil {
 		return "", err
 	}
-
 	user, err := uc.repo.FindByName(ctx, name)
 	if err != nil {
 		return "", err
 	}
-
 	passwordHash := crypto.Sha256(password, user.Salt)
 	if passwordHash != user.PasswordHash {
 		return "", errors.New("invalid username or password")
 	}
-
-	token, err := auth.GenerateAccessToken(user.ID, privateKey, issuer, time.Minute*15)
-	if err != nil {
-		return "", err
-	}
-	return token, nil
+	return auth.GenerateAccessToken(user.ID, privateKey, issuer, string(user.Role), time.Minute*15)
 }

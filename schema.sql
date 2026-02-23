@@ -3,6 +3,7 @@ CREATE TABLE users (
   username VARCHAR(255) NOT NULL,
   password_hash VARCHAR(255) NOT NULL,
   salt VARCHAR(255) NOT NULL
+  role VARCHAR(255) NOT NULL CHECK (role IN ('admin', 'merchant', 'customer'))
 )
 
 CREATE TABLE products (
