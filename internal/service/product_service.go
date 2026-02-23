@@ -3,6 +3,7 @@ package service
 import (
 	pb "azushop/api/product/v1"
 	"azushop/internal/biz"
+	"azushop/internal/pkg/middleware"
 	"context"
 	"encoding/json"
 
@@ -124,8 +125,11 @@ func (s *ProductService) ListMerchantProducts(ctx context.Context, req *pb.ListM
 	if req.PageSize > maxPageSize {
 		return nil, status.Error(codes.OutOfRange, codes.OutOfRange.String())
 	}
-	// TODO: extract seller id from metadata.
-	products, err := s.uc.ListProductsBySellerId(ctx, 0x0, req.PageToken, req.PageSize)
+	userID, _, err := middleware.ExtractUserInfo(&ctx)
+	if err != nil {
+		return nil, status.Error(codes.Unauthenticated, err.Error())
+	}
+	products, err := s.uc.ListProductsBySellerId(ctx, int32(userID), req.PageToken, req.PageSize)
 	if err != nil {
 		return nil, err
 	}
