@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package order.v1;
 
+import "google/api/annotations.proto";
+
 option go_package = "azushop/api/order/v1;v1";
 
 // order service.
@@ -45,10 +47,14 @@ message CreateOrderResponse {
   string total = 1;
 }
 
-message CheckoutRequest {}
+message CheckoutRequest {
+  int64 order_id = 1;
+}
 
 message CheckoutResponse {}
 
-message PayRequest {}
+message PayRequest {
+  int64 order_id = 1;
+}
 
 message PayResponse {}
