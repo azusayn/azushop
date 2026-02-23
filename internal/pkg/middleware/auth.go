@@ -29,11 +29,11 @@ func AuthInterceptor(publicKey *rsa.PublicKey, issuer string) middleware.Middlew
 				val := md.Get(auth.HttpHeaderAuthorization)
 				tokens := strings.Split(val, " ")
 				if len(tokens) != 2 || strings.ToLower(tokens[0]) != auth.HttpHeaderBearer {
-					return nil, status.Error(codes.InvalidArgument, "invalid access token format")
+					return nil, status.Error(codes.Unauthenticated, "invalid access token format")
 				}
 				userID, role, err := auth.ValidateAccessToken(tokens[1], publicKey, issuer)
 				if err != nil {
-					return nil, err
+					return nil, status.Error(codes.Unauthenticated, err.Error())
 				}
 				WithUserInfo(&ctx, userID, role)
 			}
@@ -42,6 +42,7 @@ func AuthInterceptor(publicKey *rsa.PublicKey, issuer string) middleware.Middlew
 	}
 }
 
+// TODO: differ roles in different APIs.
 func requireAuth(methodName string) bool {
 	switch methodName {
 	case v1.OperationAuthServiceLogin,
