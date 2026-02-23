@@ -5,42 +5,23 @@ import (
 	"azushop/internal/biz"
 	"azushop/internal/data"
 	"context"
-	"crypto/rsa"
 )
 
 type AuthServiceService struct {
 	pb.UnimplementedAuthServiceServer
-	uc         *biz.UserUsecase
-	authConfig *AuthConfig
+	uc   *biz.UserUsecase
+	data *data.Data
 }
 
-// TODO: move this to proper place.
-type AuthConfig struct {
-	appName    string
-	privateKey *rsa.PrivateKey
-}
-
-func NewAuthConfig(data *data.Data) *AuthConfig {
-	return &AuthConfig{
-		data.AppName,
-		data.PrivateKey,
-	}
-}
-func NewAuthServiceService(uc *biz.UserUsecase, authConfig *AuthConfig) *AuthServiceService {
+func NewAuthServiceService(uc *biz.UserUsecase, data *data.Data) *AuthServiceService {
 	return &AuthServiceService{
-		uc:         uc,
-		authConfig: authConfig,
+		uc:   uc,
+		data: data,
 	}
 }
 
 func (s *AuthServiceService) Login(ctx context.Context, req *pb.LoginRequest) (*pb.LoginResponse, error) {
-	token, err := s.uc.Login(
-		ctx,
-		s.authConfig.privateKey,
-		s.authConfig.appName,
-		req.Name,
-		req.Password,
-	)
+	token, err := s.uc.Login(ctx, s.data.GetPrivateKey(), s.data.GetAppName(), req.Name, req.Password)
 	if err != nil {
 		return nil, err
 	}
