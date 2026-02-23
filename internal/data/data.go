@@ -25,13 +25,12 @@ var ProviderSet = wire.NewSet(
 )
 
 type Data struct {
-	// TODO: wrapped redis client
 	// TODO: DDD design.
 	postgresClient *sql.DB
 	gormClient     *gorm.DB
 	redisClient    *redis.Client
-	PrivateKey     *rsa.PrivateKey
-	AppName        string
+	privateKey     *rsa.PrivateKey
+	appName        string
 }
 
 func NewData(c *conf.Data) (*Data, func(), error) {
@@ -73,11 +72,25 @@ func NewData(c *conf.Data) (*Data, func(), error) {
 	}
 
 	return &Data{
-		PrivateKey:     key,
+		privateKey:     key,
 		postgresClient: postgresClient,
 		gormClient:     gormClient,
-		AppName:        c.AppName,
+		appName:        c.AppName,
 	}, cleanup, nil
+}
+
+func (d *Data) GetPrivateKey() *rsa.PrivateKey {
+	if d == nil {
+		return nil
+	}
+	return d.privateKey
+}
+
+func (d *Data) GetAppName() string {
+	if d == nil {
+		return ""
+	}
+	return d.appName
 }
 
 func GetCache[T any](ctx context.Context, data *Data, key string) (T, bool) {
