@@ -83,6 +83,7 @@ message UpdateSKURequest {
 message UpdateSKUResponse {}
 
 
+// TODO: batch get.
 message ListSKUsRequest {
   int64 product_id = 1;
 }

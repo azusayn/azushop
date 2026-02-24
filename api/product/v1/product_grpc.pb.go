@@ -19,9 +19,8 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	ProductService_ListProductsBySellerId_FullMethodName = "/product.v1.ProductService/ListProductsBySellerId"
-	ProductService_ListMerchantProducts_FullMethodName   = "/product.v1.ProductService/ListMerchantProducts"
-	ProductService_UpsertProduct_FullMethodName          = "/product.v1.ProductService/UpsertProduct"
+	ProductService_ListSellerProducts_FullMethodName = "/product.v1.ProductService/ListSellerProducts"
+	ProductService_UpsertProduct_FullMethodName      = "/product.v1.ProductService/UpsertProduct"
 )
 
 // ProductServiceClient is the client API for ProductService service.
@@ -31,10 +30,8 @@ const (
 // api for both merchants and customers.
 type ProductServiceClient interface {
 	// list products by seller_id, generally used by customers.
-	ListProductsBySellerId(ctx context.Context, in *ListProductsBySellerIdRequest, opts ...grpc.CallOption) (*ListProductsBySellerIdResponse, error)
-	// list all the products of the merchant.
-	ListMerchantProducts(ctx context.Context, in *ListMerchantProductsRequest, opts ...grpc.CallOption) (*ListMerchantProductsResponse, error)
-	// insert or update a product's details.
+	ListSellerProducts(ctx context.Context, in *ListSellerProductsRequest, opts ...grpc.CallOption) (*ListSellerProductsResponse, error)
+	// insert or update a product's details, used by administrators & merchants.
 	UpsertProduct(ctx context.Context, in *UpsertProductRequest, opts ...grpc.CallOption) (*UpsertProductResponse, error)
 }
 
@@ -46,20 +43,10 @@ func NewProductServiceClient(cc grpc.ClientConnInterface) ProductServiceClient {
 	return &productServiceClient{cc}
 }
 
-func (c *productServiceClient) ListProductsBySellerId(ctx context.Context, in *ListProductsBySellerIdRequest, opts ...grpc.CallOption) (*ListProductsBySellerIdResponse, error) {
+func (c *productServiceClient) ListSellerProducts(ctx context.Context, in *ListSellerProductsRequest, opts ...grpc.CallOption) (*ListSellerProductsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ListProductsBySellerIdResponse)
-	err := c.cc.Invoke(ctx, ProductService_ListProductsBySellerId_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *productServiceClient) ListMerchantProducts(ctx context.Context, in *ListMerchantProductsRequest, opts ...grpc.CallOption) (*ListMerchantProductsResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ListMerchantProductsResponse)
-	err := c.cc.Invoke(ctx, ProductService_ListMerchantProducts_FullMethodName, in, out, cOpts...)
+	out := new(ListSellerProductsResponse)
+	err := c.cc.Invoke(ctx, ProductService_ListSellerProducts_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -83,10 +70,8 @@ func (c *productServiceClient) UpsertProduct(ctx context.Context, in *UpsertProd
 // api for both merchants and customers.
 type ProductServiceServer interface {
 	// list products by seller_id, generally used by customers.
-	ListProductsBySellerId(context.Context, *ListProductsBySellerIdRequest) (*ListProductsBySellerIdResponse, error)
-	// list all the products of the merchant.
-	ListMerchantProducts(context.Context, *ListMerchantProductsRequest) (*ListMerchantProductsResponse, error)
-	// insert or update a product's details.
+	ListSellerProducts(context.Context, *ListSellerProductsRequest) (*ListSellerProductsResponse, error)
+	// insert or update a product's details, used by administrators & merchants.
 	UpsertProduct(context.Context, *UpsertProductRequest) (*UpsertProductResponse, error)
 	mustEmbedUnimplementedProductServiceServer()
 }
@@ -98,11 +83,8 @@ type ProductServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedProductServiceServer struct{}
 
-func (UnimplementedProductServiceServer) ListProductsBySellerId(context.Context, *ListProductsBySellerIdRequest) (*ListProductsBySellerIdResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method ListProductsBySellerId not implemented")
-}
-func (UnimplementedProductServiceServer) ListMerchantProducts(context.Context, *ListMerchantProductsRequest) (*ListMerchantProductsResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method ListMerchantProducts not implemented")
+func (UnimplementedProductServiceServer) ListSellerProducts(context.Context, *ListSellerProductsRequest) (*ListSellerProductsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListSellerProducts not implemented")
 }
 func (UnimplementedProductServiceServer) UpsertProduct(context.Context, *UpsertProductRequest) (*UpsertProductResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method UpsertProduct not implemented")
@@ -128,38 +110,20 @@ func RegisterProductServiceServer(s grpc.ServiceRegistrar, srv ProductServiceSer
 	s.RegisterService(&ProductService_ServiceDesc, srv)
 }
 
-func _ProductService_ListProductsBySellerId_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListProductsBySellerIdRequest)
+func _ProductService_ListSellerProducts_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListSellerProductsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ProductServiceServer).ListProductsBySellerId(ctx, in)
+		return srv.(ProductServiceServer).ListSellerProducts(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: ProductService_ListProductsBySellerId_FullMethodName,
+		FullMethod: ProductService_ListSellerProducts_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ProductServiceServer).ListProductsBySellerId(ctx, req.(*ListProductsBySellerIdRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _ProductService_ListMerchantProducts_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListMerchantProductsRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ProductServiceServer).ListMerchantProducts(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: ProductService_ListMerchantProducts_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ProductServiceServer).ListMerchantProducts(ctx, req.(*ListMerchantProductsRequest))
+		return srv.(ProductServiceServer).ListSellerProducts(ctx, req.(*ListSellerProductsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -190,12 +154,8 @@ var ProductService_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*ProductServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "ListProductsBySellerId",
-			Handler:    _ProductService_ListProductsBySellerId_Handler,
-		},
-		{
-			MethodName: "ListMerchantProducts",
-			Handler:    _ProductService_ListMerchantProducts_Handler,
+			MethodName: "ListSellerProducts",
+			Handler:    _ProductService_ListSellerProducts_Handler,
 		},
 		{
 			MethodName: "UpsertProduct",

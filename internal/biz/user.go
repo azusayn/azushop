@@ -11,12 +11,12 @@ import (
 	"github.com/azusayn/azutils/crypto"
 )
 
-type UserRoleType string
+type UserRole string
 
 const (
-	UserRoleCustomer      UserRoleType = "customer"
-	UserRoleMerchant      UserRoleType = "merchant"
-	UserRoleAdministrator UserRoleType = "admin"
+	UserRoleCustomer      UserRole = "customer"
+	UserRoleMerchant      UserRole = "merchant"
+	UserRoleAdministrator UserRole = "admin"
 )
 
 type User struct {
@@ -24,7 +24,7 @@ type User struct {
 	Name         string
 	PasswordHash string
 	Salt         string
-	Role         UserRoleType
+	Role         UserRole
 }
 
 type UserRepo interface {
