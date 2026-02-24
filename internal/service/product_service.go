@@ -88,7 +88,7 @@ func (s *ProductService) ListSellerProducts(ctx context.Context, req *pb.ListSel
 		req.PageToken,
 		req.PageSize,
 		convertToBizProductStatus(req.ProductStatus),
-		int32(userID),
+		userID,
 		biz.UserRole(role),
 	)
 	if err != nil {
