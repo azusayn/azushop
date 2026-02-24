@@ -13,14 +13,14 @@ const (
 )
 
 // append user id & user role to the ctx.
-func WithUserInfo(ctx *context.Context, ID int, role string) {
+func WithUserInfo(ctx *context.Context, ID int32, role string) {
 	*ctx = context.WithValue(*ctx, UserIDCtxKey, ID)
 	*ctx = context.WithValue(*ctx, UserRoleCtxKey, role)
 }
 
 // extract user id & user role from the ctx.
-func ExtractUserInfo(ctx *context.Context) (int, string, error) {
-	id, ok := (*ctx).Value(UserIDCtxKey).(int)
+func ExtractUserInfo(ctx *context.Context) (int32, string, error) {
+	id, ok := (*ctx).Value(UserIDCtxKey).(int32)
 	if !ok {
 		return 0, "", errors.New("failed to extract user id")
 	}
