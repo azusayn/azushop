@@ -6,9 +6,18 @@ CREATE TABLE users (
   role VARCHAR(255) NOT NULL CHECK (role IN ('admin', 'merchant', 'customer'))
 )
 
+CREATE TYPE products_status (
+  'unspecified'
+  'draft',
+  'pending',
+  'active',
+  'offline'
+)
+
 CREATE TABLE products (
   id BIGSERIAL PRIMARY KEY,
   product_name VARCHAR(255) NOT NULL,
+  status products_status NOT NULL DEFAULT 'draft',
   seller_id INT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),

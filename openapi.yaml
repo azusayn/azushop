@@ -7,49 +7,12 @@ info:
     description: api for both merchants and customers.
     version: 0.0.1
 paths:
-    /v1/merchant/products:
-        get:
-            tags:
-                - ProductService
-            description: list all the products of the merchant.
-            operationId: ProductService_ListMerchantProducts
-            parameters:
-                - name: pageToken
-                  in: query
-                  description: use 0 for the first request.
-                  schema:
-                    type: string
-                - name: pageSize
-                  in: query
-                  description: max 100
-                  schema:
-                    type: integer
-                    format: int32
-            responses:
-                "200":
-                    description: OK
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/ListMerchantProductsResponse'
-                default:
-                    description: Default error response
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/Status'
-    /v1/products/{id}:
+    /v1/products:
         patch:
             tags:
                 - ProductService
-            description: insert or update a product's details.
+            description: insert or update a product's details, used by administrators & merchants.
             operationId: ProductService_UpsertProduct
-            parameters:
-                - name: id
-                  in: path
-                  required: true
-                  schema:
-                    type: string
             requestBody:
                 content:
                     application/json:
@@ -74,7 +37,7 @@ paths:
             tags:
                 - ProductService
             description: list products by seller_id, generally used by customers.
-            operationId: ProductService_ListProductsBySellerId
+            operationId: ProductService_ListSellerProducts
             parameters:
                 - name: sellerId
                   in: path
@@ -93,13 +56,19 @@ paths:
                   schema:
                     type: integer
                     format: int32
+                - name: productStatus
+                  in: query
+                  description: filter by product status.
+                  schema:
+                    type: integer
+                    format: enum
             responses:
                 "200":
                     description: OK
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ListProductsBySellerIdResponse'
+                                $ref: '#/components/schemas/ListSellerProductsResponse'
                 default:
                     description: Default error response
                     content:
@@ -116,45 +85,13 @@ components:
                     description: The type of the serialized message.
             additionalProperties: true
             description: Contains an arbitrary serialized message along with a @type that describes the type of the serialized message.
-        ListMerchantProductsResponse:
-            type: object
-            properties:
-                products:
-                    type: array
-                    items:
-                        $ref: '#/components/schemas/MerchantProduct'
-        ListProductsBySellerIdResponse:
+        ListSellerProductsResponse:
             type: object
             properties:
                 products:
                     type: array
                     items:
                         $ref: '#/components/schemas/Product'
-        MerchantProduct:
-            type: object
-            properties:
-                id:
-                    type: string
-                productName:
-                    type: string
-                sellerId:
-                    type: integer
-                    description: 'TODO: just extract it from token.'
-                    format: int32
-                skus:
-                    type: array
-                    items:
-                        $ref: '#/components/schemas/MerchantSku'
-        MerchantSku:
-            type: object
-            properties:
-                skuDetail:
-                    $ref: '#/components/schemas/SkuDetail'
-                stockQuantity:
-                    type: string
-                reservedQuantity:
-                    type: string
-            description: sku message only used by merchant.
         Product:
             type: object
             properties:
@@ -164,28 +101,10 @@ components:
                     type: string
                 sellerId:
                     type: integer
-                    description: 'TODO: just extract it from token.'
                     format: int32
-                skus:
-                    type: array
-                    items:
-                        $ref: '#/components/schemas/Sku'
-        Sku:
-            type: object
-            properties:
-                skuDetail:
-                    $ref: '#/components/schemas/SkuDetail'
-                availableQuantity:
-                    type: string
-        SkuDetail:
-            type: object
-            properties:
-                id:
-                    type: string
-                attrs:
-                    type: object
-                unitPrice:
-                    type: string
+                productStatus:
+                    type: integer
+                    format: enum
         Status:
             type: object
             properties:
@@ -205,18 +124,8 @@ components:
         UpsertProductRequest:
             type: object
             properties:
-                id:
-                    type: string
-                productName:
-                    type: string
-                sellerId:
-                    type: integer
-                    description: 'TODO: just extract seller_id from token.'
-                    format: int32
-                skuDetails:
-                    type: array
-                    items:
-                        $ref: '#/components/schemas/SkuDetail'
+                product:
+                    $ref: '#/components/schemas/Product'
                 updateMask:
                     type: string
                     format: field-mask
