@@ -15,8 +15,8 @@ func NewProductRepo(data *Data) biz.ProductRepo {
 	return &ProductRepo{data: data}
 }
 
-func cacheKeyProduct(pageToken int64, pageSize int32) string {
-	return fmt.Sprintf("product:%d:%d", pageToken, pageSize)
+func cacheKeyProduct(sellerID int32, pageToken int64, pageSize int32, productStatus biz.ProductStatus) string {
+	return fmt.Sprintf("product:%d:%d:%d:%s", sellerID, pageToken, pageSize, productStatus)
 }
 
 func (repo *ProductRepo) ListProductsBySellerId(
@@ -26,26 +26,28 @@ func (repo *ProductRepo) ListProductsBySellerId(
 	pageSize int32,
 	productStatus biz.ProductStatus,
 ) ([]*biz.Product, error) {
-	key := cacheKeyProduct(pageToken, pageSize)
-	cachedProducts, found := GetCache[[]*biz.Product](ctx, repo.data, key)
-	if found {
+	key := cacheKeyProduct(sellerID, pageToken, pageSize, productStatus)
+	if cachedProducts, found := GetCache[[]*biz.Product](ctx, repo.data, key); found {
 		return cachedProducts, nil
 	}
 
 	client := repo.data.postgresClient
+
 	stmt := `
-		SELECT id, product_name, product_status
-		FROM products 
-		WHERE id > $1 AND seller_id=$2 %s
+		SELECT id, product_name, status
+		FROM products
+		WHERE id > $1 AND seller_id = $2 %s
 		ORDER BY id LIMIT $3
 	`
+	args := []any{pageToken, sellerID, pageSize}
 	if productStatus != biz.ProductStatusUnspecified {
-		stmt = fmt.Sprintf(stmt, "AND status="+string(productStatus))
+		stmt = fmt.Sprintf(stmt, "AND status=$4")
+		args = append(args, productStatus)
 	} else {
 		stmt = fmt.Sprintf(stmt, "")
 	}
 
-	rows, err := client.QueryContext(ctx, stmt, pageToken, sellerID, pageSize)
+	rows, err := client.QueryContext(ctx, stmt, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +65,7 @@ func (repo *ProductRepo) ListProductsBySellerId(
 		return nil, err
 	}
 
-	SetCache(ctx, repo.data, key, products, time.Duration(0))
+	SetCache(ctx, repo.data, key, products, time.Minute)
 
 	return products, nil
 }
