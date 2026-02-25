@@ -11,13 +11,13 @@ paths:
         patch:
             tags:
                 - ProductService
-            description: insert or update a product's details, used by administrators & merchants.
-            operationId: ProductService_UpsertProduct
+            description: insert or update products' details, used by administrators & merchants.
+            operationId: ProductService_BatchUpsertProduct
             requestBody:
                 content:
                     application/json:
                         schema:
-                            $ref: '#/components/schemas/UpsertProductRequest'
+                            $ref: '#/components/schemas/BatchUpsertProductRequest'
                 required: true
             responses:
                 "200":
@@ -25,7 +25,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/UpsertProductResponse'
+                                $ref: '#/components/schemas/BatchUpsertProductResponse'
                 default:
                     description: Default error response
                     content:
@@ -77,6 +77,21 @@ paths:
                                 $ref: '#/components/schemas/Status'
 components:
     schemas:
+        BatchUpsertProductRequest:
+            type: object
+            properties:
+                products:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/Product'
+                updateMask:
+                    type: string
+                    format: field-mask
+            description: only support updating a single field of the product.
+        BatchUpsertProductResponse:
+            type: object
+            properties: {}
+            description: 'TODO: update strategy and update results.'
         GoogleProtobufAny:
             type: object
             properties:
@@ -121,16 +136,5 @@ components:
                         $ref: '#/components/schemas/GoogleProtobufAny'
                     description: A list of messages that carry the error details.  There is a common set of message types for APIs to use.
             description: 'The `Status` type defines a logical error model that is suitable for different programming environments, including REST APIs and RPC APIs. It is used by [gRPC](https://github.com/grpc). Each `Status` message contains three pieces of data: error code, error message, and error details. You can find out more about this error model and how to work with it in the [API Design Guide](https://cloud.google.com/apis/design/errors).'
-        UpsertProductRequest:
-            type: object
-            properties:
-                product:
-                    $ref: '#/components/schemas/Product'
-                updateMask:
-                    type: string
-                    format: field-mask
-        UpsertProductResponse:
-            type: object
-            properties: {}
 tags:
     - name: ProductService

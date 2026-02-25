@@ -364,6 +364,7 @@ func (*UpdateSKUResponse) Descriptor() ([]byte, []int) {
 	return file_api_inventory_v1_inventory_proto_rawDescGZIP(), []int{6}
 }
 
+// TODO: batch get.
 type ListSKUsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ProductId     int64                  `protobuf:"varint,1,opt,name=product_id,json=productId,proto3" json:"product_id,omitempty"`

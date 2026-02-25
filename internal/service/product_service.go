@@ -57,21 +57,30 @@ func convertToBizProductStatus(productStatus *pb.ProductStatus) biz.ProductStatu
 	return biz.ProductStatusUnspecified
 }
 
-func convertToPbProduct(product *biz.Product) *pb.Product {
-	return &pb.Product{
-		Id:            product.ID,
-		ProductName:   product.ProductName,
-		SellerId:      product.SellerID,
-		ProductStatus: convertToPbProductStatus(&product.ProductStatus),
-	}
-}
-
 func convertToPbProducts(products []*biz.Product) []*pb.Product {
 	var pbProducts []*pb.Product
 	for _, p := range products {
-		pbProducts = append(pbProducts, convertToPbProduct(p))
+		pbProducts = append(pbProducts, &pb.Product{
+			Id:            p.ID,
+			ProductName:   p.ProductName,
+			SellerId:      p.SellerID,
+			ProductStatus: convertToPbProductStatus(&p.ProductStatus),
+		})
 	}
 	return pbProducts
+}
+
+func convertToBizProducts(products []*pb.Product) []*biz.Product {
+	var bizProducts []*biz.Product
+	for _, p := range products {
+		bizProducts = append(bizProducts, &biz.Product{
+			ID:            p.Id,
+			ProductName:   p.ProductName,
+			SellerID:      p.SellerId,
+			ProductStatus: convertToBizProductStatus(&p.ProductStatus),
+		})
+	}
+	return bizProducts
 }
 
 func (s *ProductService) ListSellerProducts(ctx context.Context, req *pb.ListSellerProductsRequest) (*pb.ListSellerProductsResponse, error) {
@@ -99,7 +108,14 @@ func (s *ProductService) ListSellerProducts(ctx context.Context, req *pb.ListSel
 	}, nil
 }
 
-// func (s *ProductService) UpsertProduct(ctx context.Context, req *pb.UpsertProductRequest) (*pb.ListMerchantProductsResponse, error) {
-// 	bizProduct := convertToBizProduct(req.Id, req.ProductName, req.SellerId, req.SkuDetails)
-// 	return &pb.ListMerchantProductsResponse{}, s.uc.UpsertProduct(ctx, bizProduct, req.UpdateMask)
-// }
+func (s *ProductService) BatchUpsertProduct(ctx context.Context, req *pb.BatchUpsertProductRequest) (*pb.BatchUpsertProductResponse, error) {
+	userID, role, err := middleware.ExtractUserInfo(&ctx)
+	if err != nil {
+		return nil, err
+	}
+	bizProducts := convertToBizProducts(req.Products)
+	if err := s.uc.BatchUpsertProducts(ctx, bizProducts, req.UpdateMask, userID, biz.UserRole(role)); err != nil {
+		return nil, err
+	}
+	return &pb.BatchUpsertProductResponse{}, nil
+}

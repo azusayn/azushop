@@ -2,7 +2,9 @@ package biz
 
 import (
 	"context"
+	"fmt"
 
+	"github.com/azusayn/azutils/auth"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 )
 
@@ -25,7 +27,7 @@ type Product struct {
 
 type ProductRepo interface {
 	ListProductsBySellerId(ctx context.Context, sellerID int32, pageToken int64, pageSize int32, productStatus ProductStatus) ([]*Product, error)
-	UpsertProduct(ctx context.Context, product *Product, paths []string) error
+	BatchUpsertProducts(ctx context.Context, product []*Product, paths []string) error
 }
 
 type ProductUsecase struct {
@@ -38,6 +40,7 @@ func NewProductUsecase(repo ProductRepo) *ProductUsecase {
 	}
 }
 
+// used by listSellerProducts()
 func productStatusFilter(productStatus ProductStatus, sellerID, userID int32, role UserRole) ProductStatus {
 	switch role {
 	case UserRoleAdministrator:
@@ -75,10 +78,55 @@ func (uc *ProductUsecase) ListSellerProducts(
 	return products, nil
 }
 
-func (uc *ProductUsecase) UpsertProduct(ctx context.Context, product *Product, updateMask *fieldmaskpb.FieldMask) error {
-	err := uc.repo.UpsertProduct(ctx, product, updateMask.Paths)
+func productsFilter(products []*Product, userID int32, role UserRole) ([]*Product, error) {
+	switch role {
+	case UserRoleAdministrator:
+		return products, nil
+	case UserRoleMerchant:
+		nc := auth.NewNameChecker(
+			auth.WithLengthLimit(1, 20),
+			auth.WithAllowSpace(),
+			auth.WithAllowPunct(),
+		)
+		for _, p := range products {
+			p.SellerID = userID
+			if err := nc.BasicCheck(p.ProductName); err != nil {
+				return nil, err
+			}
+			// ProductStatus should only be updated via PublishProduct/UnpublishProduct API.
+			// Upsert sets it to Unspecified as a safeguard, but real enforcement is in the lower-level API.
+			p.ProductStatus = ProductStatusUnspecified
+		}
+
+		return products, nil
+	default:
+	}
+	return nil, fmt.Errorf("role %q doesn't have the permission to upsert products", role)
+}
+
+// TODO: move it to proper place.
+func uniqueStrings(paths []string) []string {
+	seen := make(map[string]struct{}, len(paths))
+	result := paths[:0]
+	for _, p := range paths {
+		if _, ok := seen[p]; !ok {
+			seen[p] = struct{}{}
+			result = append(result, p)
+		}
+	}
+	return result
+}
+
+func (uc *ProductUsecase) BatchUpsertProducts(
+	ctx context.Context,
+	products []*Product,
+	updateMask *fieldmaskpb.FieldMask,
+	userID int32,
+	userRole UserRole,
+) error {
+	products, err := productsFilter(products, userID, userRole)
 	if err != nil {
 		return err
 	}
-	return nil
+	return uc.repo.BatchUpsertProducts(ctx, products, uniqueStrings(updateMask.Paths))
 }

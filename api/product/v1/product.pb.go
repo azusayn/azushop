@@ -261,28 +261,29 @@ func (x *ListSellerProductsResponse) GetProducts() []*Product {
 	return nil
 }
 
-type UpsertProductRequest struct {
+// only support updating a single field of the product.
+type BatchUpsertProductRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Product       *Product               `protobuf:"bytes,1,opt,name=product,proto3" json:"product,omitempty"`
+	Products      []*Product             `protobuf:"bytes,1,rep,name=products,proto3" json:"products,omitempty"`
 	UpdateMask    *fieldmaskpb.FieldMask `protobuf:"bytes,2,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *UpsertProductRequest) Reset() {
-	*x = UpsertProductRequest{}
+func (x *BatchUpsertProductRequest) Reset() {
+	*x = BatchUpsertProductRequest{}
 	mi := &file_api_product_v1_product_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *UpsertProductRequest) String() string {
+func (x *BatchUpsertProductRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*UpsertProductRequest) ProtoMessage() {}
+func (*BatchUpsertProductRequest) ProtoMessage() {}
 
-func (x *UpsertProductRequest) ProtoReflect() protoreflect.Message {
+func (x *BatchUpsertProductRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_api_product_v1_product_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -294,45 +295,46 @@ func (x *UpsertProductRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UpsertProductRequest.ProtoReflect.Descriptor instead.
-func (*UpsertProductRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use BatchUpsertProductRequest.ProtoReflect.Descriptor instead.
+func (*BatchUpsertProductRequest) Descriptor() ([]byte, []int) {
 	return file_api_product_v1_product_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *UpsertProductRequest) GetProduct() *Product {
+func (x *BatchUpsertProductRequest) GetProducts() []*Product {
 	if x != nil {
-		return x.Product
+		return x.Products
 	}
 	return nil
 }
 
-func (x *UpsertProductRequest) GetUpdateMask() *fieldmaskpb.FieldMask {
+func (x *BatchUpsertProductRequest) GetUpdateMask() *fieldmaskpb.FieldMask {
 	if x != nil {
 		return x.UpdateMask
 	}
 	return nil
 }
 
-type UpsertProductResponse struct {
+// TODO: update strategy and update results.
+type BatchUpsertProductResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *UpsertProductResponse) Reset() {
-	*x = UpsertProductResponse{}
+func (x *BatchUpsertProductResponse) Reset() {
+	*x = BatchUpsertProductResponse{}
 	mi := &file_api_product_v1_product_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *UpsertProductResponse) String() string {
+func (x *BatchUpsertProductResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*UpsertProductResponse) ProtoMessage() {}
+func (*BatchUpsertProductResponse) ProtoMessage() {}
 
-func (x *UpsertProductResponse) ProtoReflect() protoreflect.Message {
+func (x *BatchUpsertProductResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_api_product_v1_product_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -344,8 +346,8 @@ func (x *UpsertProductResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UpsertProductResponse.ProtoReflect.Descriptor instead.
-func (*UpsertProductResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use BatchUpsertProductResponse.ProtoReflect.Descriptor instead.
+func (*BatchUpsertProductResponse) Descriptor() ([]byte, []int) {
 	return file_api_product_v1_product_proto_rawDescGZIP(), []int{4}
 }
 
@@ -368,21 +370,21 @@ const file_api_product_v1_product_proto_rawDesc = "" +
 	"\x0eproduct_status\x18\x04 \x01(\x0e2\x19.product.v1.ProductStatusH\x00R\rproductStatus\x88\x01\x01B\x11\n" +
 	"\x0f_product_status\"M\n" +
 	"\x1aListSellerProductsResponse\x12/\n" +
-	"\bproducts\x18\x01 \x03(\v2\x13.product.v1.ProductR\bproducts\"\x82\x01\n" +
-	"\x14UpsertProductRequest\x12-\n" +
-	"\aproduct\x18\x01 \x01(\v2\x13.product.v1.ProductR\aproduct\x12;\n" +
+	"\bproducts\x18\x01 \x03(\v2\x13.product.v1.ProductR\bproducts\"\x89\x01\n" +
+	"\x19BatchUpsertProductRequest\x12/\n" +
+	"\bproducts\x18\x01 \x03(\v2\x13.product.v1.ProductR\bproducts\x12;\n" +
 	"\vupdate_mask\x18\x02 \x01(\v2\x1a.google.protobuf.FieldMaskR\n" +
-	"updateMask\"\x17\n" +
-	"\x15UpsertProductResponse*\x9c\x01\n" +
+	"updateMask\"\x1c\n" +
+	"\x1aBatchUpsertProductResponse*\x9c\x01\n" +
 	"\rProductStatus\x12\x1e\n" +
 	"\x1aPRODUCT_STATUS_UNSPECIFIED\x10\x00\x12\x18\n" +
 	"\x14PRODUCT_STATUS_DRAFT\x10\x01\x12\x1a\n" +
 	"\x16PRODUCT_STATUS_PENDING\x10\x02\x12\x19\n" +
 	"\x15PRODUCT_STATUS_ACTIVE\x10\x03\x12\x1a\n" +
-	"\x16PRODUCT_STATUS_OFFLINE\x10\x042\x8f\x02\n" +
+	"\x16PRODUCT_STATUS_OFFLINE\x10\x042\x9e\x02\n" +
 	"\x0eProductService\x12\x8d\x01\n" +
-	"\x12ListSellerProducts\x12%.product.v1.ListSellerProductsRequest\x1a&.product.v1.ListSellerProductsResponse\"(\x82\xd3\xe4\x93\x02\"\x12 /v1/sellers/{seller_id}/products\x12m\n" +
-	"\rUpsertProduct\x12 .product.v1.UpsertProductRequest\x1a!.product.v1.UpsertProductResponse\"\x17\x82\xd3\xe4\x93\x02\x11:\x01*2\f/v1/productsB\x1bZ\x19azushop/api/product/v1;v1b\x06proto3"
+	"\x12ListSellerProducts\x12%.product.v1.ListSellerProductsRequest\x1a&.product.v1.ListSellerProductsResponse\"(\x82\xd3\xe4\x93\x02\"\x12 /v1/sellers/{seller_id}/products\x12|\n" +
+	"\x12BatchUpsertProduct\x12%.product.v1.BatchUpsertProductRequest\x1a&.product.v1.BatchUpsertProductResponse\"\x17\x82\xd3\xe4\x93\x02\x11:\x01*2\f/v1/productsB\x1bZ\x19azushop/api/product/v1;v1b\x06proto3"
 
 var (
 	file_api_product_v1_product_proto_rawDescOnce sync.Once
@@ -403,20 +405,20 @@ var file_api_product_v1_product_proto_goTypes = []any{
 	(*Product)(nil),                    // 1: product.v1.Product
 	(*ListSellerProductsRequest)(nil),  // 2: product.v1.ListSellerProductsRequest
 	(*ListSellerProductsResponse)(nil), // 3: product.v1.ListSellerProductsResponse
-	(*UpsertProductRequest)(nil),       // 4: product.v1.UpsertProductRequest
-	(*UpsertProductResponse)(nil),      // 5: product.v1.UpsertProductResponse
+	(*BatchUpsertProductRequest)(nil),  // 4: product.v1.BatchUpsertProductRequest
+	(*BatchUpsertProductResponse)(nil), // 5: product.v1.BatchUpsertProductResponse
 	(*fieldmaskpb.FieldMask)(nil),      // 6: google.protobuf.FieldMask
 }
 var file_api_product_v1_product_proto_depIdxs = []int32{
 	0, // 0: product.v1.Product.product_status:type_name -> product.v1.ProductStatus
 	0, // 1: product.v1.ListSellerProductsRequest.product_status:type_name -> product.v1.ProductStatus
 	1, // 2: product.v1.ListSellerProductsResponse.products:type_name -> product.v1.Product
-	1, // 3: product.v1.UpsertProductRequest.product:type_name -> product.v1.Product
-	6, // 4: product.v1.UpsertProductRequest.update_mask:type_name -> google.protobuf.FieldMask
+	1, // 3: product.v1.BatchUpsertProductRequest.products:type_name -> product.v1.Product
+	6, // 4: product.v1.BatchUpsertProductRequest.update_mask:type_name -> google.protobuf.FieldMask
 	2, // 5: product.v1.ProductService.ListSellerProducts:input_type -> product.v1.ListSellerProductsRequest
-	4, // 6: product.v1.ProductService.UpsertProduct:input_type -> product.v1.UpsertProductRequest
+	4, // 6: product.v1.ProductService.BatchUpsertProduct:input_type -> product.v1.BatchUpsertProductRequest
 	3, // 7: product.v1.ProductService.ListSellerProducts:output_type -> product.v1.ListSellerProductsResponse
-	5, // 8: product.v1.ProductService.UpsertProduct:output_type -> product.v1.UpsertProductResponse
+	5, // 8: product.v1.ProductService.BatchUpsertProduct:output_type -> product.v1.BatchUpsertProductResponse
 	7, // [7:9] is the sub-list for method output_type
 	5, // [5:7] is the sub-list for method input_type
 	5, // [5:5] is the sub-list for extension type_name
