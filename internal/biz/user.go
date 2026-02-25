@@ -20,7 +20,7 @@ const (
 )
 
 type User struct {
-	ID           int64
+	ID           int32
 	Name         string
 	PasswordHash string
 	Salt         string

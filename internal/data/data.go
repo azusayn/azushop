@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"log/slog"
+	"math/rand/v2"
 	"time"
 
 	"github.com/azusayn/azutils/auth"
@@ -22,6 +23,12 @@ import (
 var ProviderSet = wire.NewSet(
 	NewData,
 	NewUserRepo,
+)
+
+const (
+	// jitter percentage range for cache expiration.
+	cacheJitterMin float64 = 0.05
+	cacheJitterMax float64 = 0.10
 )
 
 type Data struct {
@@ -123,7 +130,9 @@ func SetCache[T any](ctx context.Context, data *Data, key string, val T, expirat
 		if err != nil {
 			return err
 		}
-		return client.Set(ctx, key, bytes, expiration).Err()
+		ratio := cacheJitterMin + (cacheJitterMax-cacheJitterMin)*rand.Float64()
+		jitter := float64(expiration) * ratio
+		return client.Set(ctx, key, bytes, expiration+time.Duration(jitter)).Err()
 	}()
 	if err != nil {
 		slog.Warn(err.Error())
