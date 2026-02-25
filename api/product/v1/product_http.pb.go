@@ -19,20 +19,20 @@ var _ = binding.EncodeURL
 
 const _ = http.SupportPackageIsVersion1
 
+const OperationProductServiceBatchUpsertProduct = "/product.v1.ProductService/BatchUpsertProduct"
 const OperationProductServiceListSellerProducts = "/product.v1.ProductService/ListSellerProducts"
-const OperationProductServiceUpsertProduct = "/product.v1.ProductService/UpsertProduct"
 
 type ProductServiceHTTPServer interface {
+	// BatchUpsertProduct insert or update products' details, used by administrators & merchants.
+	BatchUpsertProduct(context.Context, *BatchUpsertProductRequest) (*BatchUpsertProductResponse, error)
 	// ListSellerProducts list products by seller_id, generally used by customers.
 	ListSellerProducts(context.Context, *ListSellerProductsRequest) (*ListSellerProductsResponse, error)
-	// UpsertProduct insert or update a product's details, used by administrators & merchants.
-	UpsertProduct(context.Context, *UpsertProductRequest) (*UpsertProductResponse, error)
 }
 
 func RegisterProductServiceHTTPServer(s *http.Server, srv ProductServiceHTTPServer) {
 	r := s.Route("/")
 	r.GET("/v1/sellers/{seller_id}/products", _ProductService_ListSellerProducts0_HTTP_Handler(srv))
-	r.PATCH("/v1/products", _ProductService_UpsertProduct0_HTTP_Handler(srv))
+	r.PATCH("/v1/products", _ProductService_BatchUpsertProduct0_HTTP_Handler(srv))
 }
 
 func _ProductService_ListSellerProducts0_HTTP_Handler(srv ProductServiceHTTPServer) func(ctx http.Context) error {
@@ -57,33 +57,33 @@ func _ProductService_ListSellerProducts0_HTTP_Handler(srv ProductServiceHTTPServ
 	}
 }
 
-func _ProductService_UpsertProduct0_HTTP_Handler(srv ProductServiceHTTPServer) func(ctx http.Context) error {
+func _ProductService_BatchUpsertProduct0_HTTP_Handler(srv ProductServiceHTTPServer) func(ctx http.Context) error {
 	return func(ctx http.Context) error {
-		var in UpsertProductRequest
+		var in BatchUpsertProductRequest
 		if err := ctx.Bind(&in); err != nil {
 			return err
 		}
 		if err := ctx.BindQuery(&in); err != nil {
 			return err
 		}
-		http.SetOperation(ctx, OperationProductServiceUpsertProduct)
+		http.SetOperation(ctx, OperationProductServiceBatchUpsertProduct)
 		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
-			return srv.UpsertProduct(ctx, req.(*UpsertProductRequest))
+			return srv.BatchUpsertProduct(ctx, req.(*BatchUpsertProductRequest))
 		})
 		out, err := h(ctx, &in)
 		if err != nil {
 			return err
 		}
-		reply := out.(*UpsertProductResponse)
+		reply := out.(*BatchUpsertProductResponse)
 		return ctx.Result(200, reply)
 	}
 }
 
 type ProductServiceHTTPClient interface {
+	// BatchUpsertProduct insert or update products' details, used by administrators & merchants.
+	BatchUpsertProduct(ctx context.Context, req *BatchUpsertProductRequest, opts ...http.CallOption) (rsp *BatchUpsertProductResponse, err error)
 	// ListSellerProducts list products by seller_id, generally used by customers.
 	ListSellerProducts(ctx context.Context, req *ListSellerProductsRequest, opts ...http.CallOption) (rsp *ListSellerProductsResponse, err error)
-	// UpsertProduct insert or update a product's details, used by administrators & merchants.
-	UpsertProduct(ctx context.Context, req *UpsertProductRequest, opts ...http.CallOption) (rsp *UpsertProductResponse, err error)
 }
 
 type ProductServiceHTTPClientImpl struct {
@@ -94,6 +94,20 @@ func NewProductServiceHTTPClient(client *http.Client) ProductServiceHTTPClient {
 	return &ProductServiceHTTPClientImpl{client}
 }
 
+// BatchUpsertProduct insert or update products' details, used by administrators & merchants.
+func (c *ProductServiceHTTPClientImpl) BatchUpsertProduct(ctx context.Context, in *BatchUpsertProductRequest, opts ...http.CallOption) (*BatchUpsertProductResponse, error) {
+	var out BatchUpsertProductResponse
+	pattern := "/v1/products"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationProductServiceBatchUpsertProduct))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "PATCH", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 // ListSellerProducts list products by seller_id, generally used by customers.
 func (c *ProductServiceHTTPClientImpl) ListSellerProducts(ctx context.Context, in *ListSellerProductsRequest, opts ...http.CallOption) (*ListSellerProductsResponse, error) {
 	var out ListSellerProductsResponse
@@ -102,20 +116,6 @@ func (c *ProductServiceHTTPClientImpl) ListSellerProducts(ctx context.Context, i
 	opts = append(opts, http.Operation(OperationProductServiceListSellerProducts))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return &out, nil
-}
-
-// UpsertProduct insert or update a product's details, used by administrators & merchants.
-func (c *ProductServiceHTTPClientImpl) UpsertProduct(ctx context.Context, in *UpsertProductRequest, opts ...http.CallOption) (*UpsertProductResponse, error) {
-	var out UpsertProductResponse
-	pattern := "/v1/products"
-	path := binding.EncodeURL(pattern, in, false)
-	opts = append(opts, http.Operation(OperationProductServiceUpsertProduct))
-	opts = append(opts, http.PathTemplate(pattern))
-	err := c.cc.Invoke(ctx, "PATCH", path, in, &out, opts...)
 	if err != nil {
 		return nil, err
 	}

@@ -4,6 +4,7 @@ import (
 	"azushop/internal/biz"
 	"context"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -70,82 +71,77 @@ func (repo *ProductRepo) ListProductsBySellerId(
 	return products, nil
 }
 
-func (repo *ProductRepo) UpsertProduct(ctx context.Context, product *biz.Product, paths []string) error {
-	panic("unimplemented")
+// if any update fails, all changes are rolled back.
+func (repo *ProductRepo) BatchUpsertProducts(ctx context.Context, products []*biz.Product, paths []string) error {
+	client := repo.data.postgresClient
+
+	// insert
+	if len(paths) == 0 {
+		stmt := `
+			INSERT INTO products(product_name, seller_id, status)
+			VALUES %d
+		`
+		var args []string
+		var values []any
+		for i, p := range products {
+			base := i * 3
+			args = append(args, fmt.Sprintf("($%d, $%d, $%d)", base+1, base+2, base+3))
+			values = append(values, p.ProductName, p.SellerID, biz.ProductStatusOffline)
+		}
+		stmt = fmt.Sprintf(stmt, strings.Join(args, ","))
+		_, err := client.ExecContext(ctx, stmt, values...)
+		return err
+	}
+
+	// update
+	// TODO: make it as an API in utils...
+	stmt := `
+		UPDATE products
+		SET 
+			%s
+		FROM
+			(VALUES %s) AS v(%s)
+		WHERE
+			products.id=v.id
+	`
+	var args []string
+	var values []any
+	lenPaths := len(paths)
+	for i, product := range products {
+		values = append(values, product.ID)
+		for _, path := range paths {
+			switch path {
+			case "product_name":
+				values = append(values, product.ProductName)
+			default:
+				return fmt.Errorf("unknown update path %q", path)
+			}
+		}
+		base := i * (lenPaths + 1)
+		var placeholders []string
+		for j := 0; j < lenPaths; j++ {
+			placeholders = append(placeholders, fmt.Sprintf("$%d", base+j+1))
+		}
+		args = append(args, fmt.Sprintf("(%s)", strings.Join(placeholders, ",")))
+	}
+
+	var columnNames []string
+	for _, p := range paths {
+		switch p {
+		case "product_name":
+			columnNames = append(columnNames, "product_name")
+		}
+	}
+	var sets []string
+	for _, c := range columnNames {
+		sets = append(sets, fmt.Sprintf("%s=v.%s", c, c))
+	}
+
+	placeHolder1 := strings.Join(sets, ",")
+	placeHolder2 := strings.Join(args, ",")
+	placeHolder3 := strings.Join(columnNames, ",")
+	stmt = fmt.Sprintf(stmt, placeHolder1, placeHolder2, placeHolder3)
+
+	_, err := client.ExecContext(ctx, stmt, values...)
+	return err
 }
-
-// func (repo *ProductRepo) UpsertProduct(ctx context.Context, product *biz.Product, paths []string) error {
-// 	client := repo.data.postgresClient
-// 	tx, err := client.BeginTx(ctx, nil)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	defer tx.Rollback()
-
-// 	// insert
-// 	if len(paths) == 0 {
-// 		stmt := `
-// 			INSERT INTO products(product_name, seller_id)
-// 			VALUES ($1, $2)
-// 			RETURNING id
-// 		`
-// 		var productID int64
-// 		if err := tx.QueryRowContext(ctx, stmt, product.ProductName, product.SellerID).Scan(&productID); err != nil {
-// 			return err
-// 		}
-// 		stmt = `
-// 			INSERT INTO skus(product_id, attrs, stock_quantity, unit_price)
-// 			VALUES
-// 		`
-// 		var values []any
-// 		var indice []string
-// 		for i, sku := range product.Skus {
-// 			base := 4 * i
-// 			indice = append(indice, fmt.Sprintf("($%d, $%d, $%d, $%d)", base+1, base+2, base+3, base+4))
-// 			values = append(values, productID, sku.Attrs, sku.StockQuantity, sku.UnitPrice)
-// 		}
-// 		stmt = stmt + strings.Join(indice, ",")
-// 		if _, err := tx.ExecContext(ctx, stmt, values...); err != nil {
-// 			return err
-// 		}
-// 	} else {
-// 		// update
-// 		for _, path := range paths {
-// 			switch path {
-// 			case "product_name":
-// 				stmt := `
-// 					UPDATE products
-// 					SET product_name=$1
-// 					WHERE id=$2
-// 				`
-// 				if _, err := tx.ExecContext(ctx, stmt, product.ProductName, product.ID); err != nil {
-// 					return err
-// 				}
-// 			case "skus":
-// 				var indice []string
-// 				var values []any
-// 				for i, sku := range product.Skus {
-// 					base := 4 * i
-// 					indice = append(indice, fmt.Sprintf("($%d, $%d, $%d, $%d)", base+1, base+2, base+3, base+4))
-// 					values = append(values, sku.ID, sku.Attrs, sku.StockQuantity, sku.UnitPrice)
-// 				}
-// 				stmt := `
-// 					UPDATE skus
-// 					SET
-// 						attrs=v.attrs,
-// 						stock_quantity=v.stock_quantity,
-// 						unit_price=v.unit_price
-// 					FROM
-// 						(VALUES %s) AS v(id, attrs, stock_quantity, unit_price)
-// 					WHERE skus.id=v.id
-// 				`
-// 				stmt = fmt.Sprintf(stmt, strings.Join(indice, ","))
-// 				if _, err := tx.ExecContext(ctx, stmt, values...); err != nil {
-// 					return err
-// 				}
-// 			}
-// 		}
-// 	}
-
-// 	return tx.Commit()
-// }

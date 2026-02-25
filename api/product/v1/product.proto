@@ -16,13 +16,15 @@ service ProductService {
     };
   };
   
-  // insert or update a product's details, used by administrators & merchants.
-  rpc UpsertProduct(UpsertProductRequest) returns (UpsertProductResponse) {
+  // insert or update products' details, used by administrators & merchants.
+  rpc BatchUpsertProduct(BatchUpsertProductRequest) returns (BatchUpsertProductResponse) {
     option (google.api.http) = {
       patch: "/v1/products"
       body: "*"
     };
   };
+
+  // TODO: publish & unpublish products.
 }
 
 enum ProductStatus {
@@ -54,9 +56,12 @@ message ListSellerProductsResponse {
   repeated Product products = 1;
 }
 
-message UpsertProductRequest {
-  Product product = 1;
+// only support updating a single field of the product.
+message BatchUpsertProductRequest {
+  repeated Product products = 1;
   google.protobuf.FieldMask update_mask = 2;
 }
 
-message UpsertProductResponse {}
+// TODO: update strategy and update results.
+message BatchUpsertProductResponse {}
+
