@@ -4,8 +4,9 @@ import (
 	"azushop/internal/biz"
 	"context"
 	"fmt"
-	"strings"
 	"time"
+
+	"github.com/azusayn/azutils/sql"
 )
 
 type ProductRepo struct {
@@ -71,77 +72,47 @@ func (repo *ProductRepo) ListProductsBySellerId(
 	return products, nil
 }
 
-// if any update fails, all changes are rolled back.
 func (repo *ProductRepo) BatchUpsertProducts(ctx context.Context, products []*biz.Product, paths []string) error {
+	lenProducts := len(products)
+	if lenProducts == 0 {
+		return nil
+	}
+
 	client := repo.data.postgresClient
 
 	// insert
 	if len(paths) == 0 {
-		stmt := `
-			INSERT INTO products(product_name, seller_id, status)
-			VALUES %d
-		`
-		var args []string
-		var values []any
-		for i, p := range products {
-			base := i * 3
-			args = append(args, fmt.Sprintf("($%d, $%d, $%d)", base+1, base+2, base+3))
-			values = append(values, p.ProductName, p.SellerID, biz.ProductStatusOffline)
+		colNames := []string{"product_name", "seller_id", "status"}
+		rowValues := [][]any{}
+		for _, p := range products {
+			rowValues = append(rowValues, []any{p.ProductName, p.SellerID, p.ProductStatus})
 		}
-		stmt = fmt.Sprintf(stmt, strings.Join(args, ","))
+		stmt, values := sql.BuildBatchInsertSQL("products", colNames, rowValues)
 		_, err := client.ExecContext(ctx, stmt, values...)
 		return err
 	}
 
 	// update
-	// TODO: make it as an API in utils...
-	stmt := `
-		UPDATE products
-		SET 
-			%s
-		FROM
-			(VALUES %s) AS v(%s)
-		WHERE
-			products.id=v.id
-	`
-	var args []string
-	var values []any
+	// TODO: reflection lib for this.
 	lenPaths := len(paths)
-	for i, product := range products {
-		values = append(values, product.ID)
+	ids := make([]any, 0, lenProducts)
+	productNames := make([]any, 0, lenProducts)
+	colNames := make([]string, 0, lenPaths)
+	colVals := make([][]any, 0, lenPaths)
+	for _, product := range products {
+		ids = append(ids, product.ID)
 		for _, path := range paths {
 			switch path {
 			case "product_name":
-				values = append(values, product.ProductName)
-			default:
-				return fmt.Errorf("unknown update path %q", path)
+				productNames = append(productNames, product.ProductName)
 			}
 		}
-		base := i * (lenPaths + 1)
-		var placeholders []string
-		for j := 0; j < lenPaths; j++ {
-			placeholders = append(placeholders, fmt.Sprintf("$%d", base+j+1))
-		}
-		args = append(args, fmt.Sprintf("(%s)", strings.Join(placeholders, ",")))
 	}
-
-	var columnNames []string
-	for _, p := range paths {
-		switch p {
-		case "product_name":
-			columnNames = append(columnNames, "product_name")
-		}
+	if len(productNames) != 0 {
+		colNames = append(colNames, "product_name")
+		colVals = append(colVals, productNames)
 	}
-	var sets []string
-	for _, c := range columnNames {
-		sets = append(sets, fmt.Sprintf("%s=v.%s", c, c))
-	}
-
-	placeHolder1 := strings.Join(sets, ",")
-	placeHolder2 := strings.Join(args, ",")
-	placeHolder3 := strings.Join(columnNames, ",")
-	stmt = fmt.Sprintf(stmt, placeHolder1, placeHolder2, placeHolder3)
-
+	stmt, values := sql.BuildBatchUpdateSQL("products", ids, colNames, colVals)
 	_, err := client.ExecContext(ctx, stmt, values...)
 	return err
 }

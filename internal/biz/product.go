@@ -93,9 +93,7 @@ func productsFilter(products []*Product, userID int32, role UserRole) ([]*Produc
 			if err := nc.BasicCheck(p.ProductName); err != nil {
 				return nil, err
 			}
-			// ProductStatus should only be updated via PublishProduct/UnpublishProduct API.
-			// Upsert sets it to Unspecified as a safeguard, but real enforcement is in the lower-level API.
-			p.ProductStatus = ProductStatusUnspecified
+			p.ProductStatus = ProductStatusOffline
 		}
 
 		return products, nil
