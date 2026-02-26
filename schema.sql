@@ -6,7 +6,7 @@ CREATE TABLE users (
   role VARCHAR(255) NOT NULL CHECK (role IN ('admin', 'merchant', 'customer'))
 )
 
-CREATE TYPE products_status AS ENUM(
+CREATE TYPE products_status AS ENUM (
   'unspecified',
   'draft',
   'pending',
