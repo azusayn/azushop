@@ -2,6 +2,7 @@ package data
 
 import (
 	"azushop/internal/biz"
+	"azushop/internal/common"
 	"context"
 	"fmt"
 	"time"
@@ -21,6 +22,10 @@ func cacheKeyProduct(sellerID int32, pageToken int64, pageSize int32, productSta
 	return fmt.Sprintf("product:%d:%d:%d:%s", sellerID, pageToken, pageSize, productStatus)
 }
 
+func cacheKeyProductSet(sellerID int32) string {
+	return fmt.Sprintf("product:%d", sellerID)
+}
+
 func (repo *ProductRepo) ListProductsBySellerId(
 	ctx context.Context,
 	sellerID int32,
@@ -28,8 +33,8 @@ func (repo *ProductRepo) ListProductsBySellerId(
 	pageSize int32,
 	productStatus biz.ProductStatus,
 ) ([]*biz.Product, error) {
-	key := cacheKeyProduct(sellerID, pageToken, pageSize, productStatus)
-	if cachedProducts, found := GetCache[[]*biz.Product](ctx, repo.data, key); found {
+	fullKey := cacheKeyProduct(sellerID, pageToken, pageSize, productStatus)
+	if cachedProducts, found := GetCache[[]*biz.Product](ctx, repo.data, fullKey); found {
 		return cachedProducts, nil
 	}
 
@@ -67,40 +72,59 @@ func (repo *ProductRepo) ListProductsBySellerId(
 		return nil, err
 	}
 
-	SetCache(ctx, repo.data, key, products, time.Minute)
+	SetCache(ctx, repo.data, fullKey, products, time.Minute)
+	setKey := cacheKeyProductSet(sellerID)
+	SetCacheSAdd(ctx, repo.data, setKey, fullKey)
 
 	return products, nil
 }
 
+// TODO: use version.
+func delProductCaches(ctx context.Context, data *Data, setKeys []string) {
+	for _, setKey := range setKeys {
+		mems, ok := GetCacheSMembers(ctx, data, setKey)
+		if !ok {
+			continue
+		}
+		DelCache(ctx, data, mems...)
+		DelCache(ctx, data, setKey)
+	}
+}
+
+// TODO: split it into different functions.
 func (repo *ProductRepo) BatchUpsertProducts(ctx context.Context, products []*biz.Product, paths []string) error {
-	lenProducts := len(products)
-	if lenProducts == 0 {
+	if len(products) == 0 {
 		return nil
 	}
 
 	client := repo.data.postgresClient
+	ss := common.NewStringSet()
 
-	// insert
 	if len(paths) == 0 {
+		// insert
 		colNames := []string{"product_name", "seller_id", "status"}
-		rowValues := [][]any{}
+		rowValues := make([][]any, 0, len(products))
 		for _, p := range products {
+			ss.Insert(cacheKeyProductSet(p.SellerID))
 			rowValues = append(rowValues, []any{p.ProductName, p.SellerID, p.ProductStatus})
 		}
 		stmt, values := sql.BuildBatchInsertSQL("products", colNames, rowValues)
-		_, err := client.ExecContext(ctx, stmt, values...)
-		return err
+		if _, err := client.ExecContext(ctx, stmt, values...); err != nil {
+			return err
+		}
+		delProductCaches(ctx, repo.data, ss.ToSlice())
+		return nil
 	}
-
 	// update
-	// TODO: reflection lib for this.
 	lenPaths := len(paths)
-	ids := make([]any, 0, lenProducts)
-	productNames := make([]any, 0, lenProducts)
+	ids := make([]any, 0, len(products))
 	colNames := make([]string, 0, lenPaths)
 	colVals := make([][]any, 0, lenPaths)
+	productNames := make([]any, 0, len(products))
+
 	for _, product := range products {
 		ids = append(ids, product.ID)
+		ss.Insert(cacheKeyProductSet(product.SellerID))
 		for _, path := range paths {
 			switch path {
 			case "product_name":
@@ -108,11 +132,17 @@ func (repo *ProductRepo) BatchUpsertProducts(ctx context.Context, products []*bi
 			}
 		}
 	}
+
 	if len(productNames) != 0 {
 		colNames = append(colNames, "product_name")
 		colVals = append(colVals, productNames)
 	}
+
 	stmt, values := sql.BuildBatchUpdateSQL("products", ids, colNames, colVals)
-	_, err := client.ExecContext(ctx, stmt, values...)
-	return err
+	if _, err := client.ExecContext(ctx, stmt, values...); err != nil {
+		return err
+	}
+
+	delProductCaches(ctx, repo.data, ss.ToSlice())
+	return nil
 }
