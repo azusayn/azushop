@@ -1,6 +1,7 @@
 package biz
 
 import (
+	"azushop/internal/common"
 	"context"
 	"fmt"
 
@@ -102,19 +103,6 @@ func productsFilter(products []*Product, userID int32, role UserRole) ([]*Produc
 	return nil, fmt.Errorf("role %q doesn't have the permission to upsert products", role)
 }
 
-// TODO: move it to proper place.
-func uniqueStrings(paths []string) []string {
-	seen := make(map[string]struct{}, len(paths))
-	result := paths[:0]
-	for _, p := range paths {
-		if _, ok := seen[p]; !ok {
-			seen[p] = struct{}{}
-			result = append(result, p)
-		}
-	}
-	return result
-}
-
 func (uc *ProductUsecase) BatchUpsertProducts(
 	ctx context.Context,
 	products []*Product,
@@ -126,5 +114,6 @@ func (uc *ProductUsecase) BatchUpsertProducts(
 	if err != nil {
 		return err
 	}
-	return uc.repo.BatchUpsertProducts(ctx, products, uniqueStrings(updateMask.Paths))
+	ss := common.NewStringSet(common.WithValues(updateMask.Paths))
+	return uc.repo.BatchUpsertProducts(ctx, products, ss.ToSlice())
 }
