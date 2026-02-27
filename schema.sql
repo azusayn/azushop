@@ -1,3 +1,4 @@
+-- auth service.
 CREATE TABLE users (
   id SERIAL PRIMARY KEY,
   username VARCHAR(255) NOT NULL,
@@ -6,6 +7,7 @@ CREATE TABLE users (
   role VARCHAR(255) NOT NULL CHECK (role IN ('admin', 'merchant', 'customer'))
 )
 
+-- product service.
 CREATE TYPE products_status AS ENUM (
   'unspecified',
   'draft',
@@ -26,7 +28,6 @@ CREATE TABLE products (
 
 CREATE INDEX idx_products_seller_id ON products(seller_id);
 
--- TODO: lock stock design
 CREATE TABLE skus (
   id BIGSERIAL PRIMARY KEY,
   product_id BIGINT NOT NULL,
@@ -39,6 +40,10 @@ CREATE TABLE skus (
 
 CREATE INDEX idx_skus_product_id ON skus(product_id);
 
+-- inventory service. 
+
+
+-- order service.
 -- TODO: coupons
 CREATE TABLE orders (
   id BIGSERIAL PRIMARY KEY,
