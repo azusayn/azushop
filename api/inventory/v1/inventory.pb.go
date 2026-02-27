@@ -155,11 +155,12 @@ func (x *BatchGetStockRequest) GetSkuIds() []int64 {
 }
 
 type SKUQuantity struct {
-	state            protoimpl.MessageState `protogen:"open.v1"`
-	StockQuantity    int64                  `protobuf:"varint,1,opt,name=stock_quantity,json=stockQuantity,proto3" json:"stock_quantity,omitempty"`
-	ReservedQuantity int64                  `protobuf:"varint,2,opt,name=reserved_quantity,json=reservedQuantity,proto3" json:"reserved_quantity,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	AvailableQuantity int64                  `protobuf:"varint,1,opt,name=available_quantity,json=availableQuantity,proto3" json:"available_quantity,omitempty"`
+	StockQuantity     *int64                 `protobuf:"varint,2,opt,name=stock_quantity,json=stockQuantity,proto3,oneof" json:"stock_quantity,omitempty"`
+	ReservedQuantity  *int64                 `protobuf:"varint,3,opt,name=reserved_quantity,json=reservedQuantity,proto3,oneof" json:"reserved_quantity,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *SKUQuantity) Reset() {
@@ -192,16 +193,23 @@ func (*SKUQuantity) Descriptor() ([]byte, []int) {
 	return file_api_inventory_v1_inventory_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *SKUQuantity) GetStockQuantity() int64 {
+func (x *SKUQuantity) GetAvailableQuantity() int64 {
 	if x != nil {
-		return x.StockQuantity
+		return x.AvailableQuantity
+	}
+	return 0
+}
+
+func (x *SKUQuantity) GetStockQuantity() int64 {
+	if x != nil && x.StockQuantity != nil {
+		return *x.StockQuantity
 	}
 	return 0
 }
 
 func (x *SKUQuantity) GetReservedQuantity() int64 {
-	if x != nil {
-		return x.ReservedQuantity
+	if x != nil && x.ReservedQuantity != nil {
+		return *x.ReservedQuantity
 	}
 	return 0
 }
@@ -561,10 +569,13 @@ const file_api_inventory_v1_inventory_proto_rawDesc = "" +
 	"\x0estock_quantity\x18\x02 \x01(\x03R\rstockQuantity\"\x15\n" +
 	"\x13AdjustStockResponse\"/\n" +
 	"\x14BatchGetStockRequest\x12\x17\n" +
-	"\asku_ids\x18\x01 \x03(\x03R\x06skuIds\"a\n" +
-	"\vSKUQuantity\x12%\n" +
-	"\x0estock_quantity\x18\x01 \x01(\x03R\rstockQuantity\x12+\n" +
-	"\x11reserved_quantity\x18\x02 \x01(\x03R\x10reservedQuantity\"\xb6\x01\n" +
+	"\asku_ids\x18\x01 \x03(\x03R\x06skuIds\"\xc3\x01\n" +
+	"\vSKUQuantity\x12-\n" +
+	"\x12available_quantity\x18\x01 \x01(\x03R\x11availableQuantity\x12*\n" +
+	"\x0estock_quantity\x18\x02 \x01(\x03H\x00R\rstockQuantity\x88\x01\x01\x120\n" +
+	"\x11reserved_quantity\x18\x03 \x01(\x03H\x01R\x10reservedQuantity\x88\x01\x01B\x11\n" +
+	"\x0f_stock_quantityB\x14\n" +
+	"\x12_reserved_quantity\"\xb6\x01\n" +
 	"\x15BatchGetStockResponse\x12G\n" +
 	"\x06stocks\x18\x01 \x03(\v2/.inventory.v1.BatchGetStockResponse.StocksEntryR\x06stocks\x1aT\n" +
 	"\vStocksEntry\x12\x10\n" +
@@ -644,6 +655,7 @@ func file_api_inventory_v1_inventory_proto_init() {
 	if File_api_inventory_v1_inventory_proto != nil {
 		return
 	}
+	file_api_inventory_v1_inventory_proto_msgTypes[3].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

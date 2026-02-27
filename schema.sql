@@ -17,7 +17,7 @@ CREATE TYPE products_status AS ENUM (
 );
 
 CREATE TABLE products (
-  id BIGSERIAL PRIMARY KEY,
+  id UUID PRIMARY KEY NOT NULL,
   product_name VARCHAR(255) NOT NULL,
   status products_status NOT NULL DEFAULT 'draft',
   seller_id INT NOT NULL,
@@ -28,7 +28,8 @@ CREATE TABLE products (
 CREATE INDEX idx_products_seller_id ON products(seller_id);
 
 CREATE TABLE skus (
-  id BIGSERIAL PRIMARY KEY,
+  -- UUIDv7
+  id UUID PRIMARY KEY NOT NULL, 
   product_id BIGINT NOT NULL,
   attrs JSONB,
   unit_price NUMERIC(10, 2) NOT NULL CHECK (unit_price >= 0),
