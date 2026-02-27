@@ -47,7 +47,8 @@ message Product {
   int64 id = 1;
   string product_name = 2;
   int32 seller_id = 3;
-  ProductStatus product_status = 4;
+  repeated Sku skus = 4;
+  ProductStatus product_status = 5;
 }
 
 message ListSellerProductsRequest {
@@ -64,12 +65,11 @@ message ListSellerProductsResponse {
   repeated Product products = 1;
 }
 
-// only support updating a single field of the product.
 message BatchUpsertProductRequest {
   repeated Product products = 1;
   google.protobuf.FieldMask update_mask = 2;
 }
 
-// TODO: update strategy and update results.
+// TODO(2): update strategy and update results.
 message BatchUpsertProductResponse {}
 
