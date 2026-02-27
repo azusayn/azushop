@@ -7,10 +7,8 @@
 package v1
 
 import (
-	_ "google.golang.org/genproto/googleapis/api/annotations"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	structpb "google.golang.org/protobuf/types/known/structpb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -23,29 +21,29 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type SkuDetail struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
-	Attrs         *structpb.Struct       `protobuf:"bytes,2,opt,name=attrs,proto3" json:"attrs,omitempty"`
-	UnitPrice     string                 `protobuf:"bytes,3,opt,name=unit_price,json=unitPrice,proto3" json:"unit_price,omitempty"`
+type AdjustStockRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// TODO(3): why string instead of int64 ?
+	SkuId         int64 `protobuf:"varint,1,opt,name=sku_id,json=skuId,proto3" json:"sku_id,omitempty"`
+	StockQuantity int64 `protobuf:"varint,2,opt,name=stock_quantity,json=stockQuantity,proto3" json:"stock_quantity,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *SkuDetail) Reset() {
-	*x = SkuDetail{}
+func (x *AdjustStockRequest) Reset() {
+	*x = AdjustStockRequest{}
 	mi := &file_api_inventory_v1_inventory_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *SkuDetail) String() string {
+func (x *AdjustStockRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*SkuDetail) ProtoMessage() {}
+func (*AdjustStockRequest) ProtoMessage() {}
 
-func (x *SkuDetail) ProtoReflect() protoreflect.Message {
+func (x *AdjustStockRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_api_inventory_v1_inventory_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -57,217 +55,179 @@ func (x *SkuDetail) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use SkuDetail.ProtoReflect.Descriptor instead.
-func (*SkuDetail) Descriptor() ([]byte, []int) {
+// Deprecated: Use AdjustStockRequest.ProtoReflect.Descriptor instead.
+func (*AdjustStockRequest) Descriptor() ([]byte, []int) {
 	return file_api_inventory_v1_inventory_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *SkuDetail) GetId() int64 {
+func (x *AdjustStockRequest) GetSkuId() int64 {
 	if x != nil {
-		return x.Id
+		return x.SkuId
 	}
 	return 0
 }
 
-func (x *SkuDetail) GetAttrs() *structpb.Struct {
-	if x != nil {
-		return x.Attrs
-	}
-	return nil
-}
-
-func (x *SkuDetail) GetUnitPrice() string {
-	if x != nil {
-		return x.UnitPrice
-	}
-	return ""
-}
-
-type Sku struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	SkuDetail         *SkuDetail             `protobuf:"bytes,1,opt,name=sku_detail,json=skuDetail,proto3" json:"sku_detail,omitempty"`
-	AvailableQuantity int64                  `protobuf:"varint,2,opt,name=available_quantity,json=availableQuantity,proto3" json:"available_quantity,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
-}
-
-func (x *Sku) Reset() {
-	*x = Sku{}
-	mi := &file_api_inventory_v1_inventory_proto_msgTypes[1]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *Sku) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Sku) ProtoMessage() {}
-
-func (x *Sku) ProtoReflect() protoreflect.Message {
-	mi := &file_api_inventory_v1_inventory_proto_msgTypes[1]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Sku.ProtoReflect.Descriptor instead.
-func (*Sku) Descriptor() ([]byte, []int) {
-	return file_api_inventory_v1_inventory_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *Sku) GetSkuDetail() *SkuDetail {
-	if x != nil {
-		return x.SkuDetail
-	}
-	return nil
-}
-
-func (x *Sku) GetAvailableQuantity() int64 {
-	if x != nil {
-		return x.AvailableQuantity
-	}
-	return 0
-}
-
-// sku message only used by merchant.
-type MerchantSku struct {
-	state            protoimpl.MessageState `protogen:"open.v1"`
-	SkuDetail        *SkuDetail             `protobuf:"bytes,1,opt,name=sku_detail,json=skuDetail,proto3" json:"sku_detail,omitempty"`
-	StockQuantity    int64                  `protobuf:"varint,2,opt,name=stock_quantity,json=stockQuantity,proto3" json:"stock_quantity,omitempty"`
-	ReservedQuantity int64                  `protobuf:"varint,3,opt,name=reserved_quantity,json=reservedQuantity,proto3" json:"reserved_quantity,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
-}
-
-func (x *MerchantSku) Reset() {
-	*x = MerchantSku{}
-	mi := &file_api_inventory_v1_inventory_proto_msgTypes[2]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *MerchantSku) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*MerchantSku) ProtoMessage() {}
-
-func (x *MerchantSku) ProtoReflect() protoreflect.Message {
-	mi := &file_api_inventory_v1_inventory_proto_msgTypes[2]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use MerchantSku.ProtoReflect.Descriptor instead.
-func (*MerchantSku) Descriptor() ([]byte, []int) {
-	return file_api_inventory_v1_inventory_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *MerchantSku) GetSkuDetail() *SkuDetail {
-	if x != nil {
-		return x.SkuDetail
-	}
-	return nil
-}
-
-func (x *MerchantSku) GetStockQuantity() int64 {
+func (x *AdjustStockRequest) GetStockQuantity() int64 {
 	if x != nil {
 		return x.StockQuantity
 	}
 	return 0
 }
 
-func (x *MerchantSku) GetReservedQuantity() int64 {
+type AdjustStockResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AdjustStockResponse) Reset() {
+	*x = AdjustStockResponse{}
+	mi := &file_api_inventory_v1_inventory_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AdjustStockResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AdjustStockResponse) ProtoMessage() {}
+
+func (x *AdjustStockResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_inventory_v1_inventory_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AdjustStockResponse.ProtoReflect.Descriptor instead.
+func (*AdjustStockResponse) Descriptor() ([]byte, []int) {
+	return file_api_inventory_v1_inventory_proto_rawDescGZIP(), []int{1}
+}
+
+type BatchGetStockRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SkuIds        []int64                `protobuf:"varint,1,rep,packed,name=sku_ids,json=skuIds,proto3" json:"sku_ids,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BatchGetStockRequest) Reset() {
+	*x = BatchGetStockRequest{}
+	mi := &file_api_inventory_v1_inventory_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BatchGetStockRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BatchGetStockRequest) ProtoMessage() {}
+
+func (x *BatchGetStockRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_inventory_v1_inventory_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BatchGetStockRequest.ProtoReflect.Descriptor instead.
+func (*BatchGetStockRequest) Descriptor() ([]byte, []int) {
+	return file_api_inventory_v1_inventory_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *BatchGetStockRequest) GetSkuIds() []int64 {
+	if x != nil {
+		return x.SkuIds
+	}
+	return nil
+}
+
+type SKUQuantity struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	StockQuantity    int64                  `protobuf:"varint,1,opt,name=stock_quantity,json=stockQuantity,proto3" json:"stock_quantity,omitempty"`
+	ReservedQuantity int64                  `protobuf:"varint,2,opt,name=reserved_quantity,json=reservedQuantity,proto3" json:"reserved_quantity,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *SKUQuantity) Reset() {
+	*x = SKUQuantity{}
+	mi := &file_api_inventory_v1_inventory_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SKUQuantity) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SKUQuantity) ProtoMessage() {}
+
+func (x *SKUQuantity) ProtoReflect() protoreflect.Message {
+	mi := &file_api_inventory_v1_inventory_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SKUQuantity.ProtoReflect.Descriptor instead.
+func (*SKUQuantity) Descriptor() ([]byte, []int) {
+	return file_api_inventory_v1_inventory_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *SKUQuantity) GetStockQuantity() int64 {
+	if x != nil {
+		return x.StockQuantity
+	}
+	return 0
+}
+
+func (x *SKUQuantity) GetReservedQuantity() int64 {
 	if x != nil {
 		return x.ReservedQuantity
 	}
 	return 0
 }
 
-type CreateSKURequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ProductId     int64                  `protobuf:"varint,1,opt,name=product_id,json=productId,proto3" json:"product_id,omitempty"`
-	SkuDetails    []*SkuDetail           `protobuf:"bytes,2,rep,name=sku_details,json=skuDetails,proto3" json:"sku_details,omitempty"`
+type BatchGetStockResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// mapping from SKU ID to its stock information.
+	Stocks        map[int64]*SKUQuantity `protobuf:"bytes,1,rep,name=stocks,proto3" json:"stocks,omitempty" protobuf_key:"varint,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *CreateSKURequest) Reset() {
-	*x = CreateSKURequest{}
-	mi := &file_api_inventory_v1_inventory_proto_msgTypes[3]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *CreateSKURequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*CreateSKURequest) ProtoMessage() {}
-
-func (x *CreateSKURequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_inventory_v1_inventory_proto_msgTypes[3]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use CreateSKURequest.ProtoReflect.Descriptor instead.
-func (*CreateSKURequest) Descriptor() ([]byte, []int) {
-	return file_api_inventory_v1_inventory_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *CreateSKURequest) GetProductId() int64 {
-	if x != nil {
-		return x.ProductId
-	}
-	return 0
-}
-
-func (x *CreateSKURequest) GetSkuDetails() []*SkuDetail {
-	if x != nil {
-		return x.SkuDetails
-	}
-	return nil
-}
-
-type CreateSKUResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *CreateSKUResponse) Reset() {
-	*x = CreateSKUResponse{}
+func (x *BatchGetStockResponse) Reset() {
+	*x = BatchGetStockResponse{}
 	mi := &file_api_inventory_v1_inventory_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *CreateSKUResponse) String() string {
+func (x *BatchGetStockResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*CreateSKUResponse) ProtoMessage() {}
+func (*BatchGetStockResponse) ProtoMessage() {}
 
-func (x *CreateSKUResponse) ProtoReflect() protoreflect.Message {
+func (x *BatchGetStockResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_api_inventory_v1_inventory_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -279,32 +239,40 @@ func (x *CreateSKUResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use CreateSKUResponse.ProtoReflect.Descriptor instead.
-func (*CreateSKUResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use BatchGetStockResponse.ProtoReflect.Descriptor instead.
+func (*BatchGetStockResponse) Descriptor() ([]byte, []int) {
 	return file_api_inventory_v1_inventory_proto_rawDescGZIP(), []int{4}
 }
 
-type UpdateSKURequest struct {
+func (x *BatchGetStockResponse) GetStocks() map[int64]*SKUQuantity {
+	if x != nil {
+		return x.Stocks
+	}
+	return nil
+}
+
+type StockItem struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	SkuDetails    []*SkuDetail           `protobuf:"bytes,1,rep,name=sku_details,json=skuDetails,proto3" json:"sku_details,omitempty"`
+	SkuId         int64                  `protobuf:"varint,1,opt,name=sku_id,json=skuId,proto3" json:"sku_id,omitempty"`
+	Quantity      int64                  `protobuf:"varint,2,opt,name=quantity,proto3" json:"quantity,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *UpdateSKURequest) Reset() {
-	*x = UpdateSKURequest{}
+func (x *StockItem) Reset() {
+	*x = StockItem{}
 	mi := &file_api_inventory_v1_inventory_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *UpdateSKURequest) String() string {
+func (x *StockItem) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*UpdateSKURequest) ProtoMessage() {}
+func (*StockItem) ProtoMessage() {}
 
-func (x *UpdateSKURequest) ProtoReflect() protoreflect.Message {
+func (x *StockItem) ProtoReflect() protoreflect.Message {
 	mi := &file_api_inventory_v1_inventory_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -316,38 +284,47 @@ func (x *UpdateSKURequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UpdateSKURequest.ProtoReflect.Descriptor instead.
-func (*UpdateSKURequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use StockItem.ProtoReflect.Descriptor instead.
+func (*StockItem) Descriptor() ([]byte, []int) {
 	return file_api_inventory_v1_inventory_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *UpdateSKURequest) GetSkuDetails() []*SkuDetail {
+func (x *StockItem) GetSkuId() int64 {
 	if x != nil {
-		return x.SkuDetails
+		return x.SkuId
 	}
-	return nil
+	return 0
 }
 
-type UpdateSKUResponse struct {
+func (x *StockItem) GetQuantity() int64 {
+	if x != nil {
+		return x.Quantity
+	}
+	return 0
+}
+
+type ReserveStockRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	OrderId       int64                  `protobuf:"varint,1,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty"`
+	Items         []*StockItem           `protobuf:"bytes,2,rep,name=items,proto3" json:"items,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *UpdateSKUResponse) Reset() {
-	*x = UpdateSKUResponse{}
+func (x *ReserveStockRequest) Reset() {
+	*x = ReserveStockRequest{}
 	mi := &file_api_inventory_v1_inventory_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *UpdateSKUResponse) String() string {
+func (x *ReserveStockRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*UpdateSKUResponse) ProtoMessage() {}
+func (*ReserveStockRequest) ProtoMessage() {}
 
-func (x *UpdateSKUResponse) ProtoReflect() protoreflect.Message {
+func (x *ReserveStockRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_api_inventory_v1_inventory_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -359,33 +336,45 @@ func (x *UpdateSKUResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UpdateSKUResponse.ProtoReflect.Descriptor instead.
-func (*UpdateSKUResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use ReserveStockRequest.ProtoReflect.Descriptor instead.
+func (*ReserveStockRequest) Descriptor() ([]byte, []int) {
 	return file_api_inventory_v1_inventory_proto_rawDescGZIP(), []int{6}
 }
 
-// TODO: batch get.
-type ListSKUsRequest struct {
+func (x *ReserveStockRequest) GetOrderId() int64 {
+	if x != nil {
+		return x.OrderId
+	}
+	return 0
+}
+
+func (x *ReserveStockRequest) GetItems() []*StockItem {
+	if x != nil {
+		return x.Items
+	}
+	return nil
+}
+
+type ReserveStockResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	ProductId     int64                  `protobuf:"varint,1,opt,name=product_id,json=productId,proto3" json:"product_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *ListSKUsRequest) Reset() {
-	*x = ListSKUsRequest{}
+func (x *ReserveStockResponse) Reset() {
+	*x = ReserveStockResponse{}
 	mi := &file_api_inventory_v1_inventory_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ListSKUsRequest) String() string {
+func (x *ReserveStockResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ListSKUsRequest) ProtoMessage() {}
+func (*ReserveStockResponse) ProtoMessage() {}
 
-func (x *ListSKUsRequest) ProtoReflect() protoreflect.Message {
+func (x *ReserveStockResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_api_inventory_v1_inventory_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -397,39 +386,32 @@ func (x *ListSKUsRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ListSKUsRequest.ProtoReflect.Descriptor instead.
-func (*ListSKUsRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use ReserveStockResponse.ProtoReflect.Descriptor instead.
+func (*ReserveStockResponse) Descriptor() ([]byte, []int) {
 	return file_api_inventory_v1_inventory_proto_rawDescGZIP(), []int{7}
 }
 
-func (x *ListSKUsRequest) GetProductId() int64 {
-	if x != nil {
-		return x.ProductId
-	}
-	return 0
-}
-
-type ListSKUsResponse struct {
+type ReleaseStockRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Skus          []*Sku                 `protobuf:"bytes,1,rep,name=skus,proto3" json:"skus,omitempty"`
+	OrderId       int64                  `protobuf:"varint,1,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *ListSKUsResponse) Reset() {
-	*x = ListSKUsResponse{}
+func (x *ReleaseStockRequest) Reset() {
+	*x = ReleaseStockRequest{}
 	mi := &file_api_inventory_v1_inventory_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ListSKUsResponse) String() string {
+func (x *ReleaseStockRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ListSKUsResponse) ProtoMessage() {}
+func (*ReleaseStockRequest) ProtoMessage() {}
 
-func (x *ListSKUsResponse) ProtoReflect() protoreflect.Message {
+func (x *ReleaseStockRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_api_inventory_v1_inventory_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -441,83 +423,75 @@ func (x *ListSKUsResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ListSKUsResponse.ProtoReflect.Descriptor instead.
-func (*ListSKUsResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use ReleaseStockRequest.ProtoReflect.Descriptor instead.
+func (*ReleaseStockRequest) Descriptor() ([]byte, []int) {
 	return file_api_inventory_v1_inventory_proto_rawDescGZIP(), []int{8}
 }
 
-func (x *ListSKUsResponse) GetSkus() []*Sku {
+func (x *ReleaseStockRequest) GetOrderId() int64 {
 	if x != nil {
-		return x.Skus
-	}
-	return nil
-}
-
-type AdminListSKUsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ProductId     int64                  `protobuf:"varint,1,opt,name=product_id,json=productId,proto3" json:"product_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *AdminListSKUsRequest) Reset() {
-	*x = AdminListSKUsRequest{}
-	mi := &file_api_inventory_v1_inventory_proto_msgTypes[9]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *AdminListSKUsRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*AdminListSKUsRequest) ProtoMessage() {}
-
-func (x *AdminListSKUsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_inventory_v1_inventory_proto_msgTypes[9]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use AdminListSKUsRequest.ProtoReflect.Descriptor instead.
-func (*AdminListSKUsRequest) Descriptor() ([]byte, []int) {
-	return file_api_inventory_v1_inventory_proto_rawDescGZIP(), []int{9}
-}
-
-func (x *AdminListSKUsRequest) GetProductId() int64 {
-	if x != nil {
-		return x.ProductId
+		return x.OrderId
 	}
 	return 0
 }
 
-type AdminListSKUsResponse struct {
+type ReleaseStockResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Skus          []*MerchantSku         `protobuf:"bytes,1,rep,name=skus,proto3" json:"skus,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *AdminListSKUsResponse) Reset() {
-	*x = AdminListSKUsResponse{}
+func (x *ReleaseStockResponse) Reset() {
+	*x = ReleaseStockResponse{}
+	mi := &file_api_inventory_v1_inventory_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReleaseStockResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReleaseStockResponse) ProtoMessage() {}
+
+func (x *ReleaseStockResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_inventory_v1_inventory_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReleaseStockResponse.ProtoReflect.Descriptor instead.
+func (*ReleaseStockResponse) Descriptor() ([]byte, []int) {
+	return file_api_inventory_v1_inventory_proto_rawDescGZIP(), []int{9}
+}
+
+type DeductStockRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	OrderId       int64                  `protobuf:"varint,1,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeductStockRequest) Reset() {
+	*x = DeductStockRequest{}
 	mi := &file_api_inventory_v1_inventory_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *AdminListSKUsResponse) String() string {
+func (x *DeductStockRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*AdminListSKUsResponse) ProtoMessage() {}
+func (*DeductStockRequest) ProtoMessage() {}
 
-func (x *AdminListSKUsResponse) ProtoReflect() protoreflect.Message {
+func (x *DeductStockRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_api_inventory_v1_inventory_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -529,62 +503,92 @@ func (x *AdminListSKUsResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use AdminListSKUsResponse.ProtoReflect.Descriptor instead.
-func (*AdminListSKUsResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use DeductStockRequest.ProtoReflect.Descriptor instead.
+func (*DeductStockRequest) Descriptor() ([]byte, []int) {
 	return file_api_inventory_v1_inventory_proto_rawDescGZIP(), []int{10}
 }
 
-func (x *AdminListSKUsResponse) GetSkus() []*MerchantSku {
+func (x *DeductStockRequest) GetOrderId() int64 {
 	if x != nil {
-		return x.Skus
+		return x.OrderId
 	}
-	return nil
+	return 0
+}
+
+type DeductStockResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeductStockResponse) Reset() {
+	*x = DeductStockResponse{}
+	mi := &file_api_inventory_v1_inventory_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeductStockResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeductStockResponse) ProtoMessage() {}
+
+func (x *DeductStockResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_inventory_v1_inventory_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeductStockResponse.ProtoReflect.Descriptor instead.
+func (*DeductStockResponse) Descriptor() ([]byte, []int) {
+	return file_api_inventory_v1_inventory_proto_rawDescGZIP(), []int{11}
 }
 
 var File_api_inventory_v1_inventory_proto protoreflect.FileDescriptor
 
 const file_api_inventory_v1_inventory_proto_rawDesc = "" +
 	"\n" +
-	" api/inventory/v1/inventory.proto\x12\finventory.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1cgoogle/api/annotations.proto\"i\n" +
-	"\tSkuDetail\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\x03R\x02id\x12-\n" +
-	"\x05attrs\x18\x02 \x01(\v2\x17.google.protobuf.StructR\x05attrs\x12\x1d\n" +
-	"\n" +
-	"unit_price\x18\x03 \x01(\tR\tunitPrice\"l\n" +
-	"\x03Sku\x126\n" +
-	"\n" +
-	"sku_detail\x18\x01 \x01(\v2\x17.inventory.v1.SkuDetailR\tskuDetail\x12-\n" +
-	"\x12available_quantity\x18\x02 \x01(\x03R\x11availableQuantity\"\x99\x01\n" +
-	"\vMerchantSku\x126\n" +
-	"\n" +
-	"sku_detail\x18\x01 \x01(\v2\x17.inventory.v1.SkuDetailR\tskuDetail\x12%\n" +
-	"\x0estock_quantity\x18\x02 \x01(\x03R\rstockQuantity\x12+\n" +
-	"\x11reserved_quantity\x18\x03 \x01(\x03R\x10reservedQuantity\"k\n" +
-	"\x10CreateSKURequest\x12\x1d\n" +
-	"\n" +
-	"product_id\x18\x01 \x01(\x03R\tproductId\x128\n" +
-	"\vsku_details\x18\x02 \x03(\v2\x17.inventory.v1.SkuDetailR\n" +
-	"skuDetails\"\x13\n" +
-	"\x11CreateSKUResponse\"L\n" +
-	"\x10UpdateSKURequest\x128\n" +
-	"\vsku_details\x18\x01 \x03(\v2\x17.inventory.v1.SkuDetailR\n" +
-	"skuDetails\"\x13\n" +
-	"\x11UpdateSKUResponse\"0\n" +
-	"\x0fListSKUsRequest\x12\x1d\n" +
-	"\n" +
-	"product_id\x18\x01 \x01(\x03R\tproductId\"9\n" +
-	"\x10ListSKUsResponse\x12%\n" +
-	"\x04skus\x18\x01 \x03(\v2\x11.inventory.v1.SkuR\x04skus\"5\n" +
-	"\x14AdminListSKUsRequest\x12\x1d\n" +
-	"\n" +
-	"product_id\x18\x01 \x01(\x03R\tproductId\"F\n" +
-	"\x15AdminListSKUsResponse\x12-\n" +
-	"\x04skus\x18\x01 \x03(\v2\x19.inventory.v1.MerchantSkuR\x04skus2\xea\x03\n" +
-	"\x10InventoryService\x12w\n" +
-	"\tCreateSKU\x12\x1e.inventory.v1.CreateSKURequest\x1a\x1f.inventory.v1.CreateSKUResponse\")\x82\xd3\xe4\x93\x02#:\x01*\"\x1e/v1/products/{product_id}/skus\x12a\n" +
-	"\tUpdateSKU\x12\x1e.inventory.v1.UpdateSKURequest\x1a\x1f.inventory.v1.UpdateSKUResponse\"\x13\x82\xd3\xe4\x93\x02\r:\x01*\x1a\b/v1/skus\x12q\n" +
-	"\bListSKUs\x12\x1d.inventory.v1.ListSKUsRequest\x1a\x1e.inventory.v1.ListSKUsResponse\"&\x82\xd3\xe4\x93\x02 \x12\x1e/v1/products/{product_id}/skus\x12\x86\x01\n" +
-	"\rAdminListSKUs\x12\".inventory.v1.AdminListSKUsRequest\x1a#.inventory.v1.AdminListSKUsResponse\",\x82\xd3\xe4\x93\x02&\x12$/v1/admin/products/{product_id}/skusB\x1dZ\x1bazushop/api/inventory/v1;v1b\x06proto3"
+	" api/inventory/v1/inventory.proto\x12\finventory.v1\"R\n" +
+	"\x12AdjustStockRequest\x12\x15\n" +
+	"\x06sku_id\x18\x01 \x01(\x03R\x05skuId\x12%\n" +
+	"\x0estock_quantity\x18\x02 \x01(\x03R\rstockQuantity\"\x15\n" +
+	"\x13AdjustStockResponse\"/\n" +
+	"\x14BatchGetStockRequest\x12\x17\n" +
+	"\asku_ids\x18\x01 \x03(\x03R\x06skuIds\"a\n" +
+	"\vSKUQuantity\x12%\n" +
+	"\x0estock_quantity\x18\x01 \x01(\x03R\rstockQuantity\x12+\n" +
+	"\x11reserved_quantity\x18\x02 \x01(\x03R\x10reservedQuantity\"\xb6\x01\n" +
+	"\x15BatchGetStockResponse\x12G\n" +
+	"\x06stocks\x18\x01 \x03(\v2/.inventory.v1.BatchGetStockResponse.StocksEntryR\x06stocks\x1aT\n" +
+	"\vStocksEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\x03R\x03key\x12/\n" +
+	"\x05value\x18\x02 \x01(\v2\x19.inventory.v1.SKUQuantityR\x05value:\x028\x01\">\n" +
+	"\tStockItem\x12\x15\n" +
+	"\x06sku_id\x18\x01 \x01(\x03R\x05skuId\x12\x1a\n" +
+	"\bquantity\x18\x02 \x01(\x03R\bquantity\"_\n" +
+	"\x13ReserveStockRequest\x12\x19\n" +
+	"\border_id\x18\x01 \x01(\x03R\aorderId\x12-\n" +
+	"\x05items\x18\x02 \x03(\v2\x17.inventory.v1.StockItemR\x05items\"\x16\n" +
+	"\x14ReserveStockResponse\"0\n" +
+	"\x13ReleaseStockRequest\x12\x19\n" +
+	"\border_id\x18\x01 \x01(\x03R\aorderId\"\x16\n" +
+	"\x14ReleaseStockResponse\"/\n" +
+	"\x12DeductStockRequest\x12\x19\n" +
+	"\border_id\x18\x01 \x01(\x03R\aorderId\"\x15\n" +
+	"\x13DeductStockResponse2\xc2\x03\n" +
+	"\x10InventoryService\x12R\n" +
+	"\vAdjustStock\x12 .inventory.v1.AdjustStockRequest\x1a!.inventory.v1.AdjustStockResponse\x12X\n" +
+	"\rBatchGetStock\x12\".inventory.v1.BatchGetStockRequest\x1a#.inventory.v1.BatchGetStockResponse\x12U\n" +
+	"\fReserveStock\x12!.inventory.v1.ReserveStockRequest\x1a\".inventory.v1.ReserveStockResponse\x12U\n" +
+	"\fReleaseStock\x12!.inventory.v1.ReleaseStockRequest\x1a\".inventory.v1.ReleaseStockResponse\x12R\n" +
+	"\vDeductStock\x12 .inventory.v1.DeductStockRequest\x1a!.inventory.v1.DeductStockResponseB\x1dZ\x1bazushop/api/inventory/v1;v1b\x06proto3"
 
 var (
 	file_api_inventory_v1_inventory_proto_rawDescOnce sync.Once
@@ -598,42 +602,41 @@ func file_api_inventory_v1_inventory_proto_rawDescGZIP() []byte {
 	return file_api_inventory_v1_inventory_proto_rawDescData
 }
 
-var file_api_inventory_v1_inventory_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+var file_api_inventory_v1_inventory_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_api_inventory_v1_inventory_proto_goTypes = []any{
-	(*SkuDetail)(nil),             // 0: inventory.v1.SkuDetail
-	(*Sku)(nil),                   // 1: inventory.v1.Sku
-	(*MerchantSku)(nil),           // 2: inventory.v1.MerchantSku
-	(*CreateSKURequest)(nil),      // 3: inventory.v1.CreateSKURequest
-	(*CreateSKUResponse)(nil),     // 4: inventory.v1.CreateSKUResponse
-	(*UpdateSKURequest)(nil),      // 5: inventory.v1.UpdateSKURequest
-	(*UpdateSKUResponse)(nil),     // 6: inventory.v1.UpdateSKUResponse
-	(*ListSKUsRequest)(nil),       // 7: inventory.v1.ListSKUsRequest
-	(*ListSKUsResponse)(nil),      // 8: inventory.v1.ListSKUsResponse
-	(*AdminListSKUsRequest)(nil),  // 9: inventory.v1.AdminListSKUsRequest
-	(*AdminListSKUsResponse)(nil), // 10: inventory.v1.AdminListSKUsResponse
-	(*structpb.Struct)(nil),       // 11: google.protobuf.Struct
+	(*AdjustStockRequest)(nil),    // 0: inventory.v1.AdjustStockRequest
+	(*AdjustStockResponse)(nil),   // 1: inventory.v1.AdjustStockResponse
+	(*BatchGetStockRequest)(nil),  // 2: inventory.v1.BatchGetStockRequest
+	(*SKUQuantity)(nil),           // 3: inventory.v1.SKUQuantity
+	(*BatchGetStockResponse)(nil), // 4: inventory.v1.BatchGetStockResponse
+	(*StockItem)(nil),             // 5: inventory.v1.StockItem
+	(*ReserveStockRequest)(nil),   // 6: inventory.v1.ReserveStockRequest
+	(*ReserveStockResponse)(nil),  // 7: inventory.v1.ReserveStockResponse
+	(*ReleaseStockRequest)(nil),   // 8: inventory.v1.ReleaseStockRequest
+	(*ReleaseStockResponse)(nil),  // 9: inventory.v1.ReleaseStockResponse
+	(*DeductStockRequest)(nil),    // 10: inventory.v1.DeductStockRequest
+	(*DeductStockResponse)(nil),   // 11: inventory.v1.DeductStockResponse
+	nil,                           // 12: inventory.v1.BatchGetStockResponse.StocksEntry
 }
 var file_api_inventory_v1_inventory_proto_depIdxs = []int32{
-	11, // 0: inventory.v1.SkuDetail.attrs:type_name -> google.protobuf.Struct
-	0,  // 1: inventory.v1.Sku.sku_detail:type_name -> inventory.v1.SkuDetail
-	0,  // 2: inventory.v1.MerchantSku.sku_detail:type_name -> inventory.v1.SkuDetail
-	0,  // 3: inventory.v1.CreateSKURequest.sku_details:type_name -> inventory.v1.SkuDetail
-	0,  // 4: inventory.v1.UpdateSKURequest.sku_details:type_name -> inventory.v1.SkuDetail
-	1,  // 5: inventory.v1.ListSKUsResponse.skus:type_name -> inventory.v1.Sku
-	2,  // 6: inventory.v1.AdminListSKUsResponse.skus:type_name -> inventory.v1.MerchantSku
-	3,  // 7: inventory.v1.InventoryService.CreateSKU:input_type -> inventory.v1.CreateSKURequest
-	5,  // 8: inventory.v1.InventoryService.UpdateSKU:input_type -> inventory.v1.UpdateSKURequest
-	7,  // 9: inventory.v1.InventoryService.ListSKUs:input_type -> inventory.v1.ListSKUsRequest
-	9,  // 10: inventory.v1.InventoryService.AdminListSKUs:input_type -> inventory.v1.AdminListSKUsRequest
-	4,  // 11: inventory.v1.InventoryService.CreateSKU:output_type -> inventory.v1.CreateSKUResponse
-	6,  // 12: inventory.v1.InventoryService.UpdateSKU:output_type -> inventory.v1.UpdateSKUResponse
-	8,  // 13: inventory.v1.InventoryService.ListSKUs:output_type -> inventory.v1.ListSKUsResponse
-	10, // 14: inventory.v1.InventoryService.AdminListSKUs:output_type -> inventory.v1.AdminListSKUsResponse
-	11, // [11:15] is the sub-list for method output_type
-	7,  // [7:11] is the sub-list for method input_type
-	7,  // [7:7] is the sub-list for extension type_name
-	7,  // [7:7] is the sub-list for extension extendee
-	0,  // [0:7] is the sub-list for field type_name
+	12, // 0: inventory.v1.BatchGetStockResponse.stocks:type_name -> inventory.v1.BatchGetStockResponse.StocksEntry
+	5,  // 1: inventory.v1.ReserveStockRequest.items:type_name -> inventory.v1.StockItem
+	3,  // 2: inventory.v1.BatchGetStockResponse.StocksEntry.value:type_name -> inventory.v1.SKUQuantity
+	0,  // 3: inventory.v1.InventoryService.AdjustStock:input_type -> inventory.v1.AdjustStockRequest
+	2,  // 4: inventory.v1.InventoryService.BatchGetStock:input_type -> inventory.v1.BatchGetStockRequest
+	6,  // 5: inventory.v1.InventoryService.ReserveStock:input_type -> inventory.v1.ReserveStockRequest
+	8,  // 6: inventory.v1.InventoryService.ReleaseStock:input_type -> inventory.v1.ReleaseStockRequest
+	10, // 7: inventory.v1.InventoryService.DeductStock:input_type -> inventory.v1.DeductStockRequest
+	1,  // 8: inventory.v1.InventoryService.AdjustStock:output_type -> inventory.v1.AdjustStockResponse
+	4,  // 9: inventory.v1.InventoryService.BatchGetStock:output_type -> inventory.v1.BatchGetStockResponse
+	7,  // 10: inventory.v1.InventoryService.ReserveStock:output_type -> inventory.v1.ReserveStockResponse
+	9,  // 11: inventory.v1.InventoryService.ReleaseStock:output_type -> inventory.v1.ReleaseStockResponse
+	11, // 12: inventory.v1.InventoryService.DeductStock:output_type -> inventory.v1.DeductStockResponse
+	8,  // [8:13] is the sub-list for method output_type
+	3,  // [3:8] is the sub-list for method input_type
+	3,  // [3:3] is the sub-list for extension type_name
+	3,  // [3:3] is the sub-list for extension extendee
+	0,  // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_api_inventory_v1_inventory_proto_init() }
@@ -647,7 +650,7 @@ func file_api_inventory_v1_inventory_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_inventory_v1_inventory_proto_rawDesc), len(file_api_inventory_v1_inventory_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   11,
+			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
