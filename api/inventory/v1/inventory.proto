@@ -2,9 +2,6 @@ syntax = "proto3";
 
 package inventory.v1;
 
-import "google/protobuf/struct.proto";
-import "google/api/annotations.proto";
-
 option go_package = "azushop/api/inventory/v1;v1";
 
 // service for managing stocks.

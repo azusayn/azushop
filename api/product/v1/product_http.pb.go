@@ -19,20 +19,24 @@ var _ = binding.EncodeURL
 
 const _ = http.SupportPackageIsVersion1
 
-const OperationProductServiceBatchUpsertProduct = "/product.v1.ProductService/BatchUpsertProduct"
+const OperationProductServiceBatchCreateProduct = "/product.v1.ProductService/BatchCreateProduct"
+const OperationProductServiceBatchUpdateProduct = "/product.v1.ProductService/BatchUpdateProduct"
 const OperationProductServiceListSellerProducts = "/product.v1.ProductService/ListSellerProducts"
 
 type ProductServiceHTTPServer interface {
-	// BatchUpsertProduct insert or update products' details, used by administrators & merchants.
-	BatchUpsertProduct(context.Context, *BatchUpsertProductRequest) (*BatchUpsertProductResponse, error)
-	// ListSellerProducts list products by seller_id, generally used by customers.
+	// BatchCreateProduct creates new products for given information.
+	BatchCreateProduct(context.Context, *BatchCreateProductRequest) (*BatchCreateProductResponse, error)
+	// BatchUpdateProduct updates products' fields specified by the given update masks.
+	BatchUpdateProduct(context.Context, *BatchUpdateProductRequest) (*BatchUpdateProductResponse, error)
+	// ListSellerProducts retrieves product information for given seller_id and product status.
 	ListSellerProducts(context.Context, *ListSellerProductsRequest) (*ListSellerProductsResponse, error)
 }
 
 func RegisterProductServiceHTTPServer(s *http.Server, srv ProductServiceHTTPServer) {
 	r := s.Route("/")
 	r.GET("/v1/sellers/{seller_id}/products", _ProductService_ListSellerProducts0_HTTP_Handler(srv))
-	r.PATCH("/v1/products", _ProductService_BatchUpsertProduct0_HTTP_Handler(srv))
+	r.POST("/v1/products", _ProductService_BatchCreateProduct0_HTTP_Handler(srv))
+	r.PATCH("/v1/products", _ProductService_BatchUpdateProduct0_HTTP_Handler(srv))
 }
 
 func _ProductService_ListSellerProducts0_HTTP_Handler(srv ProductServiceHTTPServer) func(ctx http.Context) error {
@@ -57,32 +61,56 @@ func _ProductService_ListSellerProducts0_HTTP_Handler(srv ProductServiceHTTPServ
 	}
 }
 
-func _ProductService_BatchUpsertProduct0_HTTP_Handler(srv ProductServiceHTTPServer) func(ctx http.Context) error {
+func _ProductService_BatchCreateProduct0_HTTP_Handler(srv ProductServiceHTTPServer) func(ctx http.Context) error {
 	return func(ctx http.Context) error {
-		var in BatchUpsertProductRequest
+		var in BatchCreateProductRequest
 		if err := ctx.Bind(&in); err != nil {
 			return err
 		}
 		if err := ctx.BindQuery(&in); err != nil {
 			return err
 		}
-		http.SetOperation(ctx, OperationProductServiceBatchUpsertProduct)
+		http.SetOperation(ctx, OperationProductServiceBatchCreateProduct)
 		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
-			return srv.BatchUpsertProduct(ctx, req.(*BatchUpsertProductRequest))
+			return srv.BatchCreateProduct(ctx, req.(*BatchCreateProductRequest))
 		})
 		out, err := h(ctx, &in)
 		if err != nil {
 			return err
 		}
-		reply := out.(*BatchUpsertProductResponse)
+		reply := out.(*BatchCreateProductResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _ProductService_BatchUpdateProduct0_HTTP_Handler(srv ProductServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in BatchUpdateProductRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationProductServiceBatchUpdateProduct)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.BatchUpdateProduct(ctx, req.(*BatchUpdateProductRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*BatchUpdateProductResponse)
 		return ctx.Result(200, reply)
 	}
 }
 
 type ProductServiceHTTPClient interface {
-	// BatchUpsertProduct insert or update products' details, used by administrators & merchants.
-	BatchUpsertProduct(ctx context.Context, req *BatchUpsertProductRequest, opts ...http.CallOption) (rsp *BatchUpsertProductResponse, err error)
-	// ListSellerProducts list products by seller_id, generally used by customers.
+	// BatchCreateProduct creates new products for given information.
+	BatchCreateProduct(ctx context.Context, req *BatchCreateProductRequest, opts ...http.CallOption) (rsp *BatchCreateProductResponse, err error)
+	// BatchUpdateProduct updates products' fields specified by the given update masks.
+	BatchUpdateProduct(ctx context.Context, req *BatchUpdateProductRequest, opts ...http.CallOption) (rsp *BatchUpdateProductResponse, err error)
+	// ListSellerProducts retrieves product information for given seller_id and product status.
 	ListSellerProducts(ctx context.Context, req *ListSellerProductsRequest, opts ...http.CallOption) (rsp *ListSellerProductsResponse, err error)
 }
 
@@ -94,12 +122,26 @@ func NewProductServiceHTTPClient(client *http.Client) ProductServiceHTTPClient {
 	return &ProductServiceHTTPClientImpl{client}
 }
 
-// BatchUpsertProduct insert or update products' details, used by administrators & merchants.
-func (c *ProductServiceHTTPClientImpl) BatchUpsertProduct(ctx context.Context, in *BatchUpsertProductRequest, opts ...http.CallOption) (*BatchUpsertProductResponse, error) {
-	var out BatchUpsertProductResponse
+// BatchCreateProduct creates new products for given information.
+func (c *ProductServiceHTTPClientImpl) BatchCreateProduct(ctx context.Context, in *BatchCreateProductRequest, opts ...http.CallOption) (*BatchCreateProductResponse, error) {
+	var out BatchCreateProductResponse
 	pattern := "/v1/products"
 	path := binding.EncodeURL(pattern, in, false)
-	opts = append(opts, http.Operation(OperationProductServiceBatchUpsertProduct))
+	opts = append(opts, http.Operation(OperationProductServiceBatchCreateProduct))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// BatchUpdateProduct updates products' fields specified by the given update masks.
+func (c *ProductServiceHTTPClientImpl) BatchUpdateProduct(ctx context.Context, in *BatchUpdateProductRequest, opts ...http.CallOption) (*BatchUpdateProductResponse, error) {
+	var out BatchUpdateProductResponse
+	pattern := "/v1/products"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationProductServiceBatchUpdateProduct))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "PATCH", path, in, &out, opts...)
 	if err != nil {
@@ -108,7 +150,7 @@ func (c *ProductServiceHTTPClientImpl) BatchUpsertProduct(ctx context.Context, i
 	return &out, nil
 }
 
-// ListSellerProducts list products by seller_id, generally used by customers.
+// ListSellerProducts retrieves product information for given seller_id and product status.
 func (c *ProductServiceHTTPClientImpl) ListSellerProducts(ctx context.Context, in *ListSellerProductsRequest, opts ...http.CallOption) (*ListSellerProductsResponse, error) {
 	var out ListSellerProductsResponse
 	pattern := "/v1/sellers/{seller_id}/products"
