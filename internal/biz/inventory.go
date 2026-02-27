@@ -2,17 +2,17 @@ package biz
 
 import (
 	"context"
+
+	"github.com/google/uuid"
 )
 
 type InventoryRepo interface {
-	CreateSKU(ctx context.Context, productID int64, skus []*Inventory) error
-	UpdateSKU(ctx context.Context, skus []*Inventory) error
-	ListSKUs(ctx context.Context, productID int64) ([]*Inventory, error)
+	UpdateInventories(ctx context.Context, inventories []*Inventory, paths []string) error
+	BatchGetInventories(ctx context.Context, skuIDs []uuid.UUID) ([]*Inventory, error)
 }
 
 type Inventory struct {
-	ID               int64 `gorm:"column:id"`
-	ProductID        int64 `gorm:"column:product_id"`
+	ID               int64 `gorm:"column:sku_id"`
 	StockQuantity    int64 `gorm:"column:stock_quantity"`
 	ReservedQuantity int64 `gorm:"column:reserved_quantity"`
 }
@@ -23,16 +23,4 @@ type InventoryUsecase struct {
 
 func NewInventoryUsecase(repo InventoryRepo) *InventoryUsecase {
 	return &InventoryUsecase{repo: repo}
-}
-
-func (uc *InventoryUsecase) CreateSKU(ctx context.Context, productID int64, skus []*Inventory) error {
-	return uc.repo.CreateSKU(ctx, productID, skus)
-}
-
-func (uc *InventoryUsecase) UpdateSKU(ctx context.Context, skus []*Inventory) error {
-	return uc.repo.UpdateSKU(ctx, skus)
-}
-
-func (uc *InventoryUsecase) ListSKUs(ctx context.Context, productID int64) ([]*Inventory, error) {
-	return uc.repo.ListSKUs(ctx, productID)
 }

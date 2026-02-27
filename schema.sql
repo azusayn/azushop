@@ -40,7 +40,7 @@ CREATE INDEX idx_skus_product_id ON skus(product_id);
 
 -- inventory service. 
 CREATE TABLE inventory (,
-  sku_id BIGINT NOT NULL PRIMARY KEY,
+  sku_id UUID NOT NULL PRIMARY KEY,
   stock_quantity BIGINT NOT NULL CHECK (stock_quantity >= 0),
   reserved_quantity BIGINT NOT NULL CHECK (reserved_quantity >= 0),
 )
