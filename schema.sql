@@ -39,8 +39,14 @@ CREATE TABLE skus (
 CREATE INDEX idx_skus_product_id ON skus(product_id);
 
 -- inventory service. 
--- stock_quantity BIGINT NOT NULL CHECK (stock_quantity >= 0),
--- reserved_quantity BIGINT NOT NULL CHECK (stock_quantity >= reserved_quantity),
+CREATE TABLE inventory (
+  id BIGSERIAL NOT NULL,
+  stock_quantity BIGINT NOT NULL CHECK (stock_quantity >= 0),
+  reserved_quantity BIGINT NOT NULL CHECK (stock_quantity >= reserved_quantity),
+)
+
+
+
 
 -- order service.
 -- TODO: coupons
