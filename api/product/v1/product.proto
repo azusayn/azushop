@@ -4,6 +4,7 @@ package product.v1;
 
 import "google/api/annotations.proto";
 import "google/protobuf/field_mask.proto";
+import "google/protobuf/struct.proto";
 
 option go_package = "azushop/api/product/v1;v1";
 
@@ -25,6 +26,7 @@ service ProductService {
   };
 
   // TODO: publish & unpublish products.
+  // TODO: search API using Postgres GIN.
 }
 
 enum ProductStatus {
@@ -33,6 +35,12 @@ enum ProductStatus {
   PRODUCT_STATUS_PENDING = 2;
   PRODUCT_STATUS_ACTIVE = 3;
   PRODUCT_STATUS_OFFLINE = 4;
+}
+
+message Sku {
+  int64 id = 1;
+  google.protobuf.Struct attrs = 2;
+  string unit_price = 3;
 }
 
 message Product {

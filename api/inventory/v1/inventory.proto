@@ -7,137 +7,74 @@ import "google/api/annotations.proto";
 
 option go_package = "azushop/api/inventory/v1;v1";
 
-// service for managing SKUs.
+// service for managing stocks.
 service InventoryService {
-  // SKU management.
-  rpc CreateSKU(CreateSKURequest) returns (CreateSKUResponse) {
-    option (google.api.http) = {
-      post: "/v1/products/{product_id}/skus"
-      body: "*"
-    };
-  }
+  // interfaces used by merchants and administrators. 
+  // sets stock to a specific quantity.
+  rpc AdjustStock(AdjustStockRequest) returns (AdjustStockResponse);
   
-  // update sku with sku details.
-  rpc UpdateSKU(UpdateSKURequest) returns (UpdateSKUResponse) {
-    option (google.api.http) = {
-      put: "/v1/skus"
-      body: "*"
-    };
-  }
-
-  // list skus by product id.
-  rpc ListSKUs(ListSKUsRequest) returns (ListSKUsResponse) {
-    option (google.api.http) = {
-      get: "/v1/products/{product_id}/skus"
-    };
-  }
-
-  // list skus by product id with full details(available, stock, reserved stocks).
-  rpc AdminListSKUs(AdminListSKUsRequest) returns (AdminListSKUsResponse) {
-    option (google.api.http) = {
-      get: "/v1/admin/products/{product_id}/skus"
-    };
-  }
-
-  // Core inventory operations.
-  // rpc ReserveStock(ReserveStockRequest) returns (ReserveStockResponse);
-  // rpc ReleaseStock(ReleaseStockRequest) returns (ReleaseStockResponse);
-  // rpc ConfirmDeduct(ConfirmDeductRequest) returns (ConfirmDeductResponse);
-  // rpc CompensateStock(CompensateStockRequest) returns (CompensateStockResponse);
-
-  // Inventory query and alerts.
-  // rpc GetStock(GetStockRequest) returns (GetStockResponse);
-  // rpc BatchGetStock(BatchGetStockRequest) returns (BatchGetStockResponse);
-  // rpc GetLowStockAlerts(GetLowStockAlertsRequest) returns (GetLowStockAlertsResponse);
+  // retrieves SKU information for given SKU IDs.
+  rpc BatchGetStock(BatchGetStockRequest) returns (BatchGetStockResponse);
+  
+  // interfaces used by internal services.
+  // reserves a certain quantity of stock after  
+  // an order is created.
+  rpc ReserveStock(ReserveStockRequest) returns (ReserveStockResponse);
+  
+  // release reserved stock when a customer cancels an order.
+  rpc ReleaseStock(ReleaseStockRequest) returns (ReleaseStockResponse);
+  
+  // deducts stock when an order is paid.
+  rpc DeductStock(DeductStockRequest) returns (DeductStockResponse);
 }
 
-message SkuDetail {
-  int64 id = 1;
-  google.protobuf.Struct attrs = 2;
-  string unit_price = 3;
-}
-
-message Sku {
-  SkuDetail sku_detail = 1;
-  int64 available_quantity = 2;
-}
-
-// sku message only used by merchant.
-message MerchantSku {
-  SkuDetail sku_detail = 1;
+message AdjustStockRequest {
+  // TODO(3): why string instead of int64 ?
+  int64 sku_id = 1;
   int64 stock_quantity = 2;
-  int64 reserved_quantity = 3;
 }
 
-message CreateSKURequest {
-  int64 product_id = 1;
-  repeated SkuDetail sku_details = 2;
+message AdjustStockResponse {}
+
+message BatchGetStockRequest {
+  repeated int64 sku_ids = 1;
 }
 
-message CreateSKUResponse {}
-
-message UpdateSKURequest {
-  repeated SkuDetail sku_details = 1; 
+message SKUQuantity {
+  int64 stock_quantity = 1;
+  int64 reserved_quantity = 2;
 }
 
-message UpdateSKUResponse {}
-
-
-// TODO: batch get.
-message ListSKUsRequest {
-  int64 product_id = 1;
+message BatchGetStockResponse {
+  // mapping from SKU ID to its stock information.
+  map<int64, SKUQuantity> stocks = 1;
 }
 
-message ListSKUsResponse {
-  repeated Sku skus = 1;
+message StockItem {
+  int64 sku_id = 1;
+  int64 quantity = 2;
 }
 
-message AdminListSKUsRequest {
-  int64 product_id = 1;
+message ReserveStockRequest {
+  int64 order_id = 1;
+  repeated StockItem items = 2;
 }
 
-message AdminListSKUsResponse {
-  repeated MerchantSku skus = 1;
+message ReserveStockResponse {}
+
+message ReleaseStockRequest {
+  int64 order_id = 1;
 }
 
-// message ReserveStockRequest {
-// }
+message ReleaseStockResponse {}
 
-// message ReserveStockResponse {
-// }
+message DeductStockRequest {
+  int64 order_id = 1;
+}
 
-// message ReleaseStockRequest {
-// }
+message DeductStockResponse {}
 
-// message ReleaseStockResponse {
-// }
 
-// message ConfirmDeductRequest {
-// }
 
-// message ConfirmDeductResponse {
-// }
 
-// message CompensateStockRequest {
-// }
 
-// message CompensateStockResponse {
-// }
-
-// message GetStockRequest {
-// }
-
-// message GetStockResponse {
-// }
-
-// message BatchGetStockRequest {
-// }
-
-// message BatchGetStockResponse {
-// }
-
-// message GetLowStockAlertsRequest {
-// }
-
-// message GetLowStockAlertsResponse {
-// }
