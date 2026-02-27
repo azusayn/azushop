@@ -4,10 +4,17 @@ import (
 	"azushop/internal/biz"
 	"azushop/internal/common"
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/azusayn/azutils/sql"
+	"github.com/google/uuid"
+)
+
+const (
+	productCacheTime = time.Minute
 )
 
 type ProductRepo struct {
@@ -41,10 +48,12 @@ func (repo *ProductRepo) ListProductsBySellerId(
 	client := repo.data.postgresClient
 
 	stmt := `
-		SELECT id, product_name, status
-		FROM products
-		WHERE id > $1 AND seller_id = $2 %s
-		ORDER BY id LIMIT $3
+		SELECT p.id, p.product_name, p.status, 
+			s.id, s.attrs, s.unit_price
+		FROM products p 
+		JOIN skus s ON p.id=s.product_id
+		WHERE p.id > $1 AND p.seller_id = $2 %s
+		ORDER BY p.id LIMIT $3
 	`
 	args := []any{pageToken, sellerID, pageSize}
 	if productStatus != biz.ProductStatusUnspecified {
@@ -60,26 +69,61 @@ func (repo *ProductRepo) ListProductsBySellerId(
 	}
 	defer rows.Close()
 
+	// mapping frop product ID to its SKUs.
+	m := make(map[uuid.UUID][]*biz.Sku)
 	var products []*biz.Product
 	for rows.Next() {
-		var product biz.Product
-		if err := rows.Scan(&product.ID, &product.ProductName, &product.ProductStatus); err != nil {
+		var (
+			productID     uuid.UUID
+			productName   string
+			productStatus string
+			skuID         uuid.UUID
+			attrs         json.RawMessage
+			unitPrice     string
+		)
+		if err := rows.Scan(
+			&productID,
+			&productName,
+			&productStatus,
+			&skuID,
+			&attrs,
+			&unitPrice,
+		); err != nil {
 			return nil, err
 		}
-		products = append(products, &product)
+		sku := &biz.Sku{
+			ID:        skuID,
+			Attrs:     attrs,
+			UnitPrice: unitPrice,
+			ProductID: productID,
+		}
+		if skus, ok := m[productID]; ok {
+			m[productID] = append(skus, sku)
+			continue
+		}
+		products = append(products, &biz.Product{
+			ID:            productID,
+			ProductName:   productName,
+			SellerID:      sellerID,
+			ProductStatus: biz.ProductStatus(productStatus),
+		})
+		m[productID] = []*biz.Sku{sku}
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
+	for _, p := range products {
+		p.Skus = m[p.ID]
+	}
 
-	SetCache(ctx, repo.data, fullKey, products, time.Minute)
+	SetCache(ctx, repo.data, fullKey, products, productCacheTime)
 	setKey := cacheKeyProductSet(sellerID)
 	SetCacheSAdd(ctx, repo.data, setKey, fullKey)
 
 	return products, nil
 }
 
-// TODO: use version.
+// TODO(2): use version.
 func delProductCaches(ctx context.Context, data *Data, setKeys []string) {
 	for _, setKey := range setKeys {
 		mems, ok := GetCacheSMembers(ctx, data, setKey)
@@ -91,55 +135,123 @@ func delProductCaches(ctx context.Context, data *Data, setKeys []string) {
 	}
 }
 
-// TODO: split it into different functions.
-func (repo *ProductRepo) BatchUpsertProducts(ctx context.Context, products []*biz.Product, paths []string) error {
-	if len(products) == 0 {
+func (repo *ProductRepo) BatchCreateProducts(ctx context.Context, products []*biz.Product) ([]*biz.Product, error) {
+	client := repo.data.postgresClient
+
+	ss := common.NewStringSet()
+	productsColNames := []string{"id", "product_name", "seller_id", "status"}
+	productsRowValues := make([][]any, 0, len(products))
+	skusColNames := []string{"id", "product_id", "attrs", "unit_price"}
+	skusRowValues := make([][]any, 0)
+	for _, p := range products {
+		ss.Insert(cacheKeyProductSet(p.SellerID))
+		productID, err := uuid.NewV7()
+		if err != nil {
+			return nil, err
+		}
+		p.ID = productID
+		productsRowValues = append(productsRowValues, []any{productID, p.ProductName, p.SellerID, p.ProductStatus})
+		for _, s := range p.Skus {
+			skuID, err := uuid.NewV7()
+			if err != nil {
+				return nil, err
+			}
+			s.ID = skuID
+			skusRowValues = append(skusRowValues, []any{s.ID, p.ID, s.Attrs, s.UnitPrice})
+		}
+	}
+
+	tx, err := client.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	stmtP, valuesP := sql.BuildBatchInsertSQL("products", productsColNames, productsRowValues)
+	if _, err := tx.ExecContext(ctx, stmtP, valuesP...); err != nil {
+		return nil, err
+	}
+	stmtS, valuesS := sql.BuildBatchInsertSQL("skus", skusColNames, skusRowValues)
+	if _, err := tx.ExecContext(ctx, stmtS, valuesS...); err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+
+	delProductCaches(ctx, repo.data, ss.ToSlice())
+	return products, nil
+}
+
+func (repo *ProductRepo) BatchUpdateProducts(ctx context.Context, products []*biz.Product, paths []string) error {
+	if len(products) == 0 || len(paths) == 0 {
 		return nil
 	}
 
 	client := repo.data.postgresClient
 	ss := common.NewStringSet()
 
-	if len(paths) == 0 {
-		// insert
-		colNames := []string{"product_name", "seller_id", "status"}
-		rowValues := make([][]any, 0, len(products))
-		for _, p := range products {
-			ss.Insert(cacheKeyProductSet(p.SellerID))
-			rowValues = append(rowValues, []any{p.ProductName, p.SellerID, p.ProductStatus})
-		}
-		stmt, values := sql.BuildBatchInsertSQL("products", colNames, rowValues)
-		if _, err := client.ExecContext(ctx, stmt, values...); err != nil {
-			return err
-		}
-		delProductCaches(ctx, repo.data, ss.ToSlice())
-		return nil
-	}
-	// update
 	lenPaths := len(paths)
-	ids := make([]any, 0, len(products))
-	colNames := make([]string, 0, lenPaths)
-	colVals := make([][]any, 0, lenPaths)
+	productIds := make([]any, 0, len(products))
 	productNames := make([]any, 0, len(products))
+	skuIDs := make([]any, 0)
+	attrs := make([]any, 0)
+	unitPrices := make([]any, 0)
 
 	for _, product := range products {
-		ids = append(ids, product.ID)
+		productIds = append(productIds, product.ID)
 		ss.Insert(cacheKeyProductSet(product.SellerID))
 		for _, path := range paths {
 			switch path {
 			case "product_name":
 				productNames = append(productNames, product.ProductName)
+			case "skus":
+				if len(product.Skus) == 0 {
+					return errors.New("empty skus")
+				}
+				for _, pSku := range product.Skus {
+					skuIDs = append(skuIDs, pSku.ID)
+					attrs = append(attrs, pSku.Attrs)
+					unitPrices = append(unitPrices, pSku.UnitPrice)
+				}
 			}
 		}
 	}
 
+	tx, err := client.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	// table 'products'
+	productColNames := make([]string, 0, lenPaths)
+	productColVals := make([][]any, 0, lenPaths)
 	if len(productNames) != 0 {
-		colNames = append(colNames, "product_name")
-		colVals = append(colVals, productNames)
+		productColNames = append(productColNames, "product_name")
+		productColVals = append(productColVals, productNames)
+	}
+	if len(productColNames) != 0 {
+		stmt, values := sql.BuildBatchUpdateSQL("products", productIds, productColNames, productColVals)
+		if _, err := tx.ExecContext(ctx, stmt, values...); err != nil {
+			return err
+		}
 	}
 
-	stmt, values := sql.BuildBatchUpdateSQL("products", ids, colNames, colVals)
-	if _, err := client.ExecContext(ctx, stmt, values...); err != nil {
+	// table skus
+	skuColNames := make([]string, 0)
+	skuColVals := make([][]any, 0)
+	if len(attrs) != 0 && len(unitPrices) != 0 {
+		skuColNames = append(skuColNames, "attrs", "unit_price")
+		skuColVals = append(skuColVals, attrs, unitPrices)
+	}
+	if len(skuColNames) != 0 {
+		stmt, values := sql.BuildBatchUpdateSQL("skus", skuIDs, skuColNames, skuColVals)
+		if _, err := tx.ExecContext(ctx, stmt, values...); err != nil {
+			return err
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
 		return err
 	}
 
