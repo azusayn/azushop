@@ -38,8 +38,9 @@ message BatchGetStockRequest {
 }
 
 message SKUQuantity {
-  int64 stock_quantity = 1;
-  int64 reserved_quantity = 2;
+  int64 available_quantity = 1;
+  optional int64 stock_quantity = 2;
+  optional int64 reserved_quantity = 3;
 }
 
 message BatchGetStockResponse {
@@ -70,8 +71,3 @@ message DeductStockRequest {
 }
 
 message DeductStockResponse {}
-
-
-
-
-
