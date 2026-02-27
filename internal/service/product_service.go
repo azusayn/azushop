@@ -6,6 +6,7 @@ import (
 	"azushop/internal/pkg/middleware"
 	"context"
 
+	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -55,18 +56,6 @@ func (s *ProductService) ListSellerProducts(ctx context.Context, req *pb.ListSel
 	}, nil
 }
 
-// func (s *ProductService) BatchUpsertProduct(ctx context.Context, req *pb.BatchUpsertProductRequest) (*pb.BatchUpsertProductResponse, error) {
-// 	userID, role, err := middleware.ExtractUserInfo(&ctx)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	bizProducts := convertToBizProducts(req.Products)
-// 	if err := s.uc.BatchUpsertProducts(ctx, bizProducts, req.UpdateMask, userID, biz.UserRole(role)); err != nil {
-// 		return nil, err
-// 	}
-// 	return &pb.BatchUpsertProductResponse{}, nil
-// }
-
 func convertToPbProductStatus(productStatus *biz.ProductStatus) pb.ProductStatus {
 	if productStatus != nil {
 		switch *productStatus {
@@ -108,8 +97,12 @@ func convertToBizSkus(pbSkus []*pb.Sku) ([]*biz.Sku, error) {
 		if err != nil {
 			return nil, err
 		}
+		bytesUuid, err := uuid.Parse(pbSku.GetId())
+		if err != nil {
+			return nil, err
+		}
 		skus = append(skus, &biz.Sku{
-			ID:        pbSku.GetId(),
+			ID:        bytesUuid,
 			Attrs:     attrsJson,
 			UnitPrice: pbSku.GetUnitPrice(),
 		})
@@ -125,7 +118,7 @@ func convertToPbSkus(skus []*biz.Sku) ([]*pb.Sku, error) {
 			return nil, err
 		}
 		pbSkus = append(pbSkus, &pb.Sku{
-			Id:        sku.ID,
+			Id:        sku.ID.String(),
 			Attrs:     &attrs,
 			UnitPrice: sku.UnitPrice,
 		})
@@ -141,7 +134,7 @@ func convertToPbProducts(products []*biz.Product) ([]*pb.Product, error) {
 			return nil, err
 		}
 		pbProducts = append(pbProducts, &pb.Product{
-			Id:            p.ID,
+			Id:            p.ID.String(),
 			ProductName:   p.ProductName,
 			SellerId:      p.SellerID,
 			ProductStatus: convertToPbProductStatus(&p.ProductStatus),
@@ -158,8 +151,12 @@ func convertToBizProducts(pbProducts []*pb.Product) ([]*biz.Product, error) {
 		if err != nil {
 			return nil, err
 		}
+		bytesUuid, err := uuid.Parse(p.Id)
+		if err != nil {
+			return nil, err
+		}
 		products = append(products, &biz.Product{
-			ID:            p.Id,
+			ID:            bytesUuid,
 			ProductName:   p.ProductName,
 			SellerID:      p.SellerId,
 			ProductStatus: convertToBizProductStatus(&p.ProductStatus),
