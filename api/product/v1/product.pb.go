@@ -81,7 +81,7 @@ func (ProductStatus) EnumDescriptor() ([]byte, []int) {
 
 type Sku struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	Attrs         *structpb.Struct       `protobuf:"bytes,2,opt,name=attrs,proto3" json:"attrs,omitempty"`
 	UnitPrice     string                 `protobuf:"bytes,3,opt,name=unit_price,json=unitPrice,proto3" json:"unit_price,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -118,11 +118,11 @@ func (*Sku) Descriptor() ([]byte, []int) {
 	return file_api_product_v1_product_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *Sku) GetId() int64 {
+func (x *Sku) GetId() string {
 	if x != nil {
 		return x.Id
 	}
-	return 0
+	return ""
 }
 
 func (x *Sku) GetAttrs() *structpb.Struct {
@@ -141,7 +141,7 @@ func (x *Sku) GetUnitPrice() string {
 
 type Product struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	ProductName   string                 `protobuf:"bytes,2,opt,name=product_name,json=productName,proto3" json:"product_name,omitempty"`
 	SellerId      int32                  `protobuf:"varint,3,opt,name=seller_id,json=sellerId,proto3" json:"seller_id,omitempty"`
 	Skus          []*Sku                 `protobuf:"bytes,4,rep,name=skus,proto3" json:"skus,omitempty"`
@@ -180,11 +180,11 @@ func (*Product) Descriptor() ([]byte, []int) {
 	return file_api_product_v1_product_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *Product) GetId() int64 {
+func (x *Product) GetId() string {
 	if x != nil {
 		return x.Id
 	}
-	return 0
+	return ""
 }
 
 func (x *Product) GetProductName() string {
@@ -506,12 +506,12 @@ const file_api_product_v1_product_proto_rawDesc = "" +
 	"\x1capi/product/v1/product.proto\x12\n" +
 	"product.v1\x1a\x1cgoogle/api/annotations.proto\x1a google/protobuf/field_mask.proto\x1a\x1cgoogle/protobuf/struct.proto\"c\n" +
 	"\x03Sku\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\x03R\x02id\x12-\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12-\n" +
 	"\x05attrs\x18\x02 \x01(\v2\x17.google.protobuf.StructR\x05attrs\x12\x1d\n" +
 	"\n" +
 	"unit_price\x18\x03 \x01(\tR\tunitPrice\"\xc0\x01\n" +
 	"\aProduct\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\x03R\x02id\x12!\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12!\n" +
 	"\fproduct_name\x18\x02 \x01(\tR\vproductName\x12\x1b\n" +
 	"\tseller_id\x18\x03 \x01(\x05R\bsellerId\x12#\n" +
 	"\x04skus\x18\x04 \x03(\v2\x0f.product.v1.SkuR\x04skus\x12@\n" +

@@ -45,13 +45,13 @@ enum ProductStatus {
 }
 
 message Sku {
-  int64 id = 1;
+  string id = 1;
   google.protobuf.Struct attrs = 2;
   string unit_price = 3;
 }
 
 message Product {
-  int64 id = 1;
+  string id = 1;
   string product_name = 2;
   int32 seller_id = 3;
   repeated Sku skus = 4;
