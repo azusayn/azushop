@@ -23,7 +23,6 @@ CREATE TABLE products (
   seller_id INT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  FOREIGN KEY (seller_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 CREATE INDEX idx_products_seller_id ON products(seller_id);
@@ -39,14 +38,17 @@ CREATE TABLE skus (
 CREATE INDEX idx_skus_product_id ON skus(product_id);
 
 -- inventory service. 
-CREATE TABLE inventory (
-  id BIGSERIAL NOT NULL,
+CREATE TABLE inventory (,
+  sku_id BIGINT NOT NULL PRIMARY KEY,
   stock_quantity BIGINT NOT NULL CHECK (stock_quantity >= 0),
-  reserved_quantity BIGINT NOT NULL CHECK (stock_quantity >= reserved_quantity),
+  reserved_quantity BIGINT NOT NULL CHECK (reserved_quantity >= 0),
 )
 
-
-
+CREATE TABLE inventory_lock (
+  order_id BIGINT NOT NULL PRIMARY KEY,
+  -- sku_id and quantity.
+  payload NOT NULL JSONB
+)
 
 -- order service.
 -- TODO: coupons
