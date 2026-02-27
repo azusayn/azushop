@@ -33,15 +33,14 @@ CREATE TABLE skus (
   product_id BIGINT NOT NULL,
   attrs JSONB,
   unit_price NUMERIC(10, 2) NOT NULL CHECK (unit_price >= 0),
-  stock_quantity BIGINT NOT NULL CHECK (stock_quantity >= 0),
-  reserved_quantity BIGINT NOT NULL CHECK (stock_quantity >= reserved_quantity),
   FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
 );
 
 CREATE INDEX idx_skus_product_id ON skus(product_id);
 
 -- inventory service. 
-
+-- stock_quantity BIGINT NOT NULL CHECK (stock_quantity >= 0),
+-- reserved_quantity BIGINT NOT NULL CHECK (stock_quantity >= reserved_quantity),
 
 -- order service.
 -- TODO: coupons
