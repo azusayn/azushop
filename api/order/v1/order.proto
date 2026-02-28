@@ -9,6 +9,7 @@ option go_package = "azushop/api/order/v1;v1";
 // order service.
 service OrderService {
   // create order 
+  // TODO(0): payment timeout.
   rpc CreateOrder(CreateOrderRequest) returns (CreateOrderResponse){
     option (google.api.http) = {
       post: "/v1/orders"
@@ -16,26 +17,56 @@ service OrderService {
     };
   }
 
-  // use payment method to pay the order in real time.
-  rpc Checkout(CheckoutRequest) returns (CheckoutResponse){
+  // cancels order for given order ID.
+  rpc CancelOrder(CancelOrderRequest) returns (CancelOrderResponse){
     option (google.api.http) = {
-      post: "/v1/orders/{order_id}/checkout"
+      post: "/v1/orders/{order_id}/cancel"
       body: "*"
     };
-  }
+  };
 
-  // pay the order by using the binded credit card.
-  rpc Pay(PayRequest) returns (PayResponse) {
+  // lists all orders owned by the customer.
+  rpc ListOrders(ListOrdersRequest) returns (ListOrdersResponse) {
     option (google.api.http) = {
-      post: "/v1/orders/{order_id}/pay"
-      body: "*"
+      get: "/v1/orders"
     };
-  }
+  };
+}
+
+enum OrderStatus {
+  ORDER_STATUS_UNSPECIFIED = 0;
+  ORDER_STATUS_PENDING = 1;
+  ORDER_STATUS_PAID = 2;
+  ORDER_STATUS_CANCELLED = 3;
+  ORDER_STATUS_REFUNDED = 4;
+}
+
+message Order {
+  string total = 1;
+  int64 order_id = 2;
+  OrderStatus order_status = 3;
+  // order snapshot.
+  repeated OrderItem order_items = 4;
 }
 
 message OrderItem {
-  int64 sku_id = 1;
-  int32 quantity = 2; 
+  string sku_id = 1;
+  int64 quantity = 2;
+  // TODO: currency type.
+  // only present in responses, not required in CreateOrderRequest.
+  optional string unit_price = 3;
+}
+
+message ListOrdersRequest {
+  // use 0 for the first request.
+  int64 page_token = 1;
+  // max 100
+  int32 page_size = 2;
+}
+
+message ListOrdersResponse {
+  repeated Order orders = 1;
+  int64 next_page_token = 2;
 }
 
 message CreateOrderRequest {
@@ -43,18 +74,12 @@ message CreateOrderRequest {
 }
 
 message CreateOrderResponse {
-  // total price.
-  string total = 1;
+  Order order = 1;
 }
 
-message CheckoutRequest {
+message CancelOrderRequest {
   int64 order_id = 1;
 }
 
-message CheckoutResponse {}
+message CancelOrderResponse {}
 
-message PayRequest {
-  int64 order_id = 1;
-}
-
-message PayResponse {}

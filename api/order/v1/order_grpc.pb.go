@@ -20,8 +20,8 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	OrderService_CreateOrder_FullMethodName = "/order.v1.OrderService/CreateOrder"
-	OrderService_Checkout_FullMethodName    = "/order.v1.OrderService/Checkout"
-	OrderService_Pay_FullMethodName         = "/order.v1.OrderService/Pay"
+	OrderService_CancelOrder_FullMethodName = "/order.v1.OrderService/CancelOrder"
+	OrderService_ListOrders_FullMethodName  = "/order.v1.OrderService/ListOrders"
 )
 
 // OrderServiceClient is the client API for OrderService service.
@@ -31,11 +31,12 @@ const (
 // order service.
 type OrderServiceClient interface {
 	// create order
+	// TODO(0): payment timeout.
 	CreateOrder(ctx context.Context, in *CreateOrderRequest, opts ...grpc.CallOption) (*CreateOrderResponse, error)
-	// use payment method to pay the order in real time.
-	Checkout(ctx context.Context, in *CheckoutRequest, opts ...grpc.CallOption) (*CheckoutResponse, error)
-	// pay the order by using the binded credit card.
-	Pay(ctx context.Context, in *PayRequest, opts ...grpc.CallOption) (*PayResponse, error)
+	// cancels order for given order ID.
+	CancelOrder(ctx context.Context, in *CancelOrderRequest, opts ...grpc.CallOption) (*CancelOrderResponse, error)
+	// lists all orders owned by the customer.
+	ListOrders(ctx context.Context, in *ListOrdersRequest, opts ...grpc.CallOption) (*ListOrdersResponse, error)
 }
 
 type orderServiceClient struct {
@@ -56,20 +57,20 @@ func (c *orderServiceClient) CreateOrder(ctx context.Context, in *CreateOrderReq
 	return out, nil
 }
 
-func (c *orderServiceClient) Checkout(ctx context.Context, in *CheckoutRequest, opts ...grpc.CallOption) (*CheckoutResponse, error) {
+func (c *orderServiceClient) CancelOrder(ctx context.Context, in *CancelOrderRequest, opts ...grpc.CallOption) (*CancelOrderResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(CheckoutResponse)
-	err := c.cc.Invoke(ctx, OrderService_Checkout_FullMethodName, in, out, cOpts...)
+	out := new(CancelOrderResponse)
+	err := c.cc.Invoke(ctx, OrderService_CancelOrder_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *orderServiceClient) Pay(ctx context.Context, in *PayRequest, opts ...grpc.CallOption) (*PayResponse, error) {
+func (c *orderServiceClient) ListOrders(ctx context.Context, in *ListOrdersRequest, opts ...grpc.CallOption) (*ListOrdersResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(PayResponse)
-	err := c.cc.Invoke(ctx, OrderService_Pay_FullMethodName, in, out, cOpts...)
+	out := new(ListOrdersResponse)
+	err := c.cc.Invoke(ctx, OrderService_ListOrders_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -83,11 +84,12 @@ func (c *orderServiceClient) Pay(ctx context.Context, in *PayRequest, opts ...gr
 // order service.
 type OrderServiceServer interface {
 	// create order
+	// TODO(0): payment timeout.
 	CreateOrder(context.Context, *CreateOrderRequest) (*CreateOrderResponse, error)
-	// use payment method to pay the order in real time.
-	Checkout(context.Context, *CheckoutRequest) (*CheckoutResponse, error)
-	// pay the order by using the binded credit card.
-	Pay(context.Context, *PayRequest) (*PayResponse, error)
+	// cancels order for given order ID.
+	CancelOrder(context.Context, *CancelOrderRequest) (*CancelOrderResponse, error)
+	// lists all orders owned by the customer.
+	ListOrders(context.Context, *ListOrdersRequest) (*ListOrdersResponse, error)
 	mustEmbedUnimplementedOrderServiceServer()
 }
 
@@ -101,11 +103,11 @@ type UnimplementedOrderServiceServer struct{}
 func (UnimplementedOrderServiceServer) CreateOrder(context.Context, *CreateOrderRequest) (*CreateOrderResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CreateOrder not implemented")
 }
-func (UnimplementedOrderServiceServer) Checkout(context.Context, *CheckoutRequest) (*CheckoutResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method Checkout not implemented")
+func (UnimplementedOrderServiceServer) CancelOrder(context.Context, *CancelOrderRequest) (*CancelOrderResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CancelOrder not implemented")
 }
-func (UnimplementedOrderServiceServer) Pay(context.Context, *PayRequest) (*PayResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method Pay not implemented")
+func (UnimplementedOrderServiceServer) ListOrders(context.Context, *ListOrdersRequest) (*ListOrdersResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListOrders not implemented")
 }
 func (UnimplementedOrderServiceServer) mustEmbedUnimplementedOrderServiceServer() {}
 func (UnimplementedOrderServiceServer) testEmbeddedByValue()                      {}
@@ -146,38 +148,38 @@ func _OrderService_CreateOrder_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
-func _OrderService_Checkout_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CheckoutRequest)
+func _OrderService_CancelOrder_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CancelOrderRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(OrderServiceServer).Checkout(ctx, in)
+		return srv.(OrderServiceServer).CancelOrder(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: OrderService_Checkout_FullMethodName,
+		FullMethod: OrderService_CancelOrder_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(OrderServiceServer).Checkout(ctx, req.(*CheckoutRequest))
+		return srv.(OrderServiceServer).CancelOrder(ctx, req.(*CancelOrderRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _OrderService_Pay_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(PayRequest)
+func _OrderService_ListOrders_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListOrdersRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(OrderServiceServer).Pay(ctx, in)
+		return srv.(OrderServiceServer).ListOrders(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: OrderService_Pay_FullMethodName,
+		FullMethod: OrderService_ListOrders_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(OrderServiceServer).Pay(ctx, req.(*PayRequest))
+		return srv.(OrderServiceServer).ListOrders(ctx, req.(*ListOrdersRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -194,12 +196,12 @@ var OrderService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _OrderService_CreateOrder_Handler,
 		},
 		{
-			MethodName: "Checkout",
-			Handler:    _OrderService_Checkout_Handler,
+			MethodName: "CancelOrder",
+			Handler:    _OrderService_CancelOrder_Handler,
 		},
 		{
-			MethodName: "Pay",
-			Handler:    _OrderService_Pay_Handler,
+			MethodName: "ListOrders",
+			Handler:    _OrderService_ListOrders_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
