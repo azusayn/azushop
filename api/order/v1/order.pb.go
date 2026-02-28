@@ -149,7 +149,7 @@ func (x *Order) GetOrderItems() []*OrderItem {
 type OrderItem struct {
 	state    protoimpl.MessageState `protogen:"open.v1"`
 	SkuId    string                 `protobuf:"bytes,1,opt,name=sku_id,json=skuId,proto3" json:"sku_id,omitempty"`
-	Quantity int32                  `protobuf:"varint,2,opt,name=quantity,proto3" json:"quantity,omitempty"`
+	Quantity int64                  `protobuf:"varint,2,opt,name=quantity,proto3" json:"quantity,omitempty"`
 	// TODO: currency type.
 	// only present in responses, not required in CreateOrderRequest.
 	UnitPrice     *string `protobuf:"bytes,3,opt,name=unit_price,json=unitPrice,proto3,oneof" json:"unit_price,omitempty"`
@@ -194,7 +194,7 @@ func (x *OrderItem) GetSkuId() string {
 	return ""
 }
 
-func (x *OrderItem) GetQuantity() int32 {
+func (x *OrderItem) GetQuantity() int64 {
 	if x != nil {
 		return x.Quantity
 	}
@@ -495,7 +495,7 @@ const file_api_order_v1_order_proto_rawDesc = "" +
 	"orderItems\"q\n" +
 	"\tOrderItem\x12\x15\n" +
 	"\x06sku_id\x18\x01 \x01(\tR\x05skuId\x12\x1a\n" +
-	"\bquantity\x18\x02 \x01(\x05R\bquantity\x12\"\n" +
+	"\bquantity\x18\x02 \x01(\x03R\bquantity\x12\"\n" +
 	"\n" +
 	"unit_price\x18\x03 \x01(\tH\x00R\tunitPrice\x88\x01\x01B\r\n" +
 	"\v_unit_price\"O\n" +

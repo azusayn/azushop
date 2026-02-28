@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/azusayn/azutils/sql"
@@ -257,4 +258,43 @@ func (repo *ProductRepo) BatchUpdateProducts(ctx context.Context, products []*bi
 
 	delProductCaches(ctx, repo.data, ss.ToSlice())
 	return nil
+}
+
+func (repo *ProductRepo) BatchGetSkus(
+	ctx context.Context,
+	skuIDs []uuid.UUID,
+	pageToken uuid.UUID,
+	pageSize int32,
+) ([]*biz.Sku, error) {
+	client := repo.data.postgresClient
+	stmt := `
+		SELECT id, product_id, attrs, unit_price
+		FROM skus
+		WHERE id IN (%s) AND id > $1
+		ORDER BY id
+		LIMIT $2
+	`
+	var args []string
+	values := []any{pageToken, pageSize}
+	for i, skuID := range skuIDs {
+		args = append(args, fmt.Sprintf("$%d", i+3))
+		values = append(values, skuID)
+	}
+	stmt = fmt.Sprintf(stmt, strings.Join(args, ","))
+	rows, err := client.QueryContext(ctx, stmt, values...)
+	if err != nil {
+		return nil, err
+	}
+	var skus []*biz.Sku
+	for rows.Next() {
+		var sku biz.Sku
+		if err := rows.Scan(&sku.ID, &sku.ProductID, &sku.Attrs, &sku.UnitPrice); err != nil {
+			return nil, err
+		}
+		skus = append(skus, &sku)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return skus, nil
 }
