@@ -3,9 +3,11 @@ package biz
 import (
 	"azushop/internal/common"
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/azusayn/azutils/auth"
+	"github.com/google/uuid"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 )
 
@@ -19,16 +21,25 @@ const (
 	ProductStatusOffline     ProductStatus = "offline"
 )
 
+type Sku struct {
+	ID        uuid.UUID
+	ProductID uuid.UUID
+	Attrs     json.RawMessage
+	UnitPrice string
+}
+
 type Product struct {
-	ID            int64
+	ID            uuid.UUID
 	ProductName   string
 	SellerID      int32
 	ProductStatus ProductStatus
+	Skus          []*Sku
 }
 
 type ProductRepo interface {
 	ListProductsBySellerId(ctx context.Context, sellerID int32, pageToken int64, pageSize int32, productStatus ProductStatus) ([]*Product, error)
-	BatchUpsertProducts(ctx context.Context, product []*Product, paths []string) error
+	BatchCreateProducts(ctx context.Context, product []*Product) ([]*Product, error)
+	BatchUpdateProducts(ctx context.Context, product []*Product, paths []string) error
 }
 
 type ProductUsecase struct {
@@ -103,7 +114,20 @@ func productsFilter(products []*Product, userID int32, role UserRole) ([]*Produc
 	return nil, fmt.Errorf("role %q doesn't have the permission to upsert products", role)
 }
 
-func (uc *ProductUsecase) BatchUpsertProducts(
+func (uc *ProductUsecase) BatchCreateProducts(
+	ctx context.Context,
+	products []*Product,
+	userID int32,
+	userRole UserRole,
+) ([]*Product, error) {
+	products, err := productsFilter(products, userID, userRole)
+	if err != nil {
+		return nil, err
+	}
+	return uc.repo.BatchCreateProducts(ctx, products)
+}
+
+func (uc *ProductUsecase) BatchUpdateProducts(
 	ctx context.Context,
 	products []*Product,
 	updateMask *fieldmaskpb.FieldMask,
@@ -115,5 +139,5 @@ func (uc *ProductUsecase) BatchUpsertProducts(
 		return err
 	}
 	ss := common.NewStringSet(common.WithValues(updateMask.Paths))
-	return uc.repo.BatchUpsertProducts(ctx, products, ss.ToSlice())
+	return uc.repo.BatchUpdateProducts(ctx, products, ss.ToSlice())
 }

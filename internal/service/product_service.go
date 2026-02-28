@@ -6,8 +6,11 @@ import (
 	"azushop/internal/pkg/middleware"
 	"context"
 
+	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 type ProductService struct {
@@ -22,6 +25,36 @@ func NewProductService(uc *biz.ProductUsecase) *ProductService {
 const (
 	maxPageSize = 100
 )
+
+func (s *ProductService) ListSellerProducts(ctx context.Context, req *pb.ListSellerProductsRequest) (*pb.ListSellerProductsResponse, error) {
+	if req.PageSize > maxPageSize {
+		return nil, status.Error(codes.OutOfRange, codes.OutOfRange.String())
+	}
+	userID, role, err := middleware.ExtractUserInfo(&ctx)
+	if err != nil {
+		return nil, err
+	}
+	products, err := s.uc.ListSellerProducts(
+		ctx,
+		req.SellerId,
+		req.PageToken,
+		req.PageSize,
+		convertToBizProductStatus(req.ProductStatus),
+		userID,
+		biz.UserRole(role),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	pbProducts, err := convertToPbProducts(products)
+	if err != nil {
+		return nil, err
+	}
+	return &pb.ListSellerProductsResponse{
+		Products: pbProducts,
+	}, nil
+}
 
 func convertToPbProductStatus(productStatus *biz.ProductStatus) pb.ProductStatus {
 	if productStatus != nil {
@@ -57,65 +90,78 @@ func convertToBizProductStatus(productStatus *pb.ProductStatus) biz.ProductStatu
 	return biz.ProductStatusUnspecified
 }
 
-func convertToPbProducts(products []*biz.Product) []*pb.Product {
+func convertToBizSkus(pbSkus []*pb.Sku) ([]*biz.Sku, error) {
+	var skus []*biz.Sku
+	for _, pbSku := range pbSkus {
+		attrsJson, err := protojson.Marshal(pbSku.GetAttrs())
+		if err != nil {
+			return nil, err
+		}
+		bytesUuid, err := uuid.Parse(pbSku.GetId())
+		if err != nil {
+			return nil, err
+		}
+		skus = append(skus, &biz.Sku{
+			ID:        bytesUuid,
+			Attrs:     attrsJson,
+			UnitPrice: pbSku.GetUnitPrice(),
+		})
+	}
+	return skus, nil
+}
+
+func convertToPbSkus(skus []*biz.Sku) ([]*pb.Sku, error) {
+	var pbSkus []*pb.Sku
+	for _, sku := range skus {
+		var attrs structpb.Struct
+		if err := protojson.Unmarshal(sku.Attrs, &attrs); err != nil {
+			return nil, err
+		}
+		pbSkus = append(pbSkus, &pb.Sku{
+			Id:        sku.ID.String(),
+			Attrs:     &attrs,
+			UnitPrice: sku.UnitPrice,
+		})
+	}
+	return pbSkus, nil
+}
+
+func convertToPbProducts(products []*biz.Product) ([]*pb.Product, error) {
 	var pbProducts []*pb.Product
 	for _, p := range products {
+		pbSkus, err := convertToPbSkus(p.Skus)
+		if err != nil {
+			return nil, err
+		}
 		pbProducts = append(pbProducts, &pb.Product{
-			Id:            p.ID,
+			Id:            p.ID.String(),
 			ProductName:   p.ProductName,
 			SellerId:      p.SellerID,
 			ProductStatus: convertToPbProductStatus(&p.ProductStatus),
+			Skus:          pbSkus,
 		})
 	}
-	return pbProducts
+	return pbProducts, nil
 }
 
-func convertToBizProducts(products []*pb.Product) []*biz.Product {
-	var bizProducts []*biz.Product
-	for _, p := range products {
-		bizProducts = append(bizProducts, &biz.Product{
-			ID:            p.Id,
+func convertToBizProducts(pbProducts []*pb.Product) ([]*biz.Product, error) {
+	var products []*biz.Product
+	for _, p := range pbProducts {
+		skus, err := convertToBizSkus(p.Skus)
+		if err != nil {
+			return nil, err
+		}
+		bytesUuid, err := uuid.Parse(p.Id)
+		if err != nil {
+			return nil, err
+		}
+		products = append(products, &biz.Product{
+			ID:            bytesUuid,
 			ProductName:   p.ProductName,
 			SellerID:      p.SellerId,
 			ProductStatus: convertToBizProductStatus(&p.ProductStatus),
+			Skus:          skus,
 		})
 	}
-	return bizProducts
-}
-
-func (s *ProductService) ListSellerProducts(ctx context.Context, req *pb.ListSellerProductsRequest) (*pb.ListSellerProductsResponse, error) {
-	if req.PageSize > maxPageSize {
-		return nil, status.Error(codes.OutOfRange, codes.OutOfRange.String())
-	}
-	userID, role, err := middleware.ExtractUserInfo(&ctx)
-	if err != nil {
-		return nil, err
-	}
-	products, err := s.uc.ListSellerProducts(
-		ctx,
-		req.SellerId,
-		req.PageToken,
-		req.PageSize,
-		convertToBizProductStatus(req.ProductStatus),
-		userID,
-		biz.UserRole(role),
-	)
-	if err != nil {
-		return nil, err
-	}
-	return &pb.ListSellerProductsResponse{
-		Products: convertToPbProducts(products),
-	}, nil
-}
-
-func (s *ProductService) BatchUpsertProduct(ctx context.Context, req *pb.BatchUpsertProductRequest) (*pb.BatchUpsertProductResponse, error) {
-	userID, role, err := middleware.ExtractUserInfo(&ctx)
-	if err != nil {
-		return nil, err
-	}
-	bizProducts := convertToBizProducts(req.Products)
-	if err := s.uc.BatchUpsertProducts(ctx, bizProducts, req.UpdateMask, userID, biz.UserRole(role)); err != nil {
-		return nil, err
-	}
-	return &pb.BatchUpsertProductResponse{}, nil
+	return products, nil
 }
