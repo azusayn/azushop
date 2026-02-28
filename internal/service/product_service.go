@@ -3,6 +3,7 @@ package service
 import (
 	pb "azushop/api/product/v1"
 	"azushop/internal/biz"
+	"azushop/internal/common"
 	"azushop/internal/pkg/middleware"
 	"context"
 
@@ -53,6 +54,40 @@ func (s *ProductService) ListSellerProducts(ctx context.Context, req *pb.ListSel
 	}
 	return &pb.ListSellerProductsResponse{
 		Products: pbProducts,
+	}, nil
+}
+func (s *ProductService) BatchGetSkus(ctx context.Context, req *pb.BatchGetSkusRequest) (*pb.BatchGetSkusResponse, error) {
+	if req.PageSize < 1 || req.PageSize > maxPageSize {
+		return nil, status.Error(codes.OutOfRange, codes.OutOfRange.String())
+	}
+	var uuids []uuid.UUID
+	for _, skuId := range req.SkuIds {
+		u, err := uuid.Parse(skuId)
+		if err != nil {
+			return nil, err
+		}
+		uuids = append(uuids, u)
+	}
+	pageToken, err := common.ParseUUID(req.PageToken)
+	if err != nil {
+		return nil, err
+	}
+	skus, err := s.uc.BatchGetSkus(ctx, uuids, pageToken, req.PageSize)
+	if err != nil {
+		return nil, err
+	}
+	pbSkus, err := convertToPbSkus(skus)
+	if err != nil {
+		return nil, err
+	}
+	var nextPageToken string
+	lenPbSkus := len(pbSkus)
+	if lenPbSkus == int(req.PageSize) {
+		nextPageToken = pbSkus[lenPbSkus-1].GetId()
+	}
+	return &pb.BatchGetSkusResponse{
+		Skus:          pbSkus,
+		NextPageToken: nextPageToken,
 	}, nil
 }
 
