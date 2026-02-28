@@ -4,27 +4,36 @@ package product.v1;
 
 import "google/api/annotations.proto";
 import "google/protobuf/field_mask.proto";
+import "google/protobuf/struct.proto";
 
 option go_package = "azushop/api/product/v1;v1";
 
 // api for both merchants and customers.
 service ProductService {
-  // list products by seller_id, generally used by customers.
+  // retrieves product information for given seller_id and product status.
   rpc ListSellerProducts(ListSellerProductsRequest) returns (ListSellerProductsResponse) {
     option (google.api.http) = {
       get:"/v1/sellers/{seller_id}/products"
     };
   };
   
-  // insert or update products' details, used by administrators & merchants.
-  rpc BatchUpsertProduct(BatchUpsertProductRequest) returns (BatchUpsertProductResponse) {
+  // creates new products for given information.
+  rpc BatchCreateProduct(BatchCreateProductRequest) returns (BatchCreateProductResponse) {
+    option (google.api.http) = {
+      post: "/v1/products"
+      body: "*"
+    };
+  };
+
+  // updates products' fields specified by the given update masks.
+  rpc BatchUpdateProduct(BatchUpdateProductRequest) returns (BatchUpdateProductResponse) {
     option (google.api.http) = {
       patch: "/v1/products"
       body: "*"
     };
   };
-
   // TODO: publish & unpublish products.
+  // TODO: search API using Postgres GIN.
 }
 
 enum ProductStatus {
@@ -35,11 +44,18 @@ enum ProductStatus {
   PRODUCT_STATUS_OFFLINE = 4;
 }
 
+message Sku {
+  string id = 1;
+  google.protobuf.Struct attrs = 2;
+  string unit_price = 3;
+}
+
 message Product {
-  int64 id = 1;
+  string id = 1;
   string product_name = 2;
   int32 seller_id = 3;
-  ProductStatus product_status = 4;
+  repeated Sku skus = 4;
+  ProductStatus product_status = 5;
 }
 
 message ListSellerProductsRequest {
@@ -56,12 +72,17 @@ message ListSellerProductsResponse {
   repeated Product products = 1;
 }
 
-// only support updating a single field of the product.
-message BatchUpsertProductRequest {
+message BatchCreateProductRequest {
+  repeated Product products = 1;
+}
+
+message BatchCreateProductResponse {}
+
+message BatchUpdateProductRequest {
   repeated Product products = 1;
   google.protobuf.FieldMask update_mask = 2;
 }
 
-// TODO: update strategy and update results.
-message BatchUpsertProductResponse {}
+// TODO(2): update strategy and update results.
+message BatchUpdateProductResponse {}
 

@@ -3,39 +3,157 @@ package biz
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+
+	"github.com/google/uuid"
 )
 
 type InventoryRepo interface {
-	CreateSKU(ctx context.Context, productID int64, skus []*Sku) error
-	UpdateSKU(ctx context.Context, skus []*Sku) error
-	ListSKUs(ctx context.Context, productID int64) ([]*Sku, error)
+	// 'inventory' table.
+	// set the values directly.
+	UpdateInventories(ctx context.Context, inventories []*Inventory, paths []string) error
+	// use delta to update the stock quantity.
+	UpdateDeltaQuantity(ctx context.Context, inventories []*Inventory, paths []string) error
+	BatchGetInventories(ctx context.Context, skuIDs []uuid.UUID) ([]*Inventory, error)
+
+	// 'inventory_lock' table.
+	GetInventoryLock(ctx context.Context, orderID int64) (*InventoryLock, error)
+	CreateInventoryLock(ctx context.Context, orderID int64, payload map[uuid.UUID]int64, status InventoryLockStatus) error
+	UpdateInventoryLock(ctx context.Context, inventoryLocks []*InventoryLock, paths []string) error
 }
 
-type Sku struct {
-	ID               int64           `gorm:"column:id"`
-	ProductID        int64           `gorm:"column:product_id"`
-	Attrs            json.RawMessage `gorm:"column:product_id"`
-	StockQuantity    int64           `gorm:"column:stock_quantity"`
-	ReservedQuantity int64           `gorm:"column:reserved_quantity"`
-	UnitPrice        string          `gorm:"column:unit_price"`
+type Inventory struct {
+	ID               uuid.UUID `gorm:"column:sku_id"`
+	StockQuantity    int64     `gorm:"column:stock_quantity"`
+	ReservedQuantity int64     `gorm:"column:reserved_quantity"`
+}
+
+type InventoryLockStatus string
+
+const (
+	InventoryLockStatusLocked    InventoryLockStatus = "locked"
+	InventoryLockStatusConfirmed InventoryLockStatus = "confirmed"
+	InventoryLockStatusReleased  InventoryLockStatus = "released"
+)
+
+type InventoryLock struct {
+	OrderID int64 `gorm:"column:order_id"`
+	// mapping from sku_id to quantity.
+	// map[uuid.UUID]int64
+	Payload []byte              `gorm:"column:payload"`
+	Status  InventoryLockStatus `gorm:"column:status"`
 }
 
 type InventoryUsecase struct {
 	repo InventoryRepo
+	tx   Transaction
 }
 
-func NewInventoryUsecase(repo InventoryRepo) *InventoryUsecase {
-	return &InventoryUsecase{repo: repo}
+func NewInventoryUsecase(repo InventoryRepo, tx Transaction) *InventoryUsecase {
+	return &InventoryUsecase{
+		repo: repo,
+		tx:   tx,
+	}
 }
 
-func (uc *InventoryUsecase) CreateSKU(ctx context.Context, productID int64, skus []*Sku) error {
-	return uc.repo.CreateSKU(ctx, productID, skus)
+func (uc *InventoryUsecase) AdjustStock(
+	ctx context.Context,
+	skuID uuid.UUID,
+	stockQuantity int64,
+	role UserRole,
+) error {
+	inventories := []*Inventory{{
+		ID:            skuID,
+		StockQuantity: stockQuantity,
+	}}
+	paths := []string{"stock_quantity"}
+
+	err := uc.tx.Transaction(ctx, func(ctx context.Context) error {
+		return uc.repo.UpdateInventories(ctx, inventories, paths)
+	})
+	return err
 }
 
-func (uc *InventoryUsecase) UpdateSKU(ctx context.Context, skus []*Sku) error {
-	return uc.repo.UpdateSKU(ctx, skus)
+func (uc *InventoryUsecase) BatchGetInventories(ctx context.Context, skuIDs []uuid.UUID) ([]*Inventory, error) {
+	return uc.repo.BatchGetInventories(ctx, skuIDs)
 }
 
-func (uc *InventoryUsecase) ListSKUs(ctx context.Context, productID int64) ([]*Sku, error) {
-	return uc.repo.ListSKUs(ctx, productID)
+// items: mapping from SkuID to quantity.
+func (uc *InventoryUsecase) ReserveStock(ctx context.Context, orderID int64, items map[uuid.UUID]int64) error {
+	var inventoryDeltas []*Inventory
+	for skuID, quantity := range items {
+		inventoryDeltas = append(inventoryDeltas, &Inventory{
+			ID:               skuID,
+			ReservedQuantity: quantity,
+		})
+	}
+	paths := []string{"reserved_quantity"}
+	err := uc.tx.Transaction(ctx, func(ctx context.Context) error {
+		if err := uc.repo.UpdateDeltaQuantity(ctx, inventoryDeltas, paths); err != nil {
+			return err
+		}
+		return uc.repo.CreateInventoryLock(ctx, orderID, items, InventoryLockStatusLocked)
+	})
+	return err
+}
+
+func (uc *InventoryUsecase) ReleaseStock(ctx context.Context, orderID int64) error {
+	return uc.tx.Transaction(ctx, func(ctx context.Context) error {
+		inventoryLock, err := uc.repo.GetInventoryLock(ctx, orderID)
+		if err != nil {
+			return err
+		}
+		var m map[uuid.UUID]int64
+		if err := json.Unmarshal(inventoryLock.Payload, &m); err != nil {
+			return err
+		}
+		var inventoryDeltas []*Inventory
+		for skuID, quantity := range m {
+			inventoryDeltas = append(inventoryDeltas, &Inventory{
+				ID:               skuID,
+				ReservedQuantity: -quantity,
+			})
+		}
+		if err := uc.repo.UpdateInventories(ctx, inventoryDeltas, []string{"reserved_quantity"}); err != nil {
+			return err
+		}
+		inventoryLocks := []*InventoryLock{{
+			OrderID: orderID,
+			Status:  InventoryLockStatusReleased,
+		}}
+		return uc.repo.UpdateInventoryLock(ctx, inventoryLocks, []string{"status"})
+	})
+}
+
+func (uc *InventoryUsecase) DeductStock(ctx context.Context, orderID int64) error {
+	return uc.tx.Transaction(ctx, func(ctx context.Context) error {
+		inventoryLock, err := uc.repo.GetInventoryLock(ctx, orderID)
+		if err != nil {
+			return err
+		}
+		if inventoryLock.Status != InventoryLockStatusLocked {
+			return fmt.Errorf("order %q has been procceed", inventoryLock.OrderID)
+		}
+		var m map[uuid.UUID]int64
+		if err := json.Unmarshal(inventoryLock.Payload, &m); err != nil {
+			return err
+		}
+		var inventoryDeltas []*Inventory
+		for skuID, quantity := range m {
+			inventoryDeltas = append(inventoryDeltas, &Inventory{
+				ID:               skuID,
+				StockQuantity:    -quantity,
+				ReservedQuantity: -quantity,
+			})
+		}
+		paths := []string{"stock_quantity", "reserved_quantity"}
+		if err := uc.repo.UpdateInventories(ctx, inventoryDeltas, paths); err != nil {
+			return err
+		}
+		inventoryLocks := []*InventoryLock{{
+			OrderID: orderID,
+			Status:  InventoryLockStatusConfirmed,
+		}}
+		return uc.repo.UpdateInventoryLock(ctx, inventoryLocks, []string{"status"})
+	})
 }

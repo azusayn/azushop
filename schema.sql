@@ -1,3 +1,4 @@
+-- auth service.
 CREATE TABLE users (
   id SERIAL PRIMARY KEY,
   username VARCHAR(255) NOT NULL,
@@ -6,7 +7,8 @@ CREATE TABLE users (
   role VARCHAR(255) NOT NULL CHECK (role IN ('admin', 'merchant', 'customer'))
 )
 
-CREATE TYPE products_status AS ENUM (
+-- product service.
+CREATE TYPE product_status AS ENUM (
   'unspecified',
   'draft',
   'pending',
@@ -15,30 +17,48 @@ CREATE TYPE products_status AS ENUM (
 );
 
 CREATE TABLE products (
-  id BIGSERIAL PRIMARY KEY,
+  id UUID PRIMARY KEY NOT NULL,
   product_name VARCHAR(255) NOT NULL,
-  status products_status NOT NULL DEFAULT 'draft',
+  status product_status NOT NULL DEFAULT 'draft',
   seller_id INT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  FOREIGN KEY (seller_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 CREATE INDEX idx_products_seller_id ON products(seller_id);
 
--- TODO: lock stock design
 CREATE TABLE skus (
-  id BIGSERIAL PRIMARY KEY,
+  -- UUIDv7
+  id UUID PRIMARY KEY NOT NULL, 
   product_id BIGINT NOT NULL,
   attrs JSONB,
   unit_price NUMERIC(10, 2) NOT NULL CHECK (unit_price >= 0),
-  stock_quantity BIGINT NOT NULL CHECK (stock_quantity >= 0),
-  reserved_quantity BIGINT NOT NULL CHECK (stock_quantity >= reserved_quantity),
   FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
 );
 
 CREATE INDEX idx_skus_product_id ON skus(product_id);
 
+-- inventory service. 
+CREATE TABLE inventory (,
+  sku_id UUID NOT NULL PRIMARY KEY,
+  stock_quantity BIGINT NOT NULL CHECK (stock_quantity >= 0),
+  reserved_quantity BIGINT NOT NULL CHECK (reserved_quantity >= 0),
+)
+
+CREATE TYPE inventory_lock_status AS ENUM (
+  'locked',
+  'confirmed',
+  'released'
+)
+
+CREATE TABLE inventory_lock (
+  order_id BIGINT NOT NULL PRIMARY KEY,
+  -- mapping from sku_id to quantity.
+  payload NOT NULL JSONB,
+  status inventory_lock_status NOT NULL,
+)
+
+-- order service.
 -- TODO: coupons
 CREATE TABLE orders (
   id BIGSERIAL PRIMARY KEY,
