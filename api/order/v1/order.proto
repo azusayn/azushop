@@ -21,6 +21,7 @@ service OrderService {
   rpc CancelOrder(CancelOrderRequest) returns (CancelOrderResponse){
     option (google.api.http) = {
       post: "/v1/orders/{order_id}/cancel"
+      body: "*"
     };
   };
 
@@ -35,7 +36,9 @@ service OrderService {
 enum OrderStatus {
   ORDER_STATUS_UNSPECIFIED = 0;
   ORDER_STATUS_PENDING = 1;
-  ORDER_STATUS_CANCELLED = 2;
+  ORDER_STATUS_PAID = 2;
+  ORDER_STATUS_CANCELLED = 3;
+  ORDER_STATUS_REFUNDED = 4;
 }
 
 message Order {
