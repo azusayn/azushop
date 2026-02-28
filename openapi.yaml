@@ -8,16 +8,16 @@ info:
     version: 0.0.1
 paths:
     /v1/products:
-        patch:
+        post:
             tags:
                 - ProductService
-            description: insert or update products' details, used by administrators & merchants.
-            operationId: ProductService_BatchUpsertProduct
+            description: creates new products for given information.
+            operationId: ProductService_BatchCreateProduct
             requestBody:
                 content:
                     application/json:
                         schema:
-                            $ref: '#/components/schemas/BatchUpsertProductRequest'
+                            $ref: '#/components/schemas/BatchCreateProductRequest'
                 required: true
             responses:
                 "200":
@@ -25,7 +25,31 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/BatchUpsertProductResponse'
+                                $ref: '#/components/schemas/BatchCreateProductResponse'
+                default:
+                    description: Default error response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Status'
+        patch:
+            tags:
+                - ProductService
+            description: updates products' fields specified by the given update masks.
+            operationId: ProductService_BatchUpdateProduct
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/BatchUpdateProductRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BatchUpdateProductResponse'
                 default:
                     description: Default error response
                     content:
@@ -36,7 +60,7 @@ paths:
         get:
             tags:
                 - ProductService
-            description: list products by seller_id, generally used by customers.
+            description: retrieves product information for given seller_id and product status.
             operationId: ProductService_ListSellerProducts
             parameters:
                 - name: sellerId
@@ -77,7 +101,17 @@ paths:
                                 $ref: '#/components/schemas/Status'
 components:
     schemas:
-        BatchUpsertProductRequest:
+        BatchCreateProductRequest:
+            type: object
+            properties:
+                products:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/Product'
+        BatchCreateProductResponse:
+            type: object
+            properties: {}
+        BatchUpdateProductRequest:
             type: object
             properties:
                 products:
@@ -87,11 +121,10 @@ components:
                 updateMask:
                     type: string
                     format: field-mask
-            description: only support updating a single field of the product.
-        BatchUpsertProductResponse:
+        BatchUpdateProductResponse:
             type: object
             properties: {}
-            description: 'TODO: update strategy and update results.'
+            description: 'TODO(2): update strategy and update results.'
         GoogleProtobufAny:
             type: object
             properties:
@@ -117,9 +150,22 @@ components:
                 sellerId:
                     type: integer
                     format: int32
+                skus:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/Sku'
                 productStatus:
                     type: integer
                     format: enum
+        Sku:
+            type: object
+            properties:
+                id:
+                    type: string
+                attrs:
+                    type: object
+                unitPrice:
+                    type: string
         Status:
             type: object
             properties:

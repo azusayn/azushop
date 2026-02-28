@@ -7,6 +7,8 @@ import (
 
 type ContextKey int
 
+// 0 ~ 100
+// TODO(2): context key value.
 const (
 	UserIDCtxKey   ContextKey = 0
 	UserRoleCtxKey ContextKey = 1
