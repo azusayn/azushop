@@ -19,24 +19,25 @@ var _ = binding.EncodeURL
 
 const _ = http.SupportPackageIsVersion1
 
-const OperationOrderServiceCheckout = "/order.v1.OrderService/Checkout"
+const OperationOrderServiceCancelOrder = "/order.v1.OrderService/CancelOrder"
 const OperationOrderServiceCreateOrder = "/order.v1.OrderService/CreateOrder"
-const OperationOrderServicePay = "/order.v1.OrderService/Pay"
+const OperationOrderServiceListOrders = "/order.v1.OrderService/ListOrders"
 
 type OrderServiceHTTPServer interface {
-	// Checkout use payment method to pay the order in real time.
-	Checkout(context.Context, *CheckoutRequest) (*CheckoutResponse, error)
+	// CancelOrder cancels order for given order ID.
+	CancelOrder(context.Context, *CancelOrderRequest) (*CancelOrderResponse, error)
 	// CreateOrder create order
+	// TODO(0): payment timeout.
 	CreateOrder(context.Context, *CreateOrderRequest) (*CreateOrderResponse, error)
-	// Pay pay the order by using the binded credit card.
-	Pay(context.Context, *PayRequest) (*PayResponse, error)
+	// ListOrders lists all orders owned by the customer.
+	ListOrders(context.Context, *ListOrdersRequest) (*ListOrdersResponse, error)
 }
 
 func RegisterOrderServiceHTTPServer(s *http.Server, srv OrderServiceHTTPServer) {
 	r := s.Route("/")
 	r.POST("/v1/orders", _OrderService_CreateOrder0_HTTP_Handler(srv))
-	r.POST("/v1/orders/{order_id}/checkout", _OrderService_Checkout0_HTTP_Handler(srv))
-	r.POST("/v1/orders/{order_id}/pay", _OrderService_Pay0_HTTP_Handler(srv))
+	r.POST("/v1/orders/{order_id}/cancel", _OrderService_CancelOrder0_HTTP_Handler(srv))
+	r.GET("/v1/orders", _OrderService_ListOrders0_HTTP_Handler(srv))
 }
 
 func _OrderService_CreateOrder0_HTTP_Handler(srv OrderServiceHTTPServer) func(ctx http.Context) error {
@@ -61,9 +62,9 @@ func _OrderService_CreateOrder0_HTTP_Handler(srv OrderServiceHTTPServer) func(ct
 	}
 }
 
-func _OrderService_Checkout0_HTTP_Handler(srv OrderServiceHTTPServer) func(ctx http.Context) error {
+func _OrderService_CancelOrder0_HTTP_Handler(srv OrderServiceHTTPServer) func(ctx http.Context) error {
 	return func(ctx http.Context) error {
-		var in CheckoutRequest
+		var in CancelOrderRequest
 		if err := ctx.Bind(&in); err != nil {
 			return err
 		}
@@ -73,51 +74,46 @@ func _OrderService_Checkout0_HTTP_Handler(srv OrderServiceHTTPServer) func(ctx h
 		if err := ctx.BindVars(&in); err != nil {
 			return err
 		}
-		http.SetOperation(ctx, OperationOrderServiceCheckout)
+		http.SetOperation(ctx, OperationOrderServiceCancelOrder)
 		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
-			return srv.Checkout(ctx, req.(*CheckoutRequest))
+			return srv.CancelOrder(ctx, req.(*CancelOrderRequest))
 		})
 		out, err := h(ctx, &in)
 		if err != nil {
 			return err
 		}
-		reply := out.(*CheckoutResponse)
+		reply := out.(*CancelOrderResponse)
 		return ctx.Result(200, reply)
 	}
 }
 
-func _OrderService_Pay0_HTTP_Handler(srv OrderServiceHTTPServer) func(ctx http.Context) error {
+func _OrderService_ListOrders0_HTTP_Handler(srv OrderServiceHTTPServer) func(ctx http.Context) error {
 	return func(ctx http.Context) error {
-		var in PayRequest
-		if err := ctx.Bind(&in); err != nil {
-			return err
-		}
+		var in ListOrdersRequest
 		if err := ctx.BindQuery(&in); err != nil {
 			return err
 		}
-		if err := ctx.BindVars(&in); err != nil {
-			return err
-		}
-		http.SetOperation(ctx, OperationOrderServicePay)
+		http.SetOperation(ctx, OperationOrderServiceListOrders)
 		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
-			return srv.Pay(ctx, req.(*PayRequest))
+			return srv.ListOrders(ctx, req.(*ListOrdersRequest))
 		})
 		out, err := h(ctx, &in)
 		if err != nil {
 			return err
 		}
-		reply := out.(*PayResponse)
+		reply := out.(*ListOrdersResponse)
 		return ctx.Result(200, reply)
 	}
 }
 
 type OrderServiceHTTPClient interface {
-	// Checkout use payment method to pay the order in real time.
-	Checkout(ctx context.Context, req *CheckoutRequest, opts ...http.CallOption) (rsp *CheckoutResponse, err error)
+	// CancelOrder cancels order for given order ID.
+	CancelOrder(ctx context.Context, req *CancelOrderRequest, opts ...http.CallOption) (rsp *CancelOrderResponse, err error)
 	// CreateOrder create order
+	// TODO(0): payment timeout.
 	CreateOrder(ctx context.Context, req *CreateOrderRequest, opts ...http.CallOption) (rsp *CreateOrderResponse, err error)
-	// Pay pay the order by using the binded credit card.
-	Pay(ctx context.Context, req *PayRequest, opts ...http.CallOption) (rsp *PayResponse, err error)
+	// ListOrders lists all orders owned by the customer.
+	ListOrders(ctx context.Context, req *ListOrdersRequest, opts ...http.CallOption) (rsp *ListOrdersResponse, err error)
 }
 
 type OrderServiceHTTPClientImpl struct {
@@ -128,12 +124,12 @@ func NewOrderServiceHTTPClient(client *http.Client) OrderServiceHTTPClient {
 	return &OrderServiceHTTPClientImpl{client}
 }
 
-// Checkout use payment method to pay the order in real time.
-func (c *OrderServiceHTTPClientImpl) Checkout(ctx context.Context, in *CheckoutRequest, opts ...http.CallOption) (*CheckoutResponse, error) {
-	var out CheckoutResponse
-	pattern := "/v1/orders/{order_id}/checkout"
+// CancelOrder cancels order for given order ID.
+func (c *OrderServiceHTTPClientImpl) CancelOrder(ctx context.Context, in *CancelOrderRequest, opts ...http.CallOption) (*CancelOrderResponse, error) {
+	var out CancelOrderResponse
+	pattern := "/v1/orders/{order_id}/cancel"
 	path := binding.EncodeURL(pattern, in, false)
-	opts = append(opts, http.Operation(OperationOrderServiceCheckout))
+	opts = append(opts, http.Operation(OperationOrderServiceCancelOrder))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
 	if err != nil {
@@ -143,6 +139,7 @@ func (c *OrderServiceHTTPClientImpl) Checkout(ctx context.Context, in *CheckoutR
 }
 
 // CreateOrder create order
+// TODO(0): payment timeout.
 func (c *OrderServiceHTTPClientImpl) CreateOrder(ctx context.Context, in *CreateOrderRequest, opts ...http.CallOption) (*CreateOrderResponse, error) {
 	var out CreateOrderResponse
 	pattern := "/v1/orders"
@@ -156,14 +153,14 @@ func (c *OrderServiceHTTPClientImpl) CreateOrder(ctx context.Context, in *Create
 	return &out, nil
 }
 
-// Pay pay the order by using the binded credit card.
-func (c *OrderServiceHTTPClientImpl) Pay(ctx context.Context, in *PayRequest, opts ...http.CallOption) (*PayResponse, error) {
-	var out PayResponse
-	pattern := "/v1/orders/{order_id}/pay"
-	path := binding.EncodeURL(pattern, in, false)
-	opts = append(opts, http.Operation(OperationOrderServicePay))
+// ListOrders lists all orders owned by the customer.
+func (c *OrderServiceHTTPClientImpl) ListOrders(ctx context.Context, in *ListOrdersRequest, opts ...http.CallOption) (*ListOrdersResponse, error) {
+	var out ListOrdersResponse
+	pattern := "/v1/orders"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationOrderServiceListOrders))
 	opts = append(opts, http.PathTemplate(pattern))
-	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {
 		return nil, err
 	}
