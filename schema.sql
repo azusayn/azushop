@@ -8,7 +8,7 @@ CREATE TABLE users (
 )
 
 -- product service.
-CREATE TYPE products_status AS ENUM (
+CREATE TYPE product_status AS ENUM (
   'unspecified',
   'draft',
   'pending',
@@ -19,7 +19,7 @@ CREATE TYPE products_status AS ENUM (
 CREATE TABLE products (
   id UUID PRIMARY KEY NOT NULL,
   product_name VARCHAR(255) NOT NULL,
-  status products_status NOT NULL DEFAULT 'draft',
+  status product_status NOT NULL DEFAULT 'draft',
   seller_id INT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -45,10 +45,17 @@ CREATE TABLE inventory (,
   reserved_quantity BIGINT NOT NULL CHECK (reserved_quantity >= 0),
 )
 
+CREATE TYPE inventory_lock_status AS ENUM (
+  'locked',
+  'confirmed',
+  'released'
+)
+
 CREATE TABLE inventory_lock (
   order_id BIGINT NOT NULL PRIMARY KEY,
-  -- sku_id and quantity.
-  payload NOT NULL JSONB
+  -- mapping from sku_id to quantity.
+  payload NOT NULL JSONB,
+  status inventory_lock_status NOT NULL,
 )
 
 -- order service.

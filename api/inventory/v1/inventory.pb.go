@@ -24,8 +24,8 @@ const (
 type AdjustStockRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// TODO(3): why string instead of int64 ?
-	SkuId         int64 `protobuf:"varint,1,opt,name=sku_id,json=skuId,proto3" json:"sku_id,omitempty"`
-	StockQuantity int64 `protobuf:"varint,2,opt,name=stock_quantity,json=stockQuantity,proto3" json:"stock_quantity,omitempty"`
+	SkuId         string `protobuf:"bytes,1,opt,name=sku_id,json=skuId,proto3" json:"sku_id,omitempty"`
+	StockQuantity int64  `protobuf:"varint,2,opt,name=stock_quantity,json=stockQuantity,proto3" json:"stock_quantity,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -60,11 +60,11 @@ func (*AdjustStockRequest) Descriptor() ([]byte, []int) {
 	return file_api_inventory_v1_inventory_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *AdjustStockRequest) GetSkuId() int64 {
+func (x *AdjustStockRequest) GetSkuId() string {
 	if x != nil {
 		return x.SkuId
 	}
-	return 0
+	return ""
 }
 
 func (x *AdjustStockRequest) GetStockQuantity() int64 {
@@ -112,7 +112,7 @@ func (*AdjustStockResponse) Descriptor() ([]byte, []int) {
 
 type BatchGetStockRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	SkuIds        []int64                `protobuf:"varint,1,rep,packed,name=sku_ids,json=skuIds,proto3" json:"sku_ids,omitempty"`
+	SkuIds        []string               `protobuf:"bytes,1,rep,name=sku_ids,json=skuIds,proto3" json:"sku_ids,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -147,7 +147,7 @@ func (*BatchGetStockRequest) Descriptor() ([]byte, []int) {
 	return file_api_inventory_v1_inventory_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *BatchGetStockRequest) GetSkuIds() []int64 {
+func (x *BatchGetStockRequest) GetSkuIds() []string {
 	if x != nil {
 		return x.SkuIds
 	}
@@ -217,7 +217,7 @@ func (x *SKUQuantity) GetReservedQuantity() int64 {
 type BatchGetStockResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// mapping from SKU ID to its stock information.
-	Stocks        map[int64]*SKUQuantity `protobuf:"bytes,1,rep,name=stocks,proto3" json:"stocks,omitempty" protobuf_key:"varint,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Stocks        map[string]*SKUQuantity `protobuf:"bytes,1,rep,name=stocks,proto3" json:"stocks,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -252,7 +252,7 @@ func (*BatchGetStockResponse) Descriptor() ([]byte, []int) {
 	return file_api_inventory_v1_inventory_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *BatchGetStockResponse) GetStocks() map[int64]*SKUQuantity {
+func (x *BatchGetStockResponse) GetStocks() map[string]*SKUQuantity {
 	if x != nil {
 		return x.Stocks
 	}
@@ -261,7 +261,7 @@ func (x *BatchGetStockResponse) GetStocks() map[int64]*SKUQuantity {
 
 type StockItem struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	SkuId         int64                  `protobuf:"varint,1,opt,name=sku_id,json=skuId,proto3" json:"sku_id,omitempty"`
+	SkuId         string                 `protobuf:"bytes,1,opt,name=sku_id,json=skuId,proto3" json:"sku_id,omitempty"`
 	Quantity      int64                  `protobuf:"varint,2,opt,name=quantity,proto3" json:"quantity,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -297,11 +297,11 @@ func (*StockItem) Descriptor() ([]byte, []int) {
 	return file_api_inventory_v1_inventory_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *StockItem) GetSkuId() int64 {
+func (x *StockItem) GetSkuId() string {
 	if x != nil {
 		return x.SkuId
 	}
-	return 0
+	return ""
 }
 
 func (x *StockItem) GetQuantity() int64 {
@@ -565,11 +565,11 @@ const file_api_inventory_v1_inventory_proto_rawDesc = "" +
 	"\n" +
 	" api/inventory/v1/inventory.proto\x12\finventory.v1\"R\n" +
 	"\x12AdjustStockRequest\x12\x15\n" +
-	"\x06sku_id\x18\x01 \x01(\x03R\x05skuId\x12%\n" +
+	"\x06sku_id\x18\x01 \x01(\tR\x05skuId\x12%\n" +
 	"\x0estock_quantity\x18\x02 \x01(\x03R\rstockQuantity\"\x15\n" +
 	"\x13AdjustStockResponse\"/\n" +
 	"\x14BatchGetStockRequest\x12\x17\n" +
-	"\asku_ids\x18\x01 \x03(\x03R\x06skuIds\"\xc3\x01\n" +
+	"\asku_ids\x18\x01 \x03(\tR\x06skuIds\"\xc3\x01\n" +
 	"\vSKUQuantity\x12-\n" +
 	"\x12available_quantity\x18\x01 \x01(\x03R\x11availableQuantity\x12*\n" +
 	"\x0estock_quantity\x18\x02 \x01(\x03H\x00R\rstockQuantity\x88\x01\x01\x120\n" +
@@ -579,10 +579,10 @@ const file_api_inventory_v1_inventory_proto_rawDesc = "" +
 	"\x15BatchGetStockResponse\x12G\n" +
 	"\x06stocks\x18\x01 \x03(\v2/.inventory.v1.BatchGetStockResponse.StocksEntryR\x06stocks\x1aT\n" +
 	"\vStocksEntry\x12\x10\n" +
-	"\x03key\x18\x01 \x01(\x03R\x03key\x12/\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12/\n" +
 	"\x05value\x18\x02 \x01(\v2\x19.inventory.v1.SKUQuantityR\x05value:\x028\x01\">\n" +
 	"\tStockItem\x12\x15\n" +
-	"\x06sku_id\x18\x01 \x01(\x03R\x05skuId\x12\x1a\n" +
+	"\x06sku_id\x18\x01 \x01(\tR\x05skuId\x12\x1a\n" +
 	"\bquantity\x18\x02 \x01(\x03R\bquantity\"_\n" +
 	"\x13ReserveStockRequest\x12\x19\n" +
 	"\border_id\x18\x01 \x01(\x03R\aorderId\x12-\n" +
