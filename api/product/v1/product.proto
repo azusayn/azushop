@@ -34,7 +34,10 @@ service ProductService {
   };
   // TODO: publish & unpublish products.
   // TODO: search API using Postgres GIN.
-}
+
+  // retrieves sku information for given skuIds.
+  rpc BatchGetSkus(BatchGetSkusRequest) returns (BatchGetSkusResponse);
+} 
 
 enum ProductStatus {
   PRODUCT_STATUS_UNSPECIFIED = 0;
@@ -58,6 +61,7 @@ message Product {
   ProductStatus product_status = 5;
 }
 
+// TODO(0): page token is string
 message ListSellerProductsRequest {
   // use 0 for the first request.
   int64 page_token = 1;
@@ -86,3 +90,15 @@ message BatchUpdateProductRequest {
 // TODO(2): update strategy and update results.
 message BatchUpdateProductResponse {}
 
+message BatchGetSkusRequest{
+  // use "" for the first request.
+  string page_token = 1;
+  // max 100
+  int32 page_size = 2;
+  repeated string sku_ids = 3;
+}
+
+message BatchGetSkusResponse{
+  repeated Sku skus = 1;
+  string next_page_token = 2;
+}

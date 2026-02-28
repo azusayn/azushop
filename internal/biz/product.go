@@ -40,6 +40,8 @@ type ProductRepo interface {
 	ListProductsBySellerId(ctx context.Context, sellerID int32, pageToken int64, pageSize int32, productStatus ProductStatus) ([]*Product, error)
 	BatchCreateProducts(ctx context.Context, product []*Product) ([]*Product, error)
 	BatchUpdateProducts(ctx context.Context, product []*Product, paths []string) error
+	// table 'skus'
+	BatchGetSkus(ctx context.Context, skuIDs []uuid.UUID, pageToken uuid.UUID, pageSize int32) ([]*Sku, error)
 }
 
 type ProductUsecase struct {
@@ -140,4 +142,8 @@ func (uc *ProductUsecase) BatchUpdateProducts(
 	}
 	ss := common.NewStringSet(common.WithValues(updateMask.Paths))
 	return uc.repo.BatchUpdateProducts(ctx, products, ss.ToSlice())
+}
+
+func (uc *ProductUsecase) BatchGetSkus(ctx context.Context, skuIDs []uuid.UUID, pageToken uuid.UUID, pageSize int32) ([]*Sku, error) {
+	return uc.repo.BatchGetSkus(ctx, skuIDs, pageToken, pageSize)
 }

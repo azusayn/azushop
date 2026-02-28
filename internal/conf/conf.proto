@@ -36,7 +36,11 @@ message Data {
     google.protobuf.Duration read_timeout = 3;
     google.protobuf.Duration write_timeout = 4;
   }
+  message Service {
+    string product_service_addr = 1;
+  }
   Database database = 1;
   Redis redis = 2;
-  string app_name = 3;
+  Service service = 3;
+  string app_name = 4;
 }

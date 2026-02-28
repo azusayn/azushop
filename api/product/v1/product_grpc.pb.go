@@ -22,6 +22,7 @@ const (
 	ProductService_ListSellerProducts_FullMethodName = "/product.v1.ProductService/ListSellerProducts"
 	ProductService_BatchCreateProduct_FullMethodName = "/product.v1.ProductService/BatchCreateProduct"
 	ProductService_BatchUpdateProduct_FullMethodName = "/product.v1.ProductService/BatchUpdateProduct"
+	ProductService_BatchGetSkus_FullMethodName       = "/product.v1.ProductService/BatchGetSkus"
 )
 
 // ProductServiceClient is the client API for ProductService service.
@@ -36,6 +37,8 @@ type ProductServiceClient interface {
 	BatchCreateProduct(ctx context.Context, in *BatchCreateProductRequest, opts ...grpc.CallOption) (*BatchCreateProductResponse, error)
 	// updates products' fields specified by the given update masks.
 	BatchUpdateProduct(ctx context.Context, in *BatchUpdateProductRequest, opts ...grpc.CallOption) (*BatchUpdateProductResponse, error)
+	// retrieves sku information for given skuIds.
+	BatchGetSkus(ctx context.Context, in *BatchGetSkusRequest, opts ...grpc.CallOption) (*BatchGetSkusResponse, error)
 }
 
 type productServiceClient struct {
@@ -76,6 +79,16 @@ func (c *productServiceClient) BatchUpdateProduct(ctx context.Context, in *Batch
 	return out, nil
 }
 
+func (c *productServiceClient) BatchGetSkus(ctx context.Context, in *BatchGetSkusRequest, opts ...grpc.CallOption) (*BatchGetSkusResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BatchGetSkusResponse)
+	err := c.cc.Invoke(ctx, ProductService_BatchGetSkus_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ProductServiceServer is the server API for ProductService service.
 // All implementations must embed UnimplementedProductServiceServer
 // for forward compatibility.
@@ -88,6 +101,8 @@ type ProductServiceServer interface {
 	BatchCreateProduct(context.Context, *BatchCreateProductRequest) (*BatchCreateProductResponse, error)
 	// updates products' fields specified by the given update masks.
 	BatchUpdateProduct(context.Context, *BatchUpdateProductRequest) (*BatchUpdateProductResponse, error)
+	// retrieves sku information for given skuIds.
+	BatchGetSkus(context.Context, *BatchGetSkusRequest) (*BatchGetSkusResponse, error)
 	mustEmbedUnimplementedProductServiceServer()
 }
 
@@ -106,6 +121,9 @@ func (UnimplementedProductServiceServer) BatchCreateProduct(context.Context, *Ba
 }
 func (UnimplementedProductServiceServer) BatchUpdateProduct(context.Context, *BatchUpdateProductRequest) (*BatchUpdateProductResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method BatchUpdateProduct not implemented")
+}
+func (UnimplementedProductServiceServer) BatchGetSkus(context.Context, *BatchGetSkusRequest) (*BatchGetSkusResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method BatchGetSkus not implemented")
 }
 func (UnimplementedProductServiceServer) mustEmbedUnimplementedProductServiceServer() {}
 func (UnimplementedProductServiceServer) testEmbeddedByValue()                        {}
@@ -182,6 +200,24 @@ func _ProductService_BatchUpdateProduct_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ProductService_BatchGetSkus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BatchGetSkusRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProductServiceServer).BatchGetSkus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProductService_BatchGetSkus_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProductServiceServer).BatchGetSkus(ctx, req.(*BatchGetSkusRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ProductService_ServiceDesc is the grpc.ServiceDesc for ProductService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -200,6 +236,10 @@ var ProductService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "BatchUpdateProduct",
 			Handler:    _ProductService_BatchUpdateProduct_Handler,
+		},
+		{
+			MethodName: "BatchGetSkus",
+			Handler:    _ProductService_BatchGetSkus_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -51,7 +51,7 @@ message Order {
 
 message OrderItem {
   string sku_id = 1;
-  int32 quantity = 2;
+  int64 quantity = 2;
   // TODO: currency type.
   // only present in responses, not required in CreateOrderRequest.
   optional string unit_price = 3;
