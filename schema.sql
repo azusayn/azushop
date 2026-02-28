@@ -59,12 +59,19 @@ CREATE TABLE inventory_lock (
 )
 
 -- order service.
+CREATE TYPE order_status AS ENUM (
+  'pending',
+  'paid',
+  'cancelled',
+  'refunded'
+)
+
 -- TODO: coupons
 CREATE TABLE orders (
   id BIGSERIAL PRIMARY KEY,
   user_id INT NOT NULL,
   total NUMERIC(10, 2) NOT NULL,
-  status VARCHAR(255) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'cancelled', 'refunded')),
+  status VARCHAR(255) NOT NULL,
   payment_method VARCHAR(255) CHECK (payment_method IN ('paypal', 'stripe', 'alipay', 'wechat')),
   payment_id VARCHAR(255),
   paid_at TIMESTAMPTZ,
