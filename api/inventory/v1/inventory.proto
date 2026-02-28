@@ -27,14 +27,14 @@ service InventoryService {
 
 message AdjustStockRequest {
   // TODO(3): why string instead of int64 ?
-  int64 sku_id = 1;
+  string sku_id = 1;
   int64 stock_quantity = 2;
 }
 
 message AdjustStockResponse {}
 
 message BatchGetStockRequest {
-  repeated int64 sku_ids = 1;
+  repeated string sku_ids = 1;
 }
 
 message SKUQuantity {
@@ -45,11 +45,11 @@ message SKUQuantity {
 
 message BatchGetStockResponse {
   // mapping from SKU ID to its stock information.
-  map<int64, SKUQuantity> stocks = 1;
+  map<string, SKUQuantity> stocks = 1;
 }
 
 message StockItem {
-  int64 sku_id = 1;
+  string sku_id = 1;
   int64 quantity = 2;
 }
 
