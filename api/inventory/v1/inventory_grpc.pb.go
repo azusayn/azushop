@@ -19,26 +19,32 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	InventoryService_CreateSKU_FullMethodName     = "/inventory.v1.InventoryService/CreateSKU"
-	InventoryService_UpdateSKU_FullMethodName     = "/inventory.v1.InventoryService/UpdateSKU"
-	InventoryService_ListSKUs_FullMethodName      = "/inventory.v1.InventoryService/ListSKUs"
-	InventoryService_AdminListSKUs_FullMethodName = "/inventory.v1.InventoryService/AdminListSKUs"
+	InventoryService_AdjustStock_FullMethodName   = "/inventory.v1.InventoryService/AdjustStock"
+	InventoryService_BatchGetStock_FullMethodName = "/inventory.v1.InventoryService/BatchGetStock"
+	InventoryService_ReserveStock_FullMethodName  = "/inventory.v1.InventoryService/ReserveStock"
+	InventoryService_ReleaseStock_FullMethodName  = "/inventory.v1.InventoryService/ReleaseStock"
+	InventoryService_DeductStock_FullMethodName   = "/inventory.v1.InventoryService/DeductStock"
 )
 
 // InventoryServiceClient is the client API for InventoryService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
-// service for managing SKUs.
+// service for managing stocks.
 type InventoryServiceClient interface {
-	// SKU management.
-	CreateSKU(ctx context.Context, in *CreateSKURequest, opts ...grpc.CallOption) (*CreateSKUResponse, error)
-	// update sku with sku details.
-	UpdateSKU(ctx context.Context, in *UpdateSKURequest, opts ...grpc.CallOption) (*UpdateSKUResponse, error)
-	// list skus by product id.
-	ListSKUs(ctx context.Context, in *ListSKUsRequest, opts ...grpc.CallOption) (*ListSKUsResponse, error)
-	// list skus by product id with full details(available, stock, reserved stocks).
-	AdminListSKUs(ctx context.Context, in *AdminListSKUsRequest, opts ...grpc.CallOption) (*AdminListSKUsResponse, error)
+	// interfaces used by merchants and administrators.
+	// sets stock to a specific quantity.
+	AdjustStock(ctx context.Context, in *AdjustStockRequest, opts ...grpc.CallOption) (*AdjustStockResponse, error)
+	// retrieves SKU information for given SKU IDs.
+	BatchGetStock(ctx context.Context, in *BatchGetStockRequest, opts ...grpc.CallOption) (*BatchGetStockResponse, error)
+	// interfaces used by internal services.
+	// reserves a certain quantity of stock after
+	// an order is created.
+	ReserveStock(ctx context.Context, in *ReserveStockRequest, opts ...grpc.CallOption) (*ReserveStockResponse, error)
+	// release reserved stock when a customer cancels an order.
+	ReleaseStock(ctx context.Context, in *ReleaseStockRequest, opts ...grpc.CallOption) (*ReleaseStockResponse, error)
+	// deducts stock when an order is paid.
+	DeductStock(ctx context.Context, in *DeductStockRequest, opts ...grpc.CallOption) (*DeductStockResponse, error)
 }
 
 type inventoryServiceClient struct {
@@ -49,40 +55,50 @@ func NewInventoryServiceClient(cc grpc.ClientConnInterface) InventoryServiceClie
 	return &inventoryServiceClient{cc}
 }
 
-func (c *inventoryServiceClient) CreateSKU(ctx context.Context, in *CreateSKURequest, opts ...grpc.CallOption) (*CreateSKUResponse, error) {
+func (c *inventoryServiceClient) AdjustStock(ctx context.Context, in *AdjustStockRequest, opts ...grpc.CallOption) (*AdjustStockResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(CreateSKUResponse)
-	err := c.cc.Invoke(ctx, InventoryService_CreateSKU_FullMethodName, in, out, cOpts...)
+	out := new(AdjustStockResponse)
+	err := c.cc.Invoke(ctx, InventoryService_AdjustStock_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *inventoryServiceClient) UpdateSKU(ctx context.Context, in *UpdateSKURequest, opts ...grpc.CallOption) (*UpdateSKUResponse, error) {
+func (c *inventoryServiceClient) BatchGetStock(ctx context.Context, in *BatchGetStockRequest, opts ...grpc.CallOption) (*BatchGetStockResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(UpdateSKUResponse)
-	err := c.cc.Invoke(ctx, InventoryService_UpdateSKU_FullMethodName, in, out, cOpts...)
+	out := new(BatchGetStockResponse)
+	err := c.cc.Invoke(ctx, InventoryService_BatchGetStock_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *inventoryServiceClient) ListSKUs(ctx context.Context, in *ListSKUsRequest, opts ...grpc.CallOption) (*ListSKUsResponse, error) {
+func (c *inventoryServiceClient) ReserveStock(ctx context.Context, in *ReserveStockRequest, opts ...grpc.CallOption) (*ReserveStockResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ListSKUsResponse)
-	err := c.cc.Invoke(ctx, InventoryService_ListSKUs_FullMethodName, in, out, cOpts...)
+	out := new(ReserveStockResponse)
+	err := c.cc.Invoke(ctx, InventoryService_ReserveStock_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *inventoryServiceClient) AdminListSKUs(ctx context.Context, in *AdminListSKUsRequest, opts ...grpc.CallOption) (*AdminListSKUsResponse, error) {
+func (c *inventoryServiceClient) ReleaseStock(ctx context.Context, in *ReleaseStockRequest, opts ...grpc.CallOption) (*ReleaseStockResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(AdminListSKUsResponse)
-	err := c.cc.Invoke(ctx, InventoryService_AdminListSKUs_FullMethodName, in, out, cOpts...)
+	out := new(ReleaseStockResponse)
+	err := c.cc.Invoke(ctx, InventoryService_ReleaseStock_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *inventoryServiceClient) DeductStock(ctx context.Context, in *DeductStockRequest, opts ...grpc.CallOption) (*DeductStockResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeductStockResponse)
+	err := c.cc.Invoke(ctx, InventoryService_DeductStock_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -93,16 +109,21 @@ func (c *inventoryServiceClient) AdminListSKUs(ctx context.Context, in *AdminLis
 // All implementations must embed UnimplementedInventoryServiceServer
 // for forward compatibility.
 //
-// service for managing SKUs.
+// service for managing stocks.
 type InventoryServiceServer interface {
-	// SKU management.
-	CreateSKU(context.Context, *CreateSKURequest) (*CreateSKUResponse, error)
-	// update sku with sku details.
-	UpdateSKU(context.Context, *UpdateSKURequest) (*UpdateSKUResponse, error)
-	// list skus by product id.
-	ListSKUs(context.Context, *ListSKUsRequest) (*ListSKUsResponse, error)
-	// list skus by product id with full details(available, stock, reserved stocks).
-	AdminListSKUs(context.Context, *AdminListSKUsRequest) (*AdminListSKUsResponse, error)
+	// interfaces used by merchants and administrators.
+	// sets stock to a specific quantity.
+	AdjustStock(context.Context, *AdjustStockRequest) (*AdjustStockResponse, error)
+	// retrieves SKU information for given SKU IDs.
+	BatchGetStock(context.Context, *BatchGetStockRequest) (*BatchGetStockResponse, error)
+	// interfaces used by internal services.
+	// reserves a certain quantity of stock after
+	// an order is created.
+	ReserveStock(context.Context, *ReserveStockRequest) (*ReserveStockResponse, error)
+	// release reserved stock when a customer cancels an order.
+	ReleaseStock(context.Context, *ReleaseStockRequest) (*ReleaseStockResponse, error)
+	// deducts stock when an order is paid.
+	DeductStock(context.Context, *DeductStockRequest) (*DeductStockResponse, error)
 	mustEmbedUnimplementedInventoryServiceServer()
 }
 
@@ -113,17 +134,20 @@ type InventoryServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedInventoryServiceServer struct{}
 
-func (UnimplementedInventoryServiceServer) CreateSKU(context.Context, *CreateSKURequest) (*CreateSKUResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method CreateSKU not implemented")
+func (UnimplementedInventoryServiceServer) AdjustStock(context.Context, *AdjustStockRequest) (*AdjustStockResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method AdjustStock not implemented")
 }
-func (UnimplementedInventoryServiceServer) UpdateSKU(context.Context, *UpdateSKURequest) (*UpdateSKUResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method UpdateSKU not implemented")
+func (UnimplementedInventoryServiceServer) BatchGetStock(context.Context, *BatchGetStockRequest) (*BatchGetStockResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method BatchGetStock not implemented")
 }
-func (UnimplementedInventoryServiceServer) ListSKUs(context.Context, *ListSKUsRequest) (*ListSKUsResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method ListSKUs not implemented")
+func (UnimplementedInventoryServiceServer) ReserveStock(context.Context, *ReserveStockRequest) (*ReserveStockResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ReserveStock not implemented")
 }
-func (UnimplementedInventoryServiceServer) AdminListSKUs(context.Context, *AdminListSKUsRequest) (*AdminListSKUsResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method AdminListSKUs not implemented")
+func (UnimplementedInventoryServiceServer) ReleaseStock(context.Context, *ReleaseStockRequest) (*ReleaseStockResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ReleaseStock not implemented")
+}
+func (UnimplementedInventoryServiceServer) DeductStock(context.Context, *DeductStockRequest) (*DeductStockResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeductStock not implemented")
 }
 func (UnimplementedInventoryServiceServer) mustEmbedUnimplementedInventoryServiceServer() {}
 func (UnimplementedInventoryServiceServer) testEmbeddedByValue()                          {}
@@ -146,74 +170,92 @@ func RegisterInventoryServiceServer(s grpc.ServiceRegistrar, srv InventoryServic
 	s.RegisterService(&InventoryService_ServiceDesc, srv)
 }
 
-func _InventoryService_CreateSKU_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CreateSKURequest)
+func _InventoryService_AdjustStock_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AdjustStockRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(InventoryServiceServer).CreateSKU(ctx, in)
+		return srv.(InventoryServiceServer).AdjustStock(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: InventoryService_CreateSKU_FullMethodName,
+		FullMethod: InventoryService_AdjustStock_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(InventoryServiceServer).CreateSKU(ctx, req.(*CreateSKURequest))
+		return srv.(InventoryServiceServer).AdjustStock(ctx, req.(*AdjustStockRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _InventoryService_UpdateSKU_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UpdateSKURequest)
+func _InventoryService_BatchGetStock_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BatchGetStockRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(InventoryServiceServer).UpdateSKU(ctx, in)
+		return srv.(InventoryServiceServer).BatchGetStock(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: InventoryService_UpdateSKU_FullMethodName,
+		FullMethod: InventoryService_BatchGetStock_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(InventoryServiceServer).UpdateSKU(ctx, req.(*UpdateSKURequest))
+		return srv.(InventoryServiceServer).BatchGetStock(ctx, req.(*BatchGetStockRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _InventoryService_ListSKUs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListSKUsRequest)
+func _InventoryService_ReserveStock_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReserveStockRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(InventoryServiceServer).ListSKUs(ctx, in)
+		return srv.(InventoryServiceServer).ReserveStock(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: InventoryService_ListSKUs_FullMethodName,
+		FullMethod: InventoryService_ReserveStock_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(InventoryServiceServer).ListSKUs(ctx, req.(*ListSKUsRequest))
+		return srv.(InventoryServiceServer).ReserveStock(ctx, req.(*ReserveStockRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _InventoryService_AdminListSKUs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AdminListSKUsRequest)
+func _InventoryService_ReleaseStock_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReleaseStockRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(InventoryServiceServer).AdminListSKUs(ctx, in)
+		return srv.(InventoryServiceServer).ReleaseStock(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: InventoryService_AdminListSKUs_FullMethodName,
+		FullMethod: InventoryService_ReleaseStock_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(InventoryServiceServer).AdminListSKUs(ctx, req.(*AdminListSKUsRequest))
+		return srv.(InventoryServiceServer).ReleaseStock(ctx, req.(*ReleaseStockRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _InventoryService_DeductStock_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeductStockRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InventoryServiceServer).DeductStock(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InventoryService_DeductStock_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InventoryServiceServer).DeductStock(ctx, req.(*DeductStockRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -226,20 +268,24 @@ var InventoryService_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*InventoryServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "CreateSKU",
-			Handler:    _InventoryService_CreateSKU_Handler,
+			MethodName: "AdjustStock",
+			Handler:    _InventoryService_AdjustStock_Handler,
 		},
 		{
-			MethodName: "UpdateSKU",
-			Handler:    _InventoryService_UpdateSKU_Handler,
+			MethodName: "BatchGetStock",
+			Handler:    _InventoryService_BatchGetStock_Handler,
 		},
 		{
-			MethodName: "ListSKUs",
-			Handler:    _InventoryService_ListSKUs_Handler,
+			MethodName: "ReserveStock",
+			Handler:    _InventoryService_ReserveStock_Handler,
 		},
 		{
-			MethodName: "AdminListSKUs",
-			Handler:    _InventoryService_AdminListSKUs_Handler,
+			MethodName: "ReleaseStock",
+			Handler:    _InventoryService_ReleaseStock_Handler,
+		},
+		{
+			MethodName: "DeductStock",
+			Handler:    _InventoryService_DeductStock_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
