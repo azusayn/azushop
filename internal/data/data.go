@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"log/slog"
 
+	inventorypb "azushop/api/inventory/v1"
 	productpb "azushop/api/product/v1"
 
 	"github.com/azusayn/azutils/auth"
@@ -27,12 +28,13 @@ var ProviderSet = wire.NewSet(
 
 type Data struct {
 	// TODO: DDD design.
-	postgresClient *sql.DB
-	gormClient     *gorm.DB
-	redisClient    *redis.Client
-	productService productpb.ProductServiceClient
-	privateKey     *rsa.PrivateKey
-	appName        string
+	postgresClient   *sql.DB
+	gormClient       *gorm.DB
+	redisClient      *redis.Client
+	productService   productpb.ProductServiceClient
+	inventoryService inventorypb.InventoryServiceClient
+	privateKey       *rsa.PrivateKey
+	appName          string
 }
 
 func NewData(c *conf.Data) (*Data, func(), error) {
@@ -73,6 +75,22 @@ func NewData(c *conf.Data) (*Data, func(), error) {
 		}
 		return nil, nil, err
 	}
+
+	inventoryServiceAddr := c.GetService().GetInventoryServiceAddr()
+	inventoryServiceConn, err := grpc.NewClient(inventoryServiceAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		if err := postgresClient.Close(); err != nil {
+			slog.Warn(err.Error())
+		}
+		if err = redisClient.Close(); err != nil {
+			slog.Warn(err.Error())
+		}
+		if err = productServiceConn.Close(); err != nil {
+			slog.Warn(err.Error())
+		}
+		return nil, nil, err
+	}
+
 	cleanup := func() {
 		slog.Warn("close postgres connection...")
 		if err := postgresClient.Close(); err != nil {
@@ -89,11 +107,12 @@ func NewData(c *conf.Data) (*Data, func(), error) {
 	}
 
 	return &Data{
-		privateKey:     key,
-		postgresClient: postgresClient,
-		gormClient:     gormClient,
-		appName:        c.AppName,
-		productService: productpb.NewProductServiceClient(productServiceConn),
+		privateKey:       key,
+		postgresClient:   postgresClient,
+		gormClient:       gormClient,
+		appName:          c.AppName,
+		productService:   productpb.NewProductServiceClient(productServiceConn),
+		inventoryService: inventorypb.NewInventoryServiceClient(inventoryServiceConn),
 	}, cleanup, nil
 }
 
@@ -116,4 +135,11 @@ func (d *Data) GetProductService() productpb.ProductServiceClient {
 		return nil
 	}
 	return d.productService
+}
+
+func (d *Data) GetIventoryService() inventorypb.InventoryServiceClient {
+	if d == nil {
+		return nil
+	}
+	return d.inventoryService
 }

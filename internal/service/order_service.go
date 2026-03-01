@@ -1,6 +1,8 @@
 package service
 
 import (
+	inventorypb "azushop/api/inventory/v1"
+	v1 "azushop/api/inventory/v1"
 	pb "azushop/api/order/v1"
 	productpb "azushop/api/product/v1"
 	"azushop/internal/biz"
@@ -9,8 +11,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log/slog"
 
 	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -42,8 +46,61 @@ func (s *OrderService) CreateOrder(ctx context.Context, req *pb.CreateOrderReque
 		skuIDs = append(skuIDs, orderItem.SkuId)
 	}
 
+	// fetch unit price.
 	productService := s.data.GetProductService()
+	m, err := fetchAllSkus(ctx, productService, skuIDs)
+	if err != nil {
+		return nil, err
+	}
+	for _, orderItem := range req.OrderItems {
+		orderItem.UnitPrice = &m[orderItem.SkuId].UnitPrice
+	}
+
+	// create order.
+	orderItems, err := convertToBizOrderItems(req.OrderItems)
+	if err != nil {
+		return nil, err
+	}
+	order, err := s.uc.CreateOrder(ctx, orderItems, userID)
+	if err != nil {
+		return nil, err
+	}
+	pbOrder, err := convertToPbOrder(order)
+	if err != nil {
+		return nil, err
+	}
+
+	// reserve stocks.
+	var pbStockItems []*inventorypb.StockItem
+	for _, orderItem := range req.OrderItems {
+		pbStockItems = append(pbStockItems, &inventorypb.StockItem{
+			SkuId:    orderItem.SkuId,
+			Quantity: orderItem.Quantity,
+		})
+	}
+	inventoryService := s.data.GetIventoryService()
+	reserveStockReq := &v1.ReserveStockRequest{
+		OrderId: order.ID,
+		Items:   pbStockItems,
+	}
+	if _, err := inventoryService.ReserveStock(ctx, reserveStockReq); err != nil {
+		// TODO(0): order in 'pending' status must be cleaned by the backend worker.
+		if err := s.uc.DeleteOrder(ctx, order.ID); err != nil {
+			slog.Warn(err.Error())
+		}
+		return nil, err
+	}
+
+	return &pb.CreateOrderResponse{Order: pbOrder}, nil
+}
+
+func fetchAllSkus(
+	ctx context.Context,
+	productService productpb.ProductServiceClient,
+	skuIDs []string,
+) (map[string]*productpb.Sku, error) {
 	var nextPageToken string
+	// mapping from uuid to Sku.
 	m := make(map[string]*productpb.Sku)
 	for {
 		resp, err := productService.BatchGetSkus(ctx, &productpb.BatchGetSkusRequest{
@@ -62,26 +119,10 @@ func (s *OrderService) CreateOrder(ctx context.Context, req *pb.CreateOrderReque
 		}
 		nextPageToken = resp.NextPageToken
 	}
-
-	for _, orderItem := range req.OrderItems {
-		orderItem.UnitPrice = &m[orderItem.SkuId].UnitPrice
-	}
-	orderItems, err := convertToBizOrderItems(req.OrderItems)
-	if err != nil {
-		return nil, err
-	}
-	order, err := s.uc.CreateOrder(ctx, orderItems, userID)
-	if err != nil {
-		return nil, err
-	}
-	pbOrder, err := convertToPbOrder(order)
-	if err != nil {
-		return nil, err
-	}
-	return &pb.CreateOrderResponse{Order: pbOrder}, nil
+	return m, nil
 }
 
-func convertToPbOrderStatus(status string) pb.OrderStatus {
+func convertToPbOrderStatus(status biz.OrderStatus) pb.OrderStatus {
 	switch status {
 	case biz.OrderStatusPending:
 		return pb.OrderStatus_ORDER_STATUS_PENDING
@@ -96,7 +137,7 @@ func convertToPbOrderStatus(status string) pb.OrderStatus {
 	}
 }
 
-func convertToBizOrderStatus(status pb.OrderStatus) string {
+func convertToBizOrderStatus(status pb.OrderStatus) biz.OrderStatus {
 	switch status {
 	case pb.OrderStatus_ORDER_STATUS_PENDING:
 		return biz.OrderStatusPending
@@ -118,10 +159,14 @@ func convertToBizOrderItems(pbOrderItems []*pb.OrderItem) ([]*biz.OrderItem, err
 		if err != nil {
 			return nil, err
 		}
+		unitPriceDecimal, err := decimal.NewFromString(pbOrderItem.GetUnitPrice())
+		if err != nil {
+			return nil, err
+		}
 		orderItems = append(orderItems, &biz.OrderItem{
 			SkuID:     uuid,
 			Quantity:  pbOrderItem.GetQuantity(),
-			UnitPrice: pbOrderItem.GetUnitPrice(),
+			UnitPrice: unitPriceDecimal,
 		})
 	}
 	return orderItems, nil
@@ -134,15 +179,16 @@ func convertToPbOrder(order *biz.Order) (*pb.Order, error) {
 	}
 	pbOrderItems := make([]*pb.OrderItem, 0, len(orderItems))
 	for _, item := range orderItems {
+		unitPriceStr := item.UnitPrice.String()
 		pbOrderItems = append(pbOrderItems, &pb.OrderItem{
 			SkuId:     item.SkuID.String(),
 			Quantity:  item.Quantity,
-			UnitPrice: &item.UnitPrice,
+			UnitPrice: &unitPriceStr,
 		})
 	}
 	return &pb.Order{
 		OrderId:     order.ID,
-		Total:       order.Total,
+		Total:       order.Total.String(),
 		OrderStatus: convertToPbOrderStatus(order.Status),
 		OrderItems:  pbOrderItems,
 	}, nil
@@ -159,19 +205,27 @@ func convertToBizOrder(order *pb.Order) (*biz.Order, error) {
 		if err != nil {
 			return nil, err
 		}
+		priceDecimal, err := decimal.NewFromString(unitPrice)
+		if err != nil {
+			return nil, err
+		}
 		bizOrderItems = append(bizOrderItems, &biz.OrderItem{
 			SkuID:     skuID,
 			Quantity:  item.Quantity,
-			UnitPrice: unitPrice,
+			UnitPrice: priceDecimal,
 		})
 	}
 	orderItemsJSON, err := json.Marshal(bizOrderItems)
 	if err != nil {
 		return nil, err
 	}
+	decimalTotal, err := decimal.NewFromString(order.Total)
+	if err != nil {
+		return nil, err
+	}
 	return &biz.Order{
 		ID:         order.OrderId,
-		Total:      order.Total,
+		Total:      decimalTotal,
 		Status:     convertToBizOrderStatus(order.OrderStatus),
 		OrderItems: orderItemsJSON,
 	}, nil
