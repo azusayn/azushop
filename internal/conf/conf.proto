@@ -38,6 +38,9 @@ message Data {
   }
   message Service {
     string product_service_addr = 1;
+    string inventory_service_addr = 2;
+    string order_service_addr = 3;
+    string auth_service_addr = 4;
   }
   Database database = 1;
   Redis redis = 2;

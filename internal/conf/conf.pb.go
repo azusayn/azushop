@@ -435,10 +435,13 @@ func (x *Data_Redis) GetWriteTimeout() *durationpb.Duration {
 }
 
 type Data_Service struct {
-	state              protoimpl.MessageState `protogen:"open.v1"`
-	ProductServiceAddr string                 `protobuf:"bytes,1,opt,name=product_service_addr,json=productServiceAddr,proto3" json:"product_service_addr,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	state                protoimpl.MessageState `protogen:"open.v1"`
+	ProductServiceAddr   string                 `protobuf:"bytes,1,opt,name=product_service_addr,json=productServiceAddr,proto3" json:"product_service_addr,omitempty"`
+	InventoryServiceAddr string                 `protobuf:"bytes,2,opt,name=inventory_service_addr,json=inventoryServiceAddr,proto3" json:"inventory_service_addr,omitempty"`
+	OrderServiceAddr     string                 `protobuf:"bytes,3,opt,name=order_service_addr,json=orderServiceAddr,proto3" json:"order_service_addr,omitempty"`
+	AuthServiceAddr      string                 `protobuf:"bytes,4,opt,name=auth_service_addr,json=authServiceAddr,proto3" json:"auth_service_addr,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *Data_Service) Reset() {
@@ -478,6 +481,27 @@ func (x *Data_Service) GetProductServiceAddr() string {
 	return ""
 }
 
+func (x *Data_Service) GetInventoryServiceAddr() string {
+	if x != nil {
+		return x.InventoryServiceAddr
+	}
+	return ""
+}
+
+func (x *Data_Service) GetOrderServiceAddr() string {
+	if x != nil {
+		return x.OrderServiceAddr
+	}
+	return ""
+}
+
+func (x *Data_Service) GetAuthServiceAddr() string {
+	if x != nil {
+		return x.AuthServiceAddr
+	}
+	return ""
+}
+
 var File_internal_conf_conf_proto protoreflect.FileDescriptor
 
 const file_internal_conf_conf_proto_rawDesc = "" +
@@ -497,7 +521,7 @@ const file_internal_conf_conf_proto_rawDesc = "" +
 	"\x04GRPC\x12\x18\n" +
 	"\anetwork\x18\x01 \x01(\tR\anetwork\x12\x12\n" +
 	"\x04addr\x18\x02 \x01(\tR\x04addr\x123\n" +
-	"\atimeout\x18\x03 \x01(\v2\x19.google.protobuf.DurationR\atimeout\"\xe9\x03\n" +
+	"\atimeout\x18\x03 \x01(\v2\x19.google.protobuf.DurationR\atimeout\"\xfa\x04\n" +
 	"\x04Data\x125\n" +
 	"\bdatabase\x18\x01 \x01(\v2\x19.kratos.api.Data.DatabaseR\bdatabase\x12,\n" +
 	"\x05redis\x18\x02 \x01(\v2\x16.kratos.api.Data.RedisR\x05redis\x122\n" +
@@ -510,9 +534,12 @@ const file_internal_conf_conf_proto_rawDesc = "" +
 	"\anetwork\x18\x01 \x01(\tR\anetwork\x12\x12\n" +
 	"\x04addr\x18\x02 \x01(\tR\x04addr\x12<\n" +
 	"\fread_timeout\x18\x03 \x01(\v2\x19.google.protobuf.DurationR\vreadTimeout\x12>\n" +
-	"\rwrite_timeout\x18\x04 \x01(\v2\x19.google.protobuf.DurationR\fwriteTimeout\x1a;\n" +
+	"\rwrite_timeout\x18\x04 \x01(\v2\x19.google.protobuf.DurationR\fwriteTimeout\x1a\xcb\x01\n" +
 	"\aService\x120\n" +
-	"\x14product_service_addr\x18\x01 \x01(\tR\x12productServiceAddrB\x1cZ\x1aazushop/internal/conf;confb\x06proto3"
+	"\x14product_service_addr\x18\x01 \x01(\tR\x12productServiceAddr\x124\n" +
+	"\x16inventory_service_addr\x18\x02 \x01(\tR\x14inventoryServiceAddr\x12,\n" +
+	"\x12order_service_addr\x18\x03 \x01(\tR\x10orderServiceAddr\x12*\n" +
+	"\x11auth_service_addr\x18\x04 \x01(\tR\x0fauthServiceAddrB\x1cZ\x1aazushop/internal/conf;confb\x06proto3"
 
 var (
 	file_internal_conf_conf_proto_rawDescOnce sync.Once
