@@ -10,8 +10,10 @@ import (
 )
 
 type OrderRepo interface {
+	ListOrders(ctx context.Context, userID int32, status OrderStatus, pageToken int64, pageSize int32) ([]*Order, error)
 	CreateOrder(ctx context.Context, orderItems []*OrderItem, total decimal.Decimal, status OrderStatus, userID int32) (*Order, error)
-	DeleteOrder(ctx context.Context, orderId int64) error
+	DeleteOrder(ctx context.Context, orderID int64) error
+	CancelOrder(ctx context.Context, orderID int64) error
 }
 
 type OrderUsecase struct {
@@ -47,6 +49,17 @@ type Order struct {
 	CreatedAt  time.Time       `gorm:"column:created_at"`
 }
 
+// retrieves orders by user ID, filtered by order status.
+func (uc *OrderUsecase) ListOrders(
+	ctx context.Context,
+	userID int32,
+	status OrderStatus,
+	pageToken int64,
+	pageSize int32,
+) ([]*Order, error) {
+	return uc.repo.ListOrders(ctx, userID, status, pageToken, pageSize)
+}
+
 func (uc *OrderUsecase) CreateOrder(
 	ctx context.Context,
 	orderItems []*OrderItem,
@@ -58,6 +71,10 @@ func (uc *OrderUsecase) CreateOrder(
 		total.Add(orderItem.UnitPrice.Mul(quantity))
 	}
 	return uc.repo.CreateOrder(ctx, orderItems, total, OrderStatusPending, userID)
+}
+
+func (uc *OrderUsecase) CancelOrder(ctx context.Context, orderID int64) error {
+	return uc.CancelOrder(ctx, orderID)
 }
 
 func (uc *OrderUsecase) DeleteOrder(ctx context.Context, orderID int64) error {
