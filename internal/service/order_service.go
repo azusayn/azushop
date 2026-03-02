@@ -11,6 +11,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 
 	"github.com/google/uuid"
@@ -94,6 +95,46 @@ func (s *OrderService) CreateOrder(ctx context.Context, req *pb.CreateOrderReque
 	return &pb.CreateOrderResponse{Order: pbOrder}, nil
 }
 
+func (s *OrderService) CancelOrder(ctx context.Context, req *pb.CancelOrderRequest) (*pb.CancelOrderResponse, error) {
+	if err := s.uc.CancelOrder(ctx, req.GetOrderId()); err != nil {
+		return nil, err
+	}
+	inventoryService := s.data.GetIventoryService()
+	// TODO(0): retrying & outbox
+	_, err := inventoryService.ReleaseStock(ctx, &v1.ReleaseStockRequest{OrderId: req.OrderId})
+	if err != nil {
+		return nil, err
+	}
+	return &pb.CancelOrderResponse{}, nil
+}
+
+func (s *OrderService) ListOrders(ctx context.Context, req *pb.ListOrdersRequest) (*pb.ListOrdersResponse, error) {
+	if req.PageSize < 1 || req.PageSize > maxPageSize {
+		return nil, status.Error(codes.OutOfRange, fmt.Sprintf("invalid page size %d", req.PageSize))
+	}
+	userID, _, err := middleware.ExtractUserInfo(&ctx)
+	if err != nil {
+		return nil, err
+	}
+	orders, err := s.uc.ListOrders(ctx, userID, convertToBizOrderStatus(req.OrderStatus), req.PageToken, req.PageSize)
+	if err != nil {
+		return nil, err
+	}
+	pbOrders, err := convertToPbOrders(orders)
+	if err != nil {
+		return nil, err
+	}
+	nextPageToken := int64(0)
+	lenPbOrders := len(pbOrders)
+	if lenPbOrders != 0 {
+		nextPageToken = pbOrders[lenPbOrders-1].OrderId
+	}
+	return &pb.ListOrdersResponse{
+		Orders:        pbOrders,
+		NextPageToken: nextPageToken,
+	}, nil
+}
+
 func fetchAllSkus(
 	ctx context.Context,
 	productService productpb.ProductServiceClient,
@@ -105,7 +146,7 @@ func fetchAllSkus(
 	for {
 		resp, err := productService.BatchGetSkus(ctx, &productpb.BatchGetSkusRequest{
 			PageToken: nextPageToken,
-			PageSize:  100,
+			PageSize:  maxPageSize,
 			SkuIds:    skuIDs,
 		})
 		if err != nil {
@@ -122,34 +163,38 @@ func fetchAllSkus(
 	return m, nil
 }
 
-func convertToPbOrderStatus(status biz.OrderStatus) pb.OrderStatus {
-	switch status {
-	case biz.OrderStatusPending:
-		return pb.OrderStatus_ORDER_STATUS_PENDING
-	case biz.OrderStatusPaid:
-		return pb.OrderStatus_ORDER_STATUS_PAID
-	case biz.OrderStatusCancelled:
-		return pb.OrderStatus_ORDER_STATUS_CANCELLED
-	case biz.OrderStatusRefunded:
-		return pb.OrderStatus_ORDER_STATUS_REFUNDED
-	default:
-		return pb.OrderStatus_ORDER_STATUS_UNSPECIFIED
+func convertToPbOrderStatus(status *biz.OrderStatus) pb.OrderStatus {
+	if status != nil {
+		switch *status {
+		case biz.OrderStatusPending:
+			return pb.OrderStatus_ORDER_STATUS_PENDING
+		case biz.OrderStatusPaid:
+			return pb.OrderStatus_ORDER_STATUS_PAID
+		case biz.OrderStatusCancelled:
+			return pb.OrderStatus_ORDER_STATUS_CANCELLED
+		case biz.OrderStatusRefunded:
+			return pb.OrderStatus_ORDER_STATUS_REFUNDED
+		default:
+		}
 	}
+	return pb.OrderStatus_ORDER_STATUS_UNSPECIFIED
 }
 
-func convertToBizOrderStatus(status pb.OrderStatus) biz.OrderStatus {
-	switch status {
-	case pb.OrderStatus_ORDER_STATUS_PENDING:
-		return biz.OrderStatusPending
-	case pb.OrderStatus_ORDER_STATUS_PAID:
-		return biz.OrderStatusPaid
-	case pb.OrderStatus_ORDER_STATUS_CANCELLED:
-		return biz.OrderStatusCancelled
-	case pb.OrderStatus_ORDER_STATUS_REFUNDED:
-		return biz.OrderStatusRefunded
-	default:
-		return biz.OrderStatusUnspcified
+func convertToBizOrderStatus(status *pb.OrderStatus) biz.OrderStatus {
+	if status != nil {
+		switch *status {
+		case pb.OrderStatus_ORDER_STATUS_PENDING:
+			return biz.OrderStatusPending
+		case pb.OrderStatus_ORDER_STATUS_PAID:
+			return biz.OrderStatusPaid
+		case pb.OrderStatus_ORDER_STATUS_CANCELLED:
+			return biz.OrderStatusCancelled
+		case pb.OrderStatus_ORDER_STATUS_REFUNDED:
+			return biz.OrderStatusRefunded
+		default:
+		}
 	}
+	return biz.OrderStatusUnspcified
 }
 
 func convertToBizOrderItems(pbOrderItems []*pb.OrderItem) ([]*biz.OrderItem, error) {
@@ -189,9 +234,21 @@ func convertToPbOrder(order *biz.Order) (*pb.Order, error) {
 	return &pb.Order{
 		OrderId:     order.ID,
 		Total:       order.Total.String(),
-		OrderStatus: convertToPbOrderStatus(order.Status),
+		OrderStatus: convertToPbOrderStatus(&order.Status),
 		OrderItems:  pbOrderItems,
 	}, nil
+}
+
+func convertToPbOrders(orders []*biz.Order) ([]*pb.Order, error) {
+	pbOrders := make([]*pb.Order, 0, len(orders))
+	for _, order := range orders {
+		pbOrder, err := convertToPbOrder(order)
+		if err != nil {
+			return nil, err
+		}
+		pbOrders = append(pbOrders, pbOrder)
+	}
+	return pbOrders, nil
 }
 
 func convertToBizOrder(order *pb.Order) (*biz.Order, error) {
@@ -226,7 +283,7 @@ func convertToBizOrder(order *pb.Order) (*biz.Order, error) {
 	return &biz.Order{
 		ID:         order.OrderId,
 		Total:      decimalTotal,
-		Status:     convertToBizOrderStatus(order.OrderStatus),
+		Status:     convertToBizOrderStatus(&order.OrderStatus),
 		OrderItems: orderItemsJSON,
 	}, nil
 }

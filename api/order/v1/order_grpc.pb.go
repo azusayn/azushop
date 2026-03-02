@@ -36,6 +36,7 @@ type OrderServiceClient interface {
 	// cancels order for given order ID.
 	CancelOrder(ctx context.Context, in *CancelOrderRequest, opts ...grpc.CallOption) (*CancelOrderResponse, error)
 	// lists all orders owned by the customer.
+	// TODO(1): filter options in query parameters?
 	ListOrders(ctx context.Context, in *ListOrdersRequest, opts ...grpc.CallOption) (*ListOrdersResponse, error)
 }
 
@@ -89,6 +90,7 @@ type OrderServiceServer interface {
 	// cancels order for given order ID.
 	CancelOrder(context.Context, *CancelOrderRequest) (*CancelOrderResponse, error)
 	// lists all orders owned by the customer.
+	// TODO(1): filter options in query parameters?
 	ListOrders(context.Context, *ListOrdersRequest) (*ListOrdersResponse, error)
 	mustEmbedUnimplementedOrderServiceServer()
 }

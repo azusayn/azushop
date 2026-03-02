@@ -30,6 +30,7 @@ type OrderServiceHTTPServer interface {
 	// TODO(0): payment timeout.
 	CreateOrder(context.Context, *CreateOrderRequest) (*CreateOrderResponse, error)
 	// ListOrders lists all orders owned by the customer.
+	// TODO(1): filter options in query parameters?
 	ListOrders(context.Context, *ListOrdersRequest) (*ListOrdersResponse, error)
 }
 
@@ -113,6 +114,7 @@ type OrderServiceHTTPClient interface {
 	// TODO(0): payment timeout.
 	CreateOrder(ctx context.Context, req *CreateOrderRequest, opts ...http.CallOption) (rsp *CreateOrderResponse, err error)
 	// ListOrders lists all orders owned by the customer.
+	// TODO(1): filter options in query parameters?
 	ListOrders(ctx context.Context, req *ListOrdersRequest, opts ...http.CallOption) (rsp *ListOrdersResponse, err error)
 }
 
@@ -154,6 +156,7 @@ func (c *OrderServiceHTTPClientImpl) CreateOrder(ctx context.Context, in *Create
 }
 
 // ListOrders lists all orders owned by the customer.
+// TODO(1): filter options in query parameters?
 func (c *OrderServiceHTTPClientImpl) ListOrders(ctx context.Context, in *ListOrdersRequest, opts ...http.CallOption) (*ListOrdersResponse, error) {
 	var out ListOrdersResponse
 	pattern := "/v1/orders"

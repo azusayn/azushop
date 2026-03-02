@@ -213,7 +213,8 @@ type ListOrdersRequest struct {
 	// use 0 for the first request.
 	PageToken int64 `protobuf:"varint,1,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	// max 100
-	PageSize      int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	PageSize      int32        `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	OrderStatus   *OrderStatus `protobuf:"varint,3,opt,name=order_status,json=orderStatus,proto3,enum=order.v1.OrderStatus,oneof" json:"order_status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -260,6 +261,13 @@ func (x *ListOrdersRequest) GetPageSize() int32 {
 		return x.PageSize
 	}
 	return 0
+}
+
+func (x *ListOrdersRequest) GetOrderStatus() OrderStatus {
+	if x != nil && x.OrderStatus != nil {
+		return *x.OrderStatus
+	}
+	return OrderStatus_ORDER_STATUS_UNSPECIFIED
 }
 
 type ListOrdersResponse struct {
@@ -498,11 +506,13 @@ const file_api_order_v1_order_proto_rawDesc = "" +
 	"\bquantity\x18\x02 \x01(\x03R\bquantity\x12\"\n" +
 	"\n" +
 	"unit_price\x18\x03 \x01(\tH\x00R\tunitPrice\x88\x01\x01B\r\n" +
-	"\v_unit_price\"O\n" +
+	"\v_unit_price\"\x9f\x01\n" +
 	"\x11ListOrdersRequest\x12\x1d\n" +
 	"\n" +
 	"page_token\x18\x01 \x01(\x03R\tpageToken\x12\x1b\n" +
-	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\"e\n" +
+	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\x12=\n" +
+	"\forder_status\x18\x03 \x01(\x0e2\x15.order.v1.OrderStatusH\x00R\vorderStatus\x88\x01\x01B\x0f\n" +
+	"\r_order_status\"e\n" +
 	"\x12ListOrdersResponse\x12'\n" +
 	"\x06orders\x18\x01 \x03(\v2\x0f.order.v1.OrderR\x06orders\x12&\n" +
 	"\x0fnext_page_token\x18\x02 \x01(\x03R\rnextPageToken\"J\n" +
@@ -556,20 +566,21 @@ var file_api_order_v1_order_proto_goTypes = []any{
 var file_api_order_v1_order_proto_depIdxs = []int32{
 	0, // 0: order.v1.Order.order_status:type_name -> order.v1.OrderStatus
 	2, // 1: order.v1.Order.order_items:type_name -> order.v1.OrderItem
-	1, // 2: order.v1.ListOrdersResponse.orders:type_name -> order.v1.Order
-	2, // 3: order.v1.CreateOrderRequest.order_items:type_name -> order.v1.OrderItem
-	1, // 4: order.v1.CreateOrderResponse.order:type_name -> order.v1.Order
-	5, // 5: order.v1.OrderService.CreateOrder:input_type -> order.v1.CreateOrderRequest
-	7, // 6: order.v1.OrderService.CancelOrder:input_type -> order.v1.CancelOrderRequest
-	3, // 7: order.v1.OrderService.ListOrders:input_type -> order.v1.ListOrdersRequest
-	6, // 8: order.v1.OrderService.CreateOrder:output_type -> order.v1.CreateOrderResponse
-	8, // 9: order.v1.OrderService.CancelOrder:output_type -> order.v1.CancelOrderResponse
-	4, // 10: order.v1.OrderService.ListOrders:output_type -> order.v1.ListOrdersResponse
-	8, // [8:11] is the sub-list for method output_type
-	5, // [5:8] is the sub-list for method input_type
-	5, // [5:5] is the sub-list for extension type_name
-	5, // [5:5] is the sub-list for extension extendee
-	0, // [0:5] is the sub-list for field type_name
+	0, // 2: order.v1.ListOrdersRequest.order_status:type_name -> order.v1.OrderStatus
+	1, // 3: order.v1.ListOrdersResponse.orders:type_name -> order.v1.Order
+	2, // 4: order.v1.CreateOrderRequest.order_items:type_name -> order.v1.OrderItem
+	1, // 5: order.v1.CreateOrderResponse.order:type_name -> order.v1.Order
+	5, // 6: order.v1.OrderService.CreateOrder:input_type -> order.v1.CreateOrderRequest
+	7, // 7: order.v1.OrderService.CancelOrder:input_type -> order.v1.CancelOrderRequest
+	3, // 8: order.v1.OrderService.ListOrders:input_type -> order.v1.ListOrdersRequest
+	6, // 9: order.v1.OrderService.CreateOrder:output_type -> order.v1.CreateOrderResponse
+	8, // 10: order.v1.OrderService.CancelOrder:output_type -> order.v1.CancelOrderResponse
+	4, // 11: order.v1.OrderService.ListOrders:output_type -> order.v1.ListOrdersResponse
+	9, // [9:12] is the sub-list for method output_type
+	6, // [6:9] is the sub-list for method input_type
+	6, // [6:6] is the sub-list for extension type_name
+	6, // [6:6] is the sub-list for extension extendee
+	0, // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_api_order_v1_order_proto_init() }
@@ -578,6 +589,7 @@ func file_api_order_v1_order_proto_init() {
 		return
 	}
 	file_api_order_v1_order_proto_msgTypes[1].OneofWrappers = []any{}
+	file_api_order_v1_order_proto_msgTypes[2].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

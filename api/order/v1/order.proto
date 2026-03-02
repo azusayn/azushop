@@ -26,6 +26,7 @@ service OrderService {
   };
 
   // lists all orders owned by the customer.
+  // TODO(1): filter options in query parameters?
   rpc ListOrders(ListOrdersRequest) returns (ListOrdersResponse) {
     option (google.api.http) = {
       get: "/v1/orders"
@@ -62,6 +63,7 @@ message ListOrdersRequest {
   int64 page_token = 1;
   // max 100
   int32 page_size = 2;
+  optional OrderStatus order_status = 3;
 }
 
 message ListOrdersResponse {
