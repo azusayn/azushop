@@ -24,6 +24,7 @@ const (
 type Sku struct {
 	ID        uuid.UUID
 	ProductID uuid.UUID
+	// map[string]string
 	Attrs     json.RawMessage
 	UnitPrice string
 }

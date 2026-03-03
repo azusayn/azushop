@@ -31,7 +31,7 @@ const (
 type PaymentServiceClient interface {
 	// pays order for given order_id.
 	CreatePayment(ctx context.Context, in *CreatePaymentRequest, opts ...grpc.CallOption) (*CreatePaymentResponse, error)
-	// callback API for external payment service providers.
+	// callback API for external payment providers.
 	// currently only support stripe as the provider.
 	Callback(ctx context.Context, in *CallbackRequest, opts ...grpc.CallOption) (*CallbackResponse, error)
 }
@@ -72,7 +72,7 @@ func (c *paymentServiceClient) Callback(ctx context.Context, in *CallbackRequest
 type PaymentServiceServer interface {
 	// pays order for given order_id.
 	CreatePayment(context.Context, *CreatePaymentRequest) (*CreatePaymentResponse, error)
-	// callback API for external payment service providers.
+	// callback API for external payment providers.
 	// currently only support stripe as the provider.
 	Callback(context.Context, *CallbackRequest) (*CallbackResponse, error)
 	mustEmbedUnimplementedPaymentServiceServer()

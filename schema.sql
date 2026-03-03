@@ -65,10 +65,13 @@ CREATE TYPE order_status AS ENUM (
   'completed',
 )
 
--- TODO: coupons
+-- TODO(3): coupons & currency
+-- currently use cny as default currency.
+-- currency ref: https://docs.stripe.com/currencies#zero-decimal.
 CREATE TABLE orders (
   id BIGSERIAL PRIMARY KEY,
   user_id INT NOT NULL,
+  -- without tax, TODO(3): this should be renamed to 'subtotal'.
   total NUMERIC(10, 2) NOT NULL,
   status order_status NOT NULL,
   order_items JSONB NOT NULL,
@@ -76,7 +79,6 @@ CREATE TABLE orders (
 );
 
 -- payment service.
--- payment_method VARCHAR(255) CHECK (payment_method IN ('paypal', 'stripe', 'alipay', 'wechat')),
 CREATE TYPE payment_method AS ENUM (
   'stripe',
   'alipay',
@@ -93,7 +95,16 @@ CREATE TYPE payment_status AS ENUM (
 
 CREATE TABLE payments (
   id BIGSERIAL NOT NULL PRIMARY KEY,
+  -- id from payment provider.
+  external_id text NOT NULL,
   order_id BIGINT NOT NULL,
-  payment_method payment_method NOT NULL,
+  user_id INT NOT NULL,
+  method payment_method NOT NULL,
+  status payment_status NOT NULL,
+  amount_total DECIMAL(10, 2) NOT NULL CHECK (amount_total >= 0),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 )
+
+CREATE INDEX idx_payments_user_id ON payments(user_id);
+CREATE UNIQUE INDEX idx_payments_external_id ON payments(external_id);
+CREATE INDEX idx_payments_order_id ON payments(order_id);

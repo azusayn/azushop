@@ -12,7 +12,7 @@ service PaymentService {
   // pays order for given order_id. 
   rpc CreatePayment(CreatePaymentRequest) returns (CreatePaymentResponse);
 
-  // callback API for external payment service providers.
+  // callback API for external payment providers.
   // currently only support stripe as the provider.
   rpc Callback(CallbackRequest) returns (CallbackResponse) {
     option (google.api.http) = {

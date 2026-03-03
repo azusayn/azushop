@@ -8,12 +8,15 @@ import (
 	"log/slog"
 
 	inventorypb "azushop/api/inventory/v1"
+	orderpb "azushop/api/order/v1"
 	productpb "azushop/api/product/v1"
 
 	"github.com/azusayn/azutils/auth"
 	"github.com/google/wire"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/redis/go-redis/v9"
+	"github.com/stripe/stripe-go/v84"
+	"go.uber.org/multierr"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"gorm.io/driver/postgres"
@@ -33,11 +36,15 @@ type Data struct {
 	redisClient      *redis.Client
 	productService   productpb.ProductServiceClient
 	inventoryService inventorypb.InventoryServiceClient
+	orderService     orderpb.OrderServiceClient
 	privateKey       *rsa.PrivateKey
+	stripeSuccessURL string
 	appName          string
 }
 
 func NewData(c *conf.Data) (*Data, func(), error) {
+	stripe.Key = c.GetPayment().GetStripeSecretKey()
+
 	key, err := auth.GeneratePrivateKey()
 	if err != nil {
 		return nil, nil, err
@@ -79,15 +86,25 @@ func NewData(c *conf.Data) (*Data, func(), error) {
 	inventoryServiceAddr := c.GetService().GetInventoryServiceAddr()
 	inventoryServiceConn, err := grpc.NewClient(inventoryServiceAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		if err := postgresClient.Close(); err != nil {
-			slog.Warn(err.Error())
-		}
-		if err = redisClient.Close(); err != nil {
-			slog.Warn(err.Error())
-		}
-		if err = productServiceConn.Close(); err != nil {
-			slog.Warn(err.Error())
-		}
+		err = multierr.Combine(
+			err,
+			postgresClient.Close(),
+			redisClient.Close(),
+			productServiceConn.Close(),
+		)
+		return nil, nil, err
+	}
+
+	orderServiceAddr := c.GetService().GetOrderServiceAddr()
+	orderServiceConn, err := grpc.NewClient(orderServiceAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		err = multierr.Combine(
+			err,
+			postgresClient.Close(),
+			redisClient.Close(),
+			productServiceConn.Close(),
+			inventoryServiceConn.Close(),
+		)
 		return nil, nil, err
 	}
 
@@ -113,6 +130,8 @@ func NewData(c *conf.Data) (*Data, func(), error) {
 		appName:          c.AppName,
 		productService:   productpb.NewProductServiceClient(productServiceConn),
 		inventoryService: inventorypb.NewInventoryServiceClient(inventoryServiceConn),
+		orderService:     orderpb.NewOrderServiceClient(orderServiceConn),
+		stripeSuccessURL: c.GetPayment().GetStripeSuccessUrl(),
 	}, cleanup, nil
 }
 
@@ -142,4 +161,18 @@ func (d *Data) GetIventoryService() inventorypb.InventoryServiceClient {
 		return nil
 	}
 	return d.inventoryService
+}
+
+func (d *Data) GetOrderService() orderpb.OrderServiceClient {
+	if d == nil {
+		return nil
+	}
+	return d.orderService
+}
+
+func (d *Data) GetStripeSuccessUrl() string {
+	if d == nil {
+		return ""
+	}
+	return d.stripeSuccessURL
 }

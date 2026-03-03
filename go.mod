@@ -10,7 +10,9 @@ require (
 	github.com/jackc/pgx/v5 v5.8.0
 	github.com/redis/go-redis/v9 v9.18.0
 	github.com/shopspring/decimal v1.4.0
+	github.com/stripe/stripe-go/v84 v84.4.0
 	go.uber.org/automaxprocs v1.5.1
+	go.uber.org/multierr v1.11.0
 	google.golang.org/genproto/googleapis/api v0.0.0-20240528184218-531527333157
 	google.golang.org/grpc v1.65.0
 	google.golang.org/protobuf v1.34.1

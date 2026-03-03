@@ -3,6 +3,7 @@ syntax = "proto3";
 package order.v1;
 
 import "google/api/annotations.proto";
+import "google/protobuf/struct.proto";
 
 option go_package = "azushop/api/order/v1;v1";
 
@@ -32,6 +33,9 @@ service OrderService {
       get: "/v1/orders"
     };
   };
+
+  // retrieves the order for given order ID.
+  rpc GetOrder(GetOrderRequest) returns (GetOrderResponse);
 }
 
 enum OrderStatus {
@@ -56,6 +60,7 @@ message OrderItem {
   // TODO: currency type.
   // only present in responses, not required in CreateOrderRequest.
   optional string unit_price = 3;
+  optional google.protobuf.Struct attrs = 4;
 }
 
 message ListOrdersRequest {
@@ -85,3 +90,10 @@ message CancelOrderRequest {
 
 message CancelOrderResponse {}
 
+message GetOrderRequest {
+  int64 order_id = 1;
+}
+
+message GetOrderResponse {
+    Order order = 1;
+}
