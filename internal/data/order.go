@@ -77,3 +77,12 @@ func (repo *OrderRepo) CancelOrder(ctx context.Context, orderID int64) error {
 	}
 	return client.WithContext(ctx).Where("id = ?", orderID).Update("status", biz.OrderStatusCancelled).Error
 }
+
+func (repo *OrderRepo) GetOrder(ctx context.Context, orderID int64) (*biz.Order, error) {
+	client := repo.data.gormClient
+	var order biz.Order
+	if err := client.WithContext(ctx).Where("id = ?", orderID).Find(&order).Error; err != nil {
+		return nil, err
+	}
+	return &order, nil
+}

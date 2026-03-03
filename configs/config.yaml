@@ -14,3 +14,6 @@ data:
     read_timeout: 0.2s
     write_timeout: 0.2s
   app_name: "azushop"
+  payment:
+    stripe_secret_key:
+    stripe_success_url:

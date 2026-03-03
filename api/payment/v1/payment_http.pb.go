@@ -22,7 +22,7 @@ const _ = http.SupportPackageIsVersion1
 const OperationPaymentServiceCallback = "/payment.v1.PaymentService/Callback"
 
 type PaymentServiceHTTPServer interface {
-	// Callback callback API for external payment service providers.
+	// Callback callback API for external payment providers.
 	// currently only support stripe as the provider.
 	Callback(context.Context, *CallbackRequest) (*CallbackResponse, error)
 }
@@ -58,7 +58,7 @@ func _PaymentService_Callback0_HTTP_Handler(srv PaymentServiceHTTPServer) func(c
 }
 
 type PaymentServiceHTTPClient interface {
-	// Callback callback API for external payment service providers.
+	// Callback callback API for external payment providers.
 	// currently only support stripe as the provider.
 	Callback(ctx context.Context, req *CallbackRequest, opts ...http.CallOption) (rsp *CallbackResponse, err error)
 }
@@ -71,7 +71,7 @@ func NewPaymentServiceHTTPClient(client *http.Client) PaymentServiceHTTPClient {
 	return &PaymentServiceHTTPClientImpl{client}
 }
 
-// Callback callback API for external payment service providers.
+// Callback callback API for external payment providers.
 // currently only support stripe as the provider.
 func (c *PaymentServiceHTTPClientImpl) Callback(ctx context.Context, in *CallbackRequest, opts ...http.CallOption) (*CallbackResponse, error) {
 	var out CallbackResponse
