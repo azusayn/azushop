@@ -29,9 +29,9 @@ type OrderStatus string
 const (
 	OrderStatusUnspcified OrderStatus = "unspecified"
 	OrderStatusPending    OrderStatus = "pending"
-	OrderStatusPaid       OrderStatus = "paid"
 	OrderStatusCancelled  OrderStatus = "cancelled"
-	OrderStatusRefunded   OrderStatus = "refunded"
+	OrderStatusPaid       OrderStatus = "confirmed"
+	OrderStatusRefunded   OrderStatus = "completed"
 )
 
 type OrderItem struct {

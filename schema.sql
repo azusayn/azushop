@@ -9,7 +9,6 @@ CREATE TABLE users (
 
 -- product service.
 CREATE TYPE product_status AS ENUM (
-  'unspecified',
   'draft',
   'pending',
   'active',
@@ -19,7 +18,7 @@ CREATE TYPE product_status AS ENUM (
 CREATE TABLE products (
   id UUID PRIMARY KEY NOT NULL,
   product_name VARCHAR(255) NOT NULL,
-  status product_status NOT NULL DEFAULT 'draft',
+  status product_status NOT NULL,
   seller_id INT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -61,9 +60,9 @@ CREATE TABLE inventory_lock (
 -- order service.
 CREATE TYPE order_status AS ENUM (
   'pending',
-  'paid',
-  'cancelled',
-  'refunded'
+  'cancelled'
+  'confirmed',
+  'completed',
 )
 
 -- TODO: coupons
@@ -78,3 +77,23 @@ CREATE TABLE orders (
 
 -- payment service.
 -- payment_method VARCHAR(255) CHECK (payment_method IN ('paypal', 'stripe', 'alipay', 'wechat')),
+CREATE TYPE payment_method AS ENUM (
+  'stripe',
+  'alipay',
+  'wechat'
+)
+
+CREATE TYPE payment_status AS ENUM (
+  'pending',
+  'cancelled',
+  'paid',
+  'refunding',
+  'refunded'
+)
+
+CREATE TABLE payments (
+  id BIGSERIAL NOT NULL PRIMARY KEY,
+  order_id BIGINT NOT NULL,
+  payment_method payment_method NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+)
