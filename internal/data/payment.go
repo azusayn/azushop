@@ -3,8 +3,8 @@ package data
 import (
 	"azushop/internal/biz"
 	"context"
+	"encoding/json"
 	"fmt"
-	"strconv"
 
 	"github.com/IBM/sarama"
 	"github.com/shopspring/decimal"
@@ -78,12 +78,19 @@ func NewPaymentPublisher(data *Data) biz.PaymentPublisher {
 	return &PaymentPublisher{data: data}
 }
 
-func (p *PaymentPublisher) PublishPaymentPaid(ctx context.Context, orderID int64) error {
+func (p *PaymentPublisher) PublishPaymentStatus(ctx context.Context, orderID int64, status biz.PaymentStatus) error {
 	producer := p.data.GetKafkaProducer()
+	bytes, err := json.Marshal(PaymentStatusMessage{
+		OrderID: orderID,
+		Status:  PaymentStatus(string(status)),
+	})
+	if err != nil {
+		return err
+	}
 	msg := &sarama.ProducerMessage{
 		Topic: KafkaTopicPaymentPaid,
-		Value: sarama.StringEncoder(strconv.FormatInt(orderID, 10)),
+		Value: sarama.ByteEncoder(bytes),
 	}
-	_, _, err := producer.SendMessage(msg)
+	_, _, err = producer.SendMessage(msg)
 	return err
 }

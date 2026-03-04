@@ -2,6 +2,10 @@ package server
 
 import (
 	auth "azushop/api/auth/v1"
+	inventorypb "azushop/api/inventory/v1"
+	orderpb "azushop/api/order/v1"
+	paymentpb "azushop/api/payment/v1"
+	productpb "azushop/api/product/v1"
 	"azushop/internal/conf"
 	"azushop/internal/data"
 	"azushop/internal/pkg/middleware"
@@ -15,6 +19,10 @@ import (
 // NewGRPCServer new a gRPC server.
 func NewGRPCServer(c *conf.Server,
 	authService *service.AuthServiceService,
+	productService *service.ProductService,
+	inventoryService *service.InventoryService,
+	orderService *service.OrderService,
+	paymentService *service.PaymentService,
 	config *data.Data,
 	logger log.Logger) *grpc.Server {
 	var opts = []grpc.ServerOption{
@@ -34,5 +42,9 @@ func NewGRPCServer(c *conf.Server,
 	}
 	srv := grpc.NewServer(opts...)
 	auth.RegisterAuthServiceServer(srv, authService)
+	productpb.RegisterProductServiceServer(srv, productService)
+	inventorypb.RegisterInventoryServiceServer(srv, inventoryService)
+	orderpb.RegisterOrderServiceServer(srv, orderService)
+	paymentpb.RegisterPaymentServiceServer(srv, paymentService)
 	return srv
 }

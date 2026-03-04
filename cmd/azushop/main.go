@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"azushop/internal/conf"
+	"azushop/internal/runner"
 
 	"github.com/go-kratos/kratos/v2"
 	"github.com/go-kratos/kratos/v2/config"
@@ -33,7 +34,12 @@ func init() {
 	flag.StringVar(&flagconf, "conf", "../../configs", "config path, eg: -conf config.yaml")
 }
 
-func newApp(logger log.Logger, gs *grpc.Server, hs *http.Server) *kratos.App {
+func newApp(
+	logger log.Logger,
+	grpcServer *grpc.Server,
+	httpServer *http.Server,
+	runnerManager *runner.RunnerManager,
+) *kratos.App {
 	return kratos.New(
 		kratos.ID(id),
 		kratos.Name(Name),
@@ -41,8 +47,9 @@ func newApp(logger log.Logger, gs *grpc.Server, hs *http.Server) *kratos.App {
 		kratos.Metadata(map[string]string{}),
 		kratos.Logger(logger),
 		kratos.Server(
-			gs,
-			hs,
+			grpcServer,
+			httpServer,
+			runnerManager,
 		),
 	)
 }

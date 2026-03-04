@@ -27,22 +27,28 @@ import (
 // ProviderSet is data providers.
 var ProviderSet = wire.NewSet(
 	NewData,
+	NewTransaction,
+	NewPaymentPublisher,
 	NewUserRepo,
+	NewProductRepo,
+	NewInventoryRepo,
+	NewOrderRepo,
+	NewPaymentRepo,
 )
 
 type Data struct {
 	// TODO: DDD design.
-	postgresClient   *sql.DB
-	gormClient       *gorm.DB
-	redisClient      *redis.Client
-	productService   productpb.ProductServiceClient
-	inventoryService inventorypb.InventoryServiceClient
-	orderService     orderpb.OrderServiceClient
-	kafkaProducer    sarama.SyncProducer
-	kafkaConsumer    sarama.Consumer
-	privateKey       *rsa.PrivateKey
-	stripeSuccessURL string
-	appName          string
+	postgresClient     *sql.DB
+	gormClient         *gorm.DB
+	redisClient        *redis.Client
+	productService     productpb.ProductServiceClient
+	inventoryService   inventorypb.InventoryServiceClient
+	orderService       orderpb.OrderServiceClient
+	kafkaProducer      sarama.SyncProducer
+	kafkaOrderConsumer sarama.ConsumerGroup
+	privateKey         *rsa.PrivateKey
+	stripeSuccessURL   string
+	appName            string
 }
 
 func NewData(c *conf.Data) (*Data, func(), error) {
@@ -131,7 +137,10 @@ func NewData(c *conf.Data) (*Data, func(), error) {
 		return nil, nil, err
 	}
 
-	kafkaConsumer, err := sarama.NewConsumer(brokerAddrs, sarama.NewConfig())
+	orderConsumerConfig := sarama.NewConfig()
+	orderConsumerConfig.Consumer.Offsets.Initial = sarama.OffsetNewest
+	// orderConsumerConfig.Consumer.Group.Rebalance.GroupStrategies
+	kafkaOrderConsumer, err := sarama.NewConsumerGroup(brokerAddrs, "order-service", orderConsumerConfig)
 	if err != nil {
 		err = multierr.Combine(
 			err,
@@ -140,7 +149,7 @@ func NewData(c *conf.Data) (*Data, func(), error) {
 			productServiceConn.Close(),
 			inventoryServiceConn.Close(),
 			orderServiceConn.Close(),
-			kafkaConsumer.Close(),
+			kafkaOrderConsumer.Close(),
 		)
 		return nil, nil, err
 	}
@@ -154,7 +163,7 @@ func NewData(c *conf.Data) (*Data, func(), error) {
 			inventoryServiceConn.Close(),
 			orderServiceConn.Close(),
 			kafkaProducer.Close(),
-			kafkaConsumer.Close(),
+			kafkaOrderConsumer.Close(),
 		)
 		if err != nil {
 			slog.Warn(err.Error())
@@ -162,16 +171,16 @@ func NewData(c *conf.Data) (*Data, func(), error) {
 	}
 
 	return &Data{
-		privateKey:       key,
-		postgresClient:   postgresClient,
-		gormClient:       gormClient,
-		appName:          c.AppName,
-		productService:   productpb.NewProductServiceClient(productServiceConn),
-		inventoryService: inventorypb.NewInventoryServiceClient(inventoryServiceConn),
-		orderService:     orderpb.NewOrderServiceClient(orderServiceConn),
-		stripeSuccessURL: c.GetPayment().GetStripeSuccessUrl(),
-		kafkaProducer:    kafkaProducer,
-		kafkaConsumer:    kafkaConsumer,
+		privateKey:         key,
+		postgresClient:     postgresClient,
+		gormClient:         gormClient,
+		appName:            c.AppName,
+		productService:     productpb.NewProductServiceClient(productServiceConn),
+		inventoryService:   inventorypb.NewInventoryServiceClient(inventoryServiceConn),
+		orderService:       orderpb.NewOrderServiceClient(orderServiceConn),
+		stripeSuccessURL:   c.GetPayment().GetStripeSuccessUrl(),
+		kafkaProducer:      kafkaProducer,
+		kafkaOrderConsumer: kafkaOrderConsumer,
 	}, cleanup, nil
 }
 
@@ -210,11 +219,11 @@ func (d *Data) GetOrderService() orderpb.OrderServiceClient {
 	return d.orderService
 }
 
-func (d *Data) GetKafkaConsumer() sarama.Consumer {
+func (d *Data) GetKafkaConsumer() sarama.ConsumerGroup {
 	if d == nil {
 		return nil
 	}
-	return d.kafkaConsumer
+	return d.kafkaOrderConsumer
 }
 
 func (d *Data) GetKafkaProducer() sarama.SyncProducer {
