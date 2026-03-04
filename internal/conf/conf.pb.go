@@ -131,7 +131,8 @@ type Data struct {
 	Database      *Data_Database         `protobuf:"bytes,1,opt,name=database,proto3" json:"database,omitempty"`
 	Redis         *Data_Redis            `protobuf:"bytes,2,opt,name=redis,proto3" json:"redis,omitempty"`
 	Service       *Data_Service          `protobuf:"bytes,3,opt,name=service,proto3" json:"service,omitempty"`
-	AppName       string                 `protobuf:"bytes,4,opt,name=app_name,json=appName,proto3" json:"app_name,omitempty"`
+	Payment       *Data_Payment          `protobuf:"bytes,4,opt,name=payment,proto3" json:"payment,omitempty"`
+	AppName       string                 `protobuf:"bytes,5,opt,name=app_name,json=appName,proto3" json:"app_name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -183,6 +184,13 @@ func (x *Data) GetRedis() *Data_Redis {
 func (x *Data) GetService() *Data_Service {
 	if x != nil {
 		return x.Service
+	}
+	return nil
+}
+
+func (x *Data) GetPayment() *Data_Payment {
+	if x != nil {
+		return x.Payment
 	}
 	return nil
 }
@@ -502,6 +510,58 @@ func (x *Data_Service) GetAuthServiceAddr() string {
 	return ""
 }
 
+type Data_Payment struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	StripeSecretKey  string                 `protobuf:"bytes,1,opt,name=stripe_secret_key,json=stripeSecretKey,proto3" json:"stripe_secret_key,omitempty"`
+	StripeSuccessUrl string                 `protobuf:"bytes,2,opt,name=stripe_success_url,json=stripeSuccessUrl,proto3" json:"stripe_success_url,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *Data_Payment) Reset() {
+	*x = Data_Payment{}
+	mi := &file_internal_conf_conf_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Data_Payment) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Data_Payment) ProtoMessage() {}
+
+func (x *Data_Payment) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_conf_conf_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Data_Payment.ProtoReflect.Descriptor instead.
+func (*Data_Payment) Descriptor() ([]byte, []int) {
+	return file_internal_conf_conf_proto_rawDescGZIP(), []int{2, 3}
+}
+
+func (x *Data_Payment) GetStripeSecretKey() string {
+	if x != nil {
+		return x.StripeSecretKey
+	}
+	return ""
+}
+
+func (x *Data_Payment) GetStripeSuccessUrl() string {
+	if x != nil {
+		return x.StripeSuccessUrl
+	}
+	return ""
+}
+
 var File_internal_conf_conf_proto protoreflect.FileDescriptor
 
 const file_internal_conf_conf_proto_rawDesc = "" +
@@ -521,12 +581,13 @@ const file_internal_conf_conf_proto_rawDesc = "" +
 	"\x04GRPC\x12\x18\n" +
 	"\anetwork\x18\x01 \x01(\tR\anetwork\x12\x12\n" +
 	"\x04addr\x18\x02 \x01(\tR\x04addr\x123\n" +
-	"\atimeout\x18\x03 \x01(\v2\x19.google.protobuf.DurationR\atimeout\"\xfa\x04\n" +
+	"\atimeout\x18\x03 \x01(\v2\x19.google.protobuf.DurationR\atimeout\"\x93\x06\n" +
 	"\x04Data\x125\n" +
 	"\bdatabase\x18\x01 \x01(\v2\x19.kratos.api.Data.DatabaseR\bdatabase\x12,\n" +
 	"\x05redis\x18\x02 \x01(\v2\x16.kratos.api.Data.RedisR\x05redis\x122\n" +
-	"\aservice\x18\x03 \x01(\v2\x18.kratos.api.Data.ServiceR\aservice\x12\x19\n" +
-	"\bapp_name\x18\x04 \x01(\tR\aappName\x1a:\n" +
+	"\aservice\x18\x03 \x01(\v2\x18.kratos.api.Data.ServiceR\aservice\x122\n" +
+	"\apayment\x18\x04 \x01(\v2\x18.kratos.api.Data.PaymentR\apayment\x12\x19\n" +
+	"\bapp_name\x18\x05 \x01(\tR\aappName\x1a:\n" +
 	"\bDatabase\x12\x16\n" +
 	"\x06driver\x18\x01 \x01(\tR\x06driver\x12\x16\n" +
 	"\x06source\x18\x02 \x01(\tR\x06source\x1a\xb3\x01\n" +
@@ -539,7 +600,10 @@ const file_internal_conf_conf_proto_rawDesc = "" +
 	"\x14product_service_addr\x18\x01 \x01(\tR\x12productServiceAddr\x124\n" +
 	"\x16inventory_service_addr\x18\x02 \x01(\tR\x14inventoryServiceAddr\x12,\n" +
 	"\x12order_service_addr\x18\x03 \x01(\tR\x10orderServiceAddr\x12*\n" +
-	"\x11auth_service_addr\x18\x04 \x01(\tR\x0fauthServiceAddrB\x1cZ\x1aazushop/internal/conf;confb\x06proto3"
+	"\x11auth_service_addr\x18\x04 \x01(\tR\x0fauthServiceAddr\x1ac\n" +
+	"\aPayment\x12*\n" +
+	"\x11stripe_secret_key\x18\x01 \x01(\tR\x0fstripeSecretKey\x12,\n" +
+	"\x12stripe_success_url\x18\x02 \x01(\tR\x10stripeSuccessUrlB\x1cZ\x1aazushop/internal/conf;confb\x06proto3"
 
 var (
 	file_internal_conf_conf_proto_rawDescOnce sync.Once
@@ -553,7 +617,7 @@ func file_internal_conf_conf_proto_rawDescGZIP() []byte {
 	return file_internal_conf_conf_proto_rawDescData
 }
 
-var file_internal_conf_conf_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_internal_conf_conf_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_internal_conf_conf_proto_goTypes = []any{
 	(*Bootstrap)(nil),           // 0: kratos.api.Bootstrap
 	(*Server)(nil),              // 1: kratos.api.Server
@@ -563,7 +627,8 @@ var file_internal_conf_conf_proto_goTypes = []any{
 	(*Data_Database)(nil),       // 5: kratos.api.Data.Database
 	(*Data_Redis)(nil),          // 6: kratos.api.Data.Redis
 	(*Data_Service)(nil),        // 7: kratos.api.Data.Service
-	(*durationpb.Duration)(nil), // 8: google.protobuf.Duration
+	(*Data_Payment)(nil),        // 8: kratos.api.Data.Payment
+	(*durationpb.Duration)(nil), // 9: google.protobuf.Duration
 }
 var file_internal_conf_conf_proto_depIdxs = []int32{
 	1,  // 0: kratos.api.Bootstrap.server:type_name -> kratos.api.Server
@@ -573,15 +638,16 @@ var file_internal_conf_conf_proto_depIdxs = []int32{
 	5,  // 4: kratos.api.Data.database:type_name -> kratos.api.Data.Database
 	6,  // 5: kratos.api.Data.redis:type_name -> kratos.api.Data.Redis
 	7,  // 6: kratos.api.Data.service:type_name -> kratos.api.Data.Service
-	8,  // 7: kratos.api.Server.HTTP.timeout:type_name -> google.protobuf.Duration
-	8,  // 8: kratos.api.Server.GRPC.timeout:type_name -> google.protobuf.Duration
-	8,  // 9: kratos.api.Data.Redis.read_timeout:type_name -> google.protobuf.Duration
-	8,  // 10: kratos.api.Data.Redis.write_timeout:type_name -> google.protobuf.Duration
-	11, // [11:11] is the sub-list for method output_type
-	11, // [11:11] is the sub-list for method input_type
-	11, // [11:11] is the sub-list for extension type_name
-	11, // [11:11] is the sub-list for extension extendee
-	0,  // [0:11] is the sub-list for field type_name
+	8,  // 7: kratos.api.Data.payment:type_name -> kratos.api.Data.Payment
+	9,  // 8: kratos.api.Server.HTTP.timeout:type_name -> google.protobuf.Duration
+	9,  // 9: kratos.api.Server.GRPC.timeout:type_name -> google.protobuf.Duration
+	9,  // 10: kratos.api.Data.Redis.read_timeout:type_name -> google.protobuf.Duration
+	9,  // 11: kratos.api.Data.Redis.write_timeout:type_name -> google.protobuf.Duration
+	12, // [12:12] is the sub-list for method output_type
+	12, // [12:12] is the sub-list for method input_type
+	12, // [12:12] is the sub-list for extension type_name
+	12, // [12:12] is the sub-list for extension extendee
+	0,  // [0:12] is the sub-list for field type_name
 }
 
 func init() { file_internal_conf_conf_proto_init() }
@@ -595,7 +661,7 @@ func file_internal_conf_conf_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_internal_conf_conf_proto_rawDesc), len(file_internal_conf_conf_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   8,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

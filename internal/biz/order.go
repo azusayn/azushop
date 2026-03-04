@@ -11,6 +11,7 @@ import (
 
 type OrderRepo interface {
 	ListOrders(ctx context.Context, userID int32, status OrderStatus, pageToken int64, pageSize int32) ([]*Order, error)
+	GetOrder(ctx context.Context, orderID int64) (*Order, error)
 	CreateOrder(ctx context.Context, orderItems []*OrderItem, total decimal.Decimal, status OrderStatus, userID int32) (*Order, error)
 	DeleteOrder(ctx context.Context, orderID int64) error
 	CancelOrder(ctx context.Context, orderID int64) error
@@ -29,15 +30,16 @@ type OrderStatus string
 const (
 	OrderStatusUnspcified OrderStatus = "unspecified"
 	OrderStatusPending    OrderStatus = "pending"
-	OrderStatusPaid       OrderStatus = "paid"
 	OrderStatusCancelled  OrderStatus = "cancelled"
-	OrderStatusRefunded   OrderStatus = "refunded"
+	OrderStatusPaid       OrderStatus = "confirmed"
+	OrderStatusRefunded   OrderStatus = "completed"
 )
 
 type OrderItem struct {
 	SkuID     uuid.UUID
 	Quantity  int64
 	UnitPrice decimal.Decimal
+	Attrs     json.RawMessage
 }
 
 type Order struct {
@@ -79,4 +81,8 @@ func (uc *OrderUsecase) CancelOrder(ctx context.Context, orderID int64) error {
 
 func (uc *OrderUsecase) DeleteOrder(ctx context.Context, orderID int64) error {
 	return uc.DeleteOrder(ctx, orderID)
+}
+
+func (uc *OrderUsecase) GetOrder(ctx context.Context, orderID int64) (*Order, error) {
+	return uc.repo.GetOrder(ctx, orderID)
 }

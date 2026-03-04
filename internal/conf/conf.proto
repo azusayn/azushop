@@ -42,8 +42,13 @@ message Data {
     string order_service_addr = 3;
     string auth_service_addr = 4;
   }
+  message Payment {
+    string stripe_secret_key = 1;
+    string stripe_success_url = 2;
+  }
   Database database = 1;
   Redis redis = 2;
   Service service = 3;
-  string app_name = 4;
+  Payment payment = 4;
+  string app_name = 5;
 }
