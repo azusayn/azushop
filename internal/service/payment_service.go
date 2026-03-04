@@ -44,7 +44,7 @@ func (s *PaymentService) CreatePayment(ctx context.Context, req *pb.CreatePaymen
 		return nil, err
 	}
 	if resp.GetOrder().GetOrderStatus() != orderpb.OrderStatus_ORDER_STATUS_PENDING {
-		return nil, status.Error(codes.AlreadyExists, "duplicate calls")
+		return nil, status.Error(codes.OK, "duplicate calls")
 	}
 	paymentItems, err := convertToPaymentItems(resp.GetOrder().GetOrderItems())
 	if err != nil {
@@ -55,6 +55,19 @@ func (s *PaymentService) CreatePayment(ctx context.Context, req *pb.CreatePaymen
 		return nil, err
 	}
 	return &pb.CreatePaymentResponse{Url: url}, nil
+}
+
+func (s *PaymentService) Callback(ctx context.Context, req *pb.CallbackRequest) (*pb.CallbackResponse, error) {
+	paymentMethod, err := convertProviderToBizPaymentMethod(req.Provider)
+	if err != nil {
+		return nil, err
+	}
+	// return an error to trigger a retry from the payment provider.
+	if err := s.uc.Callback(ctx, paymentMethod, req.GetRaw().GetData()); err != nil {
+		return nil, status.Error(codes.Internal, codes.Internal.String())
+	}
+
+	return &pb.CallbackResponse{}, status.Error(codes.OK, codes.OK.String())
 }
 
 func convertToPaymentItems(orderItems []*orderpb.OrderItem) ([]*biz.PaymentItem, error) {
@@ -94,6 +107,11 @@ func convertToBizPaymentMethod(method pb.PaymentMethod) (biz.PaymentMethod, erro
 	return "", fmt.Errorf("unsupported payment method %q", method)
 }
 
-func (s *PaymentService) Callback(ctx context.Context, req *pb.CallbackRequest) (*pb.CallbackResponse, error) {
-	return nil, nil
+func convertProviderToBizPaymentMethod(provider string) (biz.PaymentMethod, error) {
+	switch provider {
+	case "stripe":
+		return biz.PaymentMethodStripe, nil
+	default:
+	}
+	return "", fmt.Errorf("unsupported payment provider %q", provider)
 }

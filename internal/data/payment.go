@@ -43,7 +43,15 @@ func (repo *PaymentRepo) CreatePayment(
 	return payment, nil
 }
 
-func (repo *PaymentRepo) UpdatePayment(ctx context.Context, payment *biz.Payment, paths []string) error {
+func (repo *PaymentRepo) UpdatePaymentStatusByOrderID(ctx context.Context, orderID int64, status biz.PaymentStatus) error {
+	client := GetTransaction(ctx)
+	if client == nil {
+		client = repo.data.gormClient.WithContext(ctx)
+	}
+	return client.Where("order_id = ?", orderID).Where("status = ?", biz.PaymentStatusPending).Update("status", status).Error
+}
+
+func (repo *PaymentRepo) UpdatePaymentByID(ctx context.Context, payment *biz.Payment, paths []string) error {
 	client := GetTransaction(ctx)
 	if client == nil {
 		client = repo.data.gormClient.WithContext(ctx)
