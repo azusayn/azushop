@@ -10,6 +10,7 @@ import (
 	"azushop/internal/biz"
 	"azushop/internal/conf"
 	"azushop/internal/data"
+	"azushop/internal/runner"
 	"azushop/internal/server"
 	"azushop/internal/service"
 	"github.com/go-kratos/kratos/v2"
@@ -31,9 +32,24 @@ func wireApp(confServer *conf.Server, confData *conf.Data, logger log.Logger) (*
 	userRepo := data.NewUserRepo(dataData)
 	userUsecase := biz.NewUserUsecase(userRepo)
 	authServiceService := service.NewAuthServiceService(userUsecase, dataData)
-	grpcServer := server.NewGRPCServer(confServer, authServiceService, dataData, logger)
+	productRepo := data.NewProductRepo(dataData)
+	productUsecase := biz.NewProductUsecase(productRepo)
+	productService := service.NewProductService(productUsecase)
+	inventoryRepo := data.NewInventoryRepo(dataData)
+	transaction := data.NewTransaction(dataData)
+	inventoryUsecase := biz.NewInventoryUsecase(inventoryRepo, transaction)
+	inventoryService := service.NewInventoryService(inventoryUsecase)
+	orderRepo := data.NewOrderRepo(dataData)
+	orderUsecase := biz.NewOrderUsecase(orderRepo)
+	orderService := service.NewOrderService(orderUsecase, dataData)
+	paymentRepo := data.NewPaymentRepo(dataData)
+	paymentPublisher := data.NewPaymentPublisher(dataData)
+	paymentUsecase := biz.NewPaymentUsecase(paymentRepo, paymentPublisher)
+	paymentService := service.NewPaymentService(paymentUsecase, dataData)
+	grpcServer := server.NewGRPCServer(confServer, authServiceService, productService, inventoryService, orderService, paymentService, dataData, logger)
 	httpServer := server.NewHTTPServer(confServer, authServiceService, logger)
-	app := newApp(logger, grpcServer, httpServer)
+	runnerManager := runner.NewRunnerManager(orderUsecase)
+	app := newApp(logger, grpcServer, httpServer, runnerManager)
 	return app, func() {
 		cleanup()
 	}, nil

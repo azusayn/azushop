@@ -21,7 +21,7 @@ type PaymentRepo interface {
 }
 
 type PaymentPublisher interface {
-	PublishPaymentPaid(ctx context.Context, orderID int64) error
+	PublishPaymentStatus(ctx context.Context, orderID int64, status PaymentStatus) error
 }
 
 type PaymentUsecase struct {
@@ -121,7 +121,7 @@ func (uc *PaymentUsecase) Callback(ctx context.Context, method PaymentMethod, bo
 	if err := uc.repo.UpdatePaymentStatusByOrderID(ctx, orderID, paymentStatus); err != nil {
 		return err
 	}
-	return uc.publisher.PublishPaymentPaid(ctx, orderID)
+	return uc.publisher.PublishPaymentStatus(ctx, orderID, paymentStatus)
 }
 
 // create a Stripe checkout session and return:
