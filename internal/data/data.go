@@ -38,7 +38,8 @@ type Data struct {
 	productService   productpb.ProductServiceClient
 	inventoryService inventorypb.InventoryServiceClient
 	orderService     orderpb.OrderServiceClient
-	kafkaProducer    *sarama.SyncProducer
+	kafkaProducer    sarama.SyncProducer
+	kafkaConsumer    sarama.Consumer
 	privateKey       *rsa.PrivateKey
 	stripeSuccessURL string
 	appName          string
@@ -111,11 +112,13 @@ func NewData(c *conf.Data) (*Data, func(), error) {
 		return nil, nil, err
 	}
 
-	// kafka client.
+	// kafka producer & client.
+	// TODO(1): async producer.
+	brokerAddrs := c.GetKafka().GetBrokerAddrs()
 	kafkaConfig := sarama.NewConfig()
 	kafkaConfig.Producer.RequiredAcks = sarama.WaitForAll
 	kafkaConfig.Producer.Return.Successes = true
-	kafkaProducer, err := sarama.NewSyncProducer(c.GetKafka().GetBrokerAddrs(), kafkaConfig)
+	kafkaProducer, err := sarama.NewSyncProducer(brokerAddrs, kafkaConfig)
 	if err != nil {
 		err = multierr.Combine(
 			err,
@@ -124,6 +127,20 @@ func NewData(c *conf.Data) (*Data, func(), error) {
 			productServiceConn.Close(),
 			inventoryServiceConn.Close(),
 			orderServiceConn.Close(),
+		)
+		return nil, nil, err
+	}
+
+	kafkaConsumer, err := sarama.NewConsumer(brokerAddrs, sarama.NewConfig())
+	if err != nil {
+		err = multierr.Combine(
+			err,
+			postgresClient.Close(),
+			redisClient.Close(),
+			productServiceConn.Close(),
+			inventoryServiceConn.Close(),
+			orderServiceConn.Close(),
+			kafkaConsumer.Close(),
 		)
 		return nil, nil, err
 	}
@@ -137,6 +154,7 @@ func NewData(c *conf.Data) (*Data, func(), error) {
 			inventoryServiceConn.Close(),
 			orderServiceConn.Close(),
 			kafkaProducer.Close(),
+			kafkaConsumer.Close(),
 		)
 		if err != nil {
 			slog.Warn(err.Error())
@@ -152,7 +170,8 @@ func NewData(c *conf.Data) (*Data, func(), error) {
 		inventoryService: inventorypb.NewInventoryServiceClient(inventoryServiceConn),
 		orderService:     orderpb.NewOrderServiceClient(orderServiceConn),
 		stripeSuccessURL: c.GetPayment().GetStripeSuccessUrl(),
-		kafkaProducer:    &kafkaProducer,
+		kafkaProducer:    kafkaProducer,
+		kafkaConsumer:    kafkaConsumer,
 	}, cleanup, nil
 }
 
@@ -189,6 +208,20 @@ func (d *Data) GetOrderService() orderpb.OrderServiceClient {
 		return nil
 	}
 	return d.orderService
+}
+
+func (d *Data) GetKafkaConsumer() sarama.Consumer {
+	if d == nil {
+		return nil
+	}
+	return d.kafkaConsumer
+}
+
+func (d *Data) GetKafkaProducer() sarama.SyncProducer {
+	if d == nil {
+		return nil
+	}
+	return d.kafkaProducer
 }
 
 func (d *Data) GetStripeSuccessUrl() string {
