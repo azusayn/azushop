@@ -86,3 +86,43 @@ func (repo *OrderRepo) GetOrder(ctx context.Context, orderID int64) (*biz.Order,
 	}
 	return &order, nil
 }
+
+func (repo *OrderRepo) UpdateOrderStatus(ctx context.Context, orderID int64, status biz.OrderStatus) error {
+	client := GetTransaction(ctx)
+	if client == nil {
+		client = repo.data.gormClient
+	}
+	return client.WithContext(ctx).Where("id = ?", orderID).Update("status", status).Error
+}
+
+type OrderSubscriber struct {
+	data *Data
+}
+
+func NewOrderSubscriber(data *Data) biz.OrderSubscriber {
+	return &OrderSubscriber{data: data}
+}
+
+type orderConsumerHandler struct {
+	handler func(string) error
+}
+
+func (s *OrderSubscriber) SubscribePaymentPaid(ctx context.Context, handler func(int64, biz.PaymentStatus) error) error {
+	topics := []string{KafkaTopicPaymentPaid}
+	consumerHandler := NewConsumerHandler(func(bytes []byte) error {
+		var msg PaymentStatusMessage
+		if err := json.Unmarshal(bytes, &msg); err != nil {
+			return err
+		}
+		return handler(msg.OrderID, biz.PaymentStatus(string(msg.Status)))
+	})
+	for {
+		err := s.data.GetKafkaConsumer().Consume(ctx, topics, consumerHandler)
+		if err != nil {
+			return err
+		}
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+	}
+}

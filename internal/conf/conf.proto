@@ -46,9 +46,13 @@ message Data {
     string stripe_secret_key = 1;
     string stripe_success_url = 2;
   }
+  message Kafka {
+    repeated string broker_addrs = 1;
+  }
   Database database = 1;
   Redis redis = 2;
   Service service = 3;
   Payment payment = 4;
-  string app_name = 5;
+  Kafka kafka = 5;
+  string app_name = 6;
 }

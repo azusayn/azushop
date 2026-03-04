@@ -11,6 +11,7 @@ import (
 	orderpb "azushop/api/order/v1"
 	productpb "azushop/api/product/v1"
 
+	"github.com/IBM/sarama"
 	"github.com/azusayn/azutils/auth"
 	"github.com/google/wire"
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -26,20 +27,28 @@ import (
 // ProviderSet is data providers.
 var ProviderSet = wire.NewSet(
 	NewData,
+	NewTransaction,
+	NewPaymentPublisher,
 	NewUserRepo,
+	NewProductRepo,
+	NewInventoryRepo,
+	NewOrderRepo,
+	NewPaymentRepo,
 )
 
 type Data struct {
 	// TODO: DDD design.
-	postgresClient   *sql.DB
-	gormClient       *gorm.DB
-	redisClient      *redis.Client
-	productService   productpb.ProductServiceClient
-	inventoryService inventorypb.InventoryServiceClient
-	orderService     orderpb.OrderServiceClient
-	privateKey       *rsa.PrivateKey
-	stripeSuccessURL string
-	appName          string
+	postgresClient     *sql.DB
+	gormClient         *gorm.DB
+	redisClient        *redis.Client
+	productService     productpb.ProductServiceClient
+	inventoryService   inventorypb.InventoryServiceClient
+	orderService       orderpb.OrderServiceClient
+	kafkaProducer      sarama.SyncProducer
+	kafkaOrderConsumer sarama.ConsumerGroup
+	privateKey         *rsa.PrivateKey
+	stripeSuccessURL   string
+	appName            string
 }
 
 func NewData(c *conf.Data) (*Data, func(), error) {
@@ -50,6 +59,7 @@ func NewData(c *conf.Data) (*Data, func(), error) {
 		return nil, nil, err
 	}
 
+	// postgres client.
 	postgresClient, err := sql.Open(c.GetDatabase().GetDriver(), c.Database.Source)
 	if err != nil {
 		return nil, nil, err
@@ -62,24 +72,24 @@ func NewData(c *conf.Data) (*Data, func(), error) {
 		return nil, nil, err
 	}
 
+	// redis client.
 	redisClient := redis.NewClient(&redis.Options{
 		Addr: c.GetRedis().GetAddr(),
 	})
 	if err := redisClient.Ping(context.Background()).Err(); err != nil {
-		postgresClient.Close()
-		return nil, nil, err
+		return nil, nil, multierr.Append(err, postgresClient.Close())
 	}
 
-	// TODO(1): tls.
+	// TODO(1): mtls.
+	// grpc service clients.
 	productServiceAddr := c.GetService().GetProductServiceAddr()
 	productServiceConn, err := grpc.NewClient(productServiceAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		if err := postgresClient.Close(); err != nil {
-			slog.Warn(err.Error())
-		}
-		if err = redisClient.Close(); err != nil {
-			slog.Warn(err.Error())
-		}
+		err = multierr.Combine(
+			err,
+			postgresClient.Close(),
+			redisClient.Close(),
+		)
 		return nil, nil, err
 	}
 
@@ -108,30 +118,69 @@ func NewData(c *conf.Data) (*Data, func(), error) {
 		return nil, nil, err
 	}
 
+	// kafka producer & client.
+	// TODO(1): async producer.
+	brokerAddrs := c.GetKafka().GetBrokerAddrs()
+	kafkaConfig := sarama.NewConfig()
+	kafkaConfig.Producer.RequiredAcks = sarama.WaitForAll
+	kafkaConfig.Producer.Return.Successes = true
+	kafkaProducer, err := sarama.NewSyncProducer(brokerAddrs, kafkaConfig)
+	if err != nil {
+		err = multierr.Combine(
+			err,
+			postgresClient.Close(),
+			redisClient.Close(),
+			productServiceConn.Close(),
+			inventoryServiceConn.Close(),
+			orderServiceConn.Close(),
+		)
+		return nil, nil, err
+	}
+
+	orderConsumerConfig := sarama.NewConfig()
+	orderConsumerConfig.Consumer.Offsets.Initial = sarama.OffsetNewest
+	// orderConsumerConfig.Consumer.Group.Rebalance.GroupStrategies
+	kafkaOrderConsumer, err := sarama.NewConsumerGroup(brokerAddrs, "order-service", orderConsumerConfig)
+	if err != nil {
+		err = multierr.Combine(
+			err,
+			postgresClient.Close(),
+			redisClient.Close(),
+			productServiceConn.Close(),
+			inventoryServiceConn.Close(),
+			orderServiceConn.Close(),
+			kafkaOrderConsumer.Close(),
+		)
+		return nil, nil, err
+	}
+
 	cleanup := func() {
-		slog.Warn("close postgres connection...")
-		if err := postgresClient.Close(); err != nil {
-			slog.Warn(err.Error())
-		}
-		slog.Warn("close redis connection...")
-		if err := redisClient.Close(); err != nil {
-			slog.Warn(err.Error())
-		}
-		slog.Warn("close ProductService connection...")
-		if err := productServiceConn.Close(); err != nil {
+		err = multierr.Combine(
+			err,
+			postgresClient.Close(),
+			redisClient.Close(),
+			productServiceConn.Close(),
+			inventoryServiceConn.Close(),
+			orderServiceConn.Close(),
+			kafkaProducer.Close(),
+			kafkaOrderConsumer.Close(),
+		)
+		if err != nil {
 			slog.Warn(err.Error())
 		}
 	}
 
 	return &Data{
-		privateKey:       key,
-		postgresClient:   postgresClient,
-		gormClient:       gormClient,
-		appName:          c.AppName,
-		productService:   productpb.NewProductServiceClient(productServiceConn),
-		inventoryService: inventorypb.NewInventoryServiceClient(inventoryServiceConn),
-		orderService:     orderpb.NewOrderServiceClient(orderServiceConn),
-		stripeSuccessURL: c.GetPayment().GetStripeSuccessUrl(),
+		privateKey:         key,
+		postgresClient:     postgresClient,
+		gormClient:         gormClient,
+		appName:            c.AppName,
+		productService:     productpb.NewProductServiceClient(productServiceConn),
+		inventoryService:   inventorypb.NewInventoryServiceClient(inventoryServiceConn),
+		orderService:       orderpb.NewOrderServiceClient(orderServiceConn),
+		stripeSuccessURL:   c.GetPayment().GetStripeSuccessUrl(),
+		kafkaProducer:      kafkaProducer,
+		kafkaOrderConsumer: kafkaOrderConsumer,
 	}, cleanup, nil
 }
 
@@ -168,6 +217,20 @@ func (d *Data) GetOrderService() orderpb.OrderServiceClient {
 		return nil
 	}
 	return d.orderService
+}
+
+func (d *Data) GetKafkaConsumer() sarama.ConsumerGroup {
+	if d == nil {
+		return nil
+	}
+	return d.kafkaOrderConsumer
+}
+
+func (d *Data) GetKafkaProducer() sarama.SyncProducer {
+	if d == nil {
+		return nil
+	}
+	return d.kafkaProducer
 }
 
 func (d *Data) GetStripeSuccessUrl() string {

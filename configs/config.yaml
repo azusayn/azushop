@@ -6,6 +6,7 @@ server:
     addr: 0.0.0.0:9000
     timeout: 1s
 data:
+  app_name: "azushop"
   database:
     driver: pgx
     source: postgres://root:root@127.0.0.1:5432/test?sslmode=disable
@@ -13,7 +14,8 @@ data:
     addr: 127.0.0.1:6379
     read_timeout: 0.2s
     write_timeout: 0.2s
-  app_name: "azushop"
   payment:
     stripe_secret_key:
     stripe_success_url:
+  kafka:
+    addr: ""
