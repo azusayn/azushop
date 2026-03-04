@@ -66,7 +66,6 @@ func (s *PaymentService) Callback(ctx context.Context, req *pb.CallbackRequest) 
 	if err := s.uc.Callback(ctx, paymentMethod, req.GetRaw().GetData()); err != nil {
 		return nil, status.Error(codes.Internal, codes.Internal.String())
 	}
-
 	return &pb.CallbackResponse{}, status.Error(codes.OK, codes.OK.String())
 }
 

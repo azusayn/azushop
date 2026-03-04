@@ -9,6 +9,7 @@ import (
 	"azushop/internal/biz"
 	"azushop/internal/conf"
 	"azushop/internal/data"
+	"azushop/internal/runner"
 	"azushop/internal/server"
 	"azushop/internal/service"
 
@@ -24,6 +25,7 @@ func wireApp(*conf.Server, *conf.Data, log.Logger) (*kratos.App, func(), error) 
 		data.ProviderSet,
 		biz.ProviderSet,
 		service.ProviderSet,
+		runner.ProviderSet,
 		newApp,
 	))
 }

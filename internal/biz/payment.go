@@ -20,8 +20,20 @@ type PaymentRepo interface {
 	UpdatePaymentStatusByOrderID(ctx context.Context, orderID int64, status PaymentStatus) error
 }
 
+type PaymentPublisher interface {
+	PublishPaymentStatus(ctx context.Context, orderID int64, status PaymentStatus) error
+}
+
 type PaymentUsecase struct {
-	repo PaymentRepo
+	repo      PaymentRepo
+	publisher PaymentPublisher
+}
+
+func NewPaymentUsecase(repo PaymentRepo, publisher PaymentPublisher) *PaymentUsecase {
+	return &PaymentUsecase{
+		repo:      repo,
+		publisher: publisher,
+	}
 }
 
 type PaymentStatus string
@@ -106,7 +118,10 @@ func (uc *PaymentUsecase) Callback(ctx context.Context, method PaymentMethod, bo
 	default:
 		return fmt.Errorf("unsupported payment method %q", method)
 	}
-	return uc.repo.UpdatePaymentStatusByOrderID(ctx, orderID, paymentStatus)
+	if err := uc.repo.UpdatePaymentStatusByOrderID(ctx, orderID, paymentStatus); err != nil {
+		return err
+	}
+	return uc.publisher.PublishPaymentStatus(ctx, orderID, paymentStatus)
 }
 
 // create a Stripe checkout session and return:
@@ -158,7 +173,8 @@ func handleStripeCreatePayment(
 	return s.PaymentIntent.ID, s.URL, s.AmountTotal, nil
 }
 
-// return order ID and payment status.
+// processes callback from payment Stripe's server and
+// returns order ID and payment status.
 func handleStripeCallback(body []byte) (int64, PaymentStatus, error) {
 	var event stripe.Event
 	if err := json.Unmarshal(body, &event); err != nil {
