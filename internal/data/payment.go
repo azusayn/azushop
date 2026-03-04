@@ -4,7 +4,9 @@ import (
 	"azushop/internal/biz"
 	"context"
 	"fmt"
+	"strconv"
 
+	"github.com/IBM/sarama"
 	"github.com/shopspring/decimal"
 )
 
@@ -66,4 +68,22 @@ func (repo *PaymentRepo) UpdatePaymentByID(ctx context.Context, payment *biz.Pay
 		}
 	}
 	return client.Where("id = ?", payment.ID).Updates(m).Error
+}
+
+type PaymentPublisher struct {
+	data *Data
+}
+
+func NewPaymentPublisher(data *Data) biz.PaymentPublisher {
+	return &PaymentPublisher{data: data}
+}
+
+func (p *PaymentPublisher) PublishPaymentPaid(ctx context.Context, orderID int64) error {
+	producer := p.data.GetKafkaProducer()
+	msg := &sarama.ProducerMessage{
+		Topic: KafkaTopicPaymentPaid,
+		Value: sarama.StringEncoder(strconv.FormatInt(orderID, 10)),
+	}
+	_, _, err := producer.SendMessage(msg)
+	return err
 }
