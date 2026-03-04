@@ -18,6 +18,8 @@ import (
 	"github.com/shopspring/decimal"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 type OrderService struct {
@@ -53,12 +55,9 @@ func (s *OrderService) CreateOrder(ctx context.Context, req *pb.CreateOrderReque
 	if err != nil {
 		return nil, err
 	}
-	for _, orderItem := range req.OrderItems {
-		orderItem.UnitPrice = &m[orderItem.SkuId].UnitPrice
-	}
 
 	// create order.
-	orderItems, err := convertToBizOrderItems(req.OrderItems)
+	orderItems, err := convertToBizOrderItems(req.OrderItems, m)
 	if err != nil {
 		return nil, err
 	}
@@ -106,6 +105,18 @@ func (s *OrderService) CancelOrder(ctx context.Context, req *pb.CancelOrderReque
 		return nil, err
 	}
 	return &pb.CancelOrderResponse{}, nil
+}
+
+func (s *OrderService) GetOrder(ctx context.Context, req *pb.GetOrderRequest) (*pb.GetOrderResponse, error) {
+	order, err := s.uc.GetOrder(ctx, req.OrderId)
+	if err != nil {
+		return nil, err
+	}
+	pbOrder, err := convertToPbOrder(order)
+	if err != nil {
+		return nil, err
+	}
+	return &pb.GetOrderResponse{Order: pbOrder}, nil
 }
 
 func (s *OrderService) ListOrders(ctx context.Context, req *pb.ListOrdersRequest) (*pb.ListOrdersResponse, error) {
@@ -197,14 +208,23 @@ func convertToBizOrderStatus(status *pb.OrderStatus) biz.OrderStatus {
 	return biz.OrderStatusUnspcified
 }
 
-func convertToBizOrderItems(pbOrderItems []*pb.OrderItem) ([]*biz.OrderItem, error) {
+// mapping: mapping from skuId to productpb.Sku
+func convertToBizOrderItems(pbOrderItems []*pb.OrderItem, mapping map[string]*productpb.Sku) ([]*biz.OrderItem, error) {
 	var orderItems []*biz.OrderItem
 	for _, pbOrderItem := range pbOrderItems {
+		sku, ok := mapping[pbOrderItem.SkuId]
+		if !ok {
+			return nil, errors.New("failed to get sku from mapping")
+		}
 		uuid, err := uuid.Parse(pbOrderItem.SkuId)
 		if err != nil {
 			return nil, err
 		}
-		unitPriceDecimal, err := decimal.NewFromString(pbOrderItem.GetUnitPrice())
+		unitPriceDecimal, err := decimal.NewFromString(sku.UnitPrice)
+		if err != nil {
+			return nil, err
+		}
+		bytesAttrs, err := protojson.Marshal(sku.Attrs)
 		if err != nil {
 			return nil, err
 		}
@@ -212,6 +232,7 @@ func convertToBizOrderItems(pbOrderItems []*pb.OrderItem) ([]*biz.OrderItem, err
 			SkuID:     uuid,
 			Quantity:  pbOrderItem.GetQuantity(),
 			UnitPrice: unitPriceDecimal,
+			Attrs:     bytesAttrs,
 		})
 	}
 	return orderItems, nil
@@ -225,10 +246,15 @@ func convertToPbOrder(order *biz.Order) (*pb.Order, error) {
 	pbOrderItems := make([]*pb.OrderItem, 0, len(orderItems))
 	for _, item := range orderItems {
 		unitPriceStr := item.UnitPrice.String()
+		var attrs structpb.Struct
+		if err := json.Unmarshal(item.Attrs, &attrs); err != nil {
+			return nil, err
+		}
 		pbOrderItems = append(pbOrderItems, &pb.OrderItem{
 			SkuId:     item.SkuID.String(),
 			Quantity:  item.Quantity,
 			UnitPrice: &unitPriceStr,
+			Attrs:     &attrs,
 		})
 	}
 	return &pb.Order{

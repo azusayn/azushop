@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package payment.v1;
+
+import "google/api/annotations.proto";
+import "google/api/httpbody.proto";
+
+option go_package = "azushop/api/payment/v1;v1";
+
+// PaymentService.
+service PaymentService {
+  // pays order for given order_id. 
+  rpc CreatePayment(CreatePaymentRequest) returns (CreatePaymentResponse);
+
+  // callback API for external payment providers.
+  // currently only support stripe as the provider.
+  rpc Callback(CallbackRequest) returns (CallbackResponse) {
+    option (google.api.http) = {
+      post: "/v1/payment/callback/{provider}"
+      body: "raw"
+    };
+  }
+}
+
+enum PaymentMethod {
+  PAYMENT_METHOD_UNSPECIFIED = 0;
+  PAYMENT_METHOD_STRIPE = 1;
+  PAYMENT_METHOD_ALIPAY = 2;
+  PAYMENT_METHOD_WECHAT = 3;
+}
+
+message CreatePaymentRequest {
+  int64 order_id = 1;
+  PaymentMethod payment_method = 2;
+}
+
+message CreatePaymentResponse {
+  string url = 1;
+}
+
+message CallbackRequest {
+  google.api.HttpBody raw = 1;
+  string provider = 2;
+}
+
+message CallbackResponse {}

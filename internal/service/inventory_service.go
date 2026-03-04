@@ -21,7 +21,7 @@ func NewInventoryService(uc *biz.InventoryUsecase) *InventoryService {
 	return &InventoryService{uc: uc}
 }
 
-// TODO: RBAC(0)
+// TODO(0): RBAC
 func (s *InventoryService) AdjustStock(ctx context.Context, req *pb.AdjustStockRequest) (*pb.AdjustStockResponse, error) {
 	if req.StockQuantity < 0 {
 		return nil, status.Error(codes.InvalidArgument, "stock_quantity cannot be negative")
