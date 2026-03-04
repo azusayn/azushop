@@ -11,6 +11,7 @@ import (
 	orderpb "azushop/api/order/v1"
 	productpb "azushop/api/product/v1"
 
+	"github.com/IBM/sarama"
 	"github.com/azusayn/azutils/auth"
 	"github.com/google/wire"
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -37,6 +38,7 @@ type Data struct {
 	productService   productpb.ProductServiceClient
 	inventoryService inventorypb.InventoryServiceClient
 	orderService     orderpb.OrderServiceClient
+	kafkaProducer    *sarama.SyncProducer
 	privateKey       *rsa.PrivateKey
 	stripeSuccessURL string
 	appName          string
@@ -50,6 +52,7 @@ func NewData(c *conf.Data) (*Data, func(), error) {
 		return nil, nil, err
 	}
 
+	// postgres client.
 	postgresClient, err := sql.Open(c.GetDatabase().GetDriver(), c.Database.Source)
 	if err != nil {
 		return nil, nil, err
@@ -62,24 +65,24 @@ func NewData(c *conf.Data) (*Data, func(), error) {
 		return nil, nil, err
 	}
 
+	// redis client.
 	redisClient := redis.NewClient(&redis.Options{
 		Addr: c.GetRedis().GetAddr(),
 	})
 	if err := redisClient.Ping(context.Background()).Err(); err != nil {
-		postgresClient.Close()
-		return nil, nil, err
+		return nil, nil, multierr.Append(err, postgresClient.Close())
 	}
 
-	// TODO(1): tls.
+	// TODO(1): mtls.
+	// grpc service clients.
 	productServiceAddr := c.GetService().GetProductServiceAddr()
 	productServiceConn, err := grpc.NewClient(productServiceAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		if err := postgresClient.Close(); err != nil {
-			slog.Warn(err.Error())
-		}
-		if err = redisClient.Close(); err != nil {
-			slog.Warn(err.Error())
-		}
+		err = multierr.Combine(
+			err,
+			postgresClient.Close(),
+			redisClient.Close(),
+		)
 		return nil, nil, err
 	}
 
@@ -108,17 +111,34 @@ func NewData(c *conf.Data) (*Data, func(), error) {
 		return nil, nil, err
 	}
 
+	// kafka client.
+	kafkaConfig := sarama.NewConfig()
+	kafkaConfig.Producer.RequiredAcks = sarama.WaitForAll
+	kafkaConfig.Producer.Return.Successes = true
+	kafkaProducer, err := sarama.NewSyncProducer(c.GetKafka().GetBrokerAddrs(), kafkaConfig)
+	if err != nil {
+		err = multierr.Combine(
+			err,
+			postgresClient.Close(),
+			redisClient.Close(),
+			productServiceConn.Close(),
+			inventoryServiceConn.Close(),
+			orderServiceConn.Close(),
+		)
+		return nil, nil, err
+	}
+
 	cleanup := func() {
-		slog.Warn("close postgres connection...")
-		if err := postgresClient.Close(); err != nil {
-			slog.Warn(err.Error())
-		}
-		slog.Warn("close redis connection...")
-		if err := redisClient.Close(); err != nil {
-			slog.Warn(err.Error())
-		}
-		slog.Warn("close ProductService connection...")
-		if err := productServiceConn.Close(); err != nil {
+		err = multierr.Combine(
+			err,
+			postgresClient.Close(),
+			redisClient.Close(),
+			productServiceConn.Close(),
+			inventoryServiceConn.Close(),
+			orderServiceConn.Close(),
+			kafkaProducer.Close(),
+		)
+		if err != nil {
 			slog.Warn(err.Error())
 		}
 	}
@@ -132,6 +152,7 @@ func NewData(c *conf.Data) (*Data, func(), error) {
 		inventoryService: inventorypb.NewInventoryServiceClient(inventoryServiceConn),
 		orderService:     orderpb.NewOrderServiceClient(orderServiceConn),
 		stripeSuccessURL: c.GetPayment().GetStripeSuccessUrl(),
+		kafkaProducer:    &kafkaProducer,
 	}, cleanup, nil
 }
 
