@@ -72,8 +72,11 @@ func (s *PaymentService) Callback(ctx context.Context, req *pb.CallbackRequest) 
 func convertToPaymentItems(orderItems []*orderpb.OrderItem) ([]*biz.PaymentItem, error) {
 	var paymentItems []*biz.PaymentItem
 	for _, item := range orderItems {
+		if item.GetProductName() == "" {
+			return nil, errors.New("nil product name")
+		}
 		if item.UnitPrice == nil {
-			return nil, errors.New("failed to fetch unit price from product service")
+			return nil, errors.New("nil unit price")
 		}
 		unitPrice, err := decimal.NewFromString(*item.UnitPrice)
 		if err != nil {
@@ -84,7 +87,7 @@ func convertToPaymentItems(orderItems []*orderpb.OrderItem) ([]*biz.PaymentItem,
 			return nil, err
 		}
 		paymentItems = append(paymentItems, &biz.PaymentItem{
-			// TODO(0): product name.
+			Name:      item.GetProductName(),
 			Quantity:  item.GetQuantity(),
 			UnitPrice: unitPrice,
 			Attr:      bytes,

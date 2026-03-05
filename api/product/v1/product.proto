@@ -98,7 +98,12 @@ message BatchGetSkusRequest{
   repeated string sku_ids = 3;
 }
 
+message SkuDetail {
+  Sku sku = 1;
+  string product_name = 2;
+}
+
 message BatchGetSkusResponse{
-  repeated Sku skus = 1;
+  repeated SkuDetail sku_details = 1;
   string next_page_token = 2;
 }

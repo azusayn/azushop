@@ -118,21 +118,21 @@ func (s *ProductService) BatchGetSkus(ctx context.Context, req *pb.BatchGetSkusR
 	if err != nil {
 		return nil, err
 	}
-	skus, err := s.uc.BatchGetSkus(ctx, uuids, pageToken, req.PageSize)
+	skuDetails, err := s.uc.BatchGetSkuDetails(ctx, uuids, pageToken, req.PageSize)
 	if err != nil {
 		return nil, err
 	}
-	pbSkus, err := convertToPbSkus(skus)
+	pbSkuDetails, err := convertToPbSkuDetails(skuDetails)
 	if err != nil {
 		return nil, err
 	}
 	var nextPageToken string
-	lenPbSkus := len(pbSkus)
-	if lenPbSkus == int(req.PageSize) {
-		nextPageToken = pbSkus[lenPbSkus-1].GetId()
+	lenPbSkuDetails := len(pbSkuDetails)
+	if lenPbSkuDetails == int(req.PageSize) {
+		nextPageToken = pbSkuDetails[lenPbSkuDetails-1].GetSku().GetId()
 	}
 	return &pb.BatchGetSkusResponse{
-		Skus:          pbSkus,
+		SkuDetails:    pbSkuDetails,
 		NextPageToken: nextPageToken,
 	}, nil
 }
@@ -191,18 +191,42 @@ func convertToBizSkus(pbSkus []*pb.Sku) ([]*biz.Sku, error) {
 	return skus, nil
 }
 
+func convertToPbSku(sku *biz.Sku) (*pb.Sku, error) {
+	var attrs structpb.Struct
+	if err := protojson.Unmarshal(sku.Attrs, &attrs); err != nil {
+		return nil, err
+	}
+	pbSku := &pb.Sku{
+		Id:        sku.ID.String(),
+		Attrs:     &attrs,
+		UnitPrice: sku.UnitPrice,
+	}
+	return pbSku, nil
+}
+
+func convertToPbSkuDetails(skuDetails []*biz.SkuDetail) ([]*pb.SkuDetail, error) {
+	var pbSkuDetails []*pb.SkuDetail
+	for _, skuDetail := range skuDetails {
+		pbSku, err := convertToPbSku(&skuDetail.Sku)
+		if err != nil {
+			return nil, err
+		}
+		pbSkuDetails = append(pbSkuDetails, &pb.SkuDetail{
+			Sku:         pbSku,
+			ProductName: skuDetail.ProductName,
+		})
+	}
+	return pbSkuDetails, nil
+}
+
 func convertToPbSkus(skus []*biz.Sku) ([]*pb.Sku, error) {
 	var pbSkus []*pb.Sku
 	for _, sku := range skus {
-		var attrs structpb.Struct
-		if err := protojson.Unmarshal(sku.Attrs, &attrs); err != nil {
+		pbSku, err := convertToPbSku(sku)
+		if err != nil {
 			return nil, err
 		}
-		pbSkus = append(pbSkus, &pb.Sku{
-			Id:        sku.ID.String(),
-			Attrs:     &attrs,
-			UnitPrice: sku.UnitPrice,
-		})
+		pbSkus = append(pbSkus, pbSku)
 	}
 	return pbSkus, nil
 }

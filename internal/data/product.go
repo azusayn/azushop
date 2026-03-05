@@ -261,16 +261,22 @@ func (repo *ProductRepo) BatchUpdateProducts(ctx context.Context, products []*bi
 	return nil
 }
 
-func (repo *ProductRepo) BatchGetSkus(
+func (repo *ProductRepo) BatchGetSkuDetails(
 	ctx context.Context,
 	skuIDs []uuid.UUID,
 	pageToken uuid.UUID,
 	pageSize int32,
-) ([]*biz.Sku, error) {
+) ([]*biz.SkuDetail, error) {
 	client := repo.data.postgresClient
 	stmt := `
-		SELECT id, product_id, attrs, unit_price
-		FROM skus
+		SELECT 
+			p.product_name, 
+			s.id, 
+			s.product_id, 
+			s.attrs, 
+			s.unit_price
+		FROM skus s
+		JOIN products p ON p.id = s.product_id
 		WHERE id IN (%s) AND id > $1
 		ORDER BY id
 		LIMIT $2
@@ -286,13 +292,19 @@ func (repo *ProductRepo) BatchGetSkus(
 	if err != nil {
 		return nil, err
 	}
-	var skus []*biz.Sku
+	var skus []*biz.SkuDetail
 	for rows.Next() {
-		var sku biz.Sku
-		if err := rows.Scan(&sku.ID, &sku.ProductID, &sku.Attrs, &sku.UnitPrice); err != nil {
+		var skuDetail biz.SkuDetail
+		if err := rows.Scan(
+			&skuDetail.ProductName,
+			&skuDetail.Sku.ID,
+			&skuDetail.Sku.ProductID,
+			&skuDetail.Sku.Attrs,
+			&skuDetail.Sku.UnitPrice,
+		); err != nil {
 			return nil, err
 		}
-		skus = append(skus, &sku)
+		skus = append(skus, &skuDetail)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
