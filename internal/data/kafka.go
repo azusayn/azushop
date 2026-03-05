@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	KafkaTopicPaymentPaid    = "payment.status"
+	KafkaTopicPaymentStatus  = "payment.status"
 	KafkaTopicProductCreated = "product.created"
 	KafkaTopicOrderCreated   = "order.created"
 )

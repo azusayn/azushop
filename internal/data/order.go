@@ -165,7 +165,7 @@ type orderConsumerHandler struct {
 }
 
 func (s *OrderSubscriber) SubscribePaymentStatus(ctx context.Context, handler func(int64, biz.PaymentStatus) error) error {
-	topics := []string{KafkaTopicPaymentPaid}
+	topics := []string{KafkaTopicPaymentStatus}
 	consumerHandler := NewConsumerHandler(func(bytes []byte) error {
 		var msg PaymentStatusMessage
 		if err := json.Unmarshal(bytes, &msg); err != nil {
