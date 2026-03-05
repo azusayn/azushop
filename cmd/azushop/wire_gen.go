@@ -37,7 +37,8 @@ func wireApp(confServer *conf.Server, confData *conf.Data, logger log.Logger) (*
 	productService := service.NewProductService(productUsecase)
 	inventoryRepo := data.NewInventoryRepo(dataData)
 	transaction := data.NewTransaction(dataData)
-	inventoryUsecase := biz.NewInventoryUsecase(inventoryRepo, transaction)
+	inventorySubscriber := data.NewInventorySubscriber(dataData)
+	inventoryUsecase := biz.NewInventoryUsecase(inventoryRepo, transaction, inventorySubscriber)
 	inventoryService := service.NewInventoryService(inventoryUsecase)
 	orderRepo := data.NewOrderRepo(dataData)
 	orderUsecase := biz.NewOrderUsecase(orderRepo)
@@ -48,7 +49,7 @@ func wireApp(confServer *conf.Server, confData *conf.Data, logger log.Logger) (*
 	paymentService := service.NewPaymentService(paymentUsecase, dataData)
 	grpcServer := server.NewGRPCServer(confServer, authServiceService, productService, inventoryService, orderService, paymentService, dataData, logger)
 	httpServer := server.NewHTTPServer(confServer, authServiceService, logger)
-	runnerManager := runner.NewRunnerManager(orderUsecase)
+	runnerManager := runner.NewRunnerManager(orderUsecase, inventoryUsecase)
 	app := newApp(logger, grpcServer, httpServer, runnerManager)
 	return app, func() {
 		cleanup()

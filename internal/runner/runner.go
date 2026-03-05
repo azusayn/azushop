@@ -22,10 +22,14 @@ type RunnerManager struct {
 	cancel  context.CancelFunc
 }
 
-func NewRunnerManager(orderUsecase *biz.OrderUsecase) *RunnerManager {
+func NewRunnerManager(
+	orderUsecase *biz.OrderUsecase,
+	inventoryUsecase *biz.InventoryUsecase,
+) *RunnerManager {
 	return &RunnerManager{
 		runners: []Runner{
 			NewOrderRunner(orderUsecase),
+			NewInventoryRunner(inventoryUsecase),
 		},
 	}
 }

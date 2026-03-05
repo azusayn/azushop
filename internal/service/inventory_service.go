@@ -105,7 +105,7 @@ func convertToPbInventories(inventories []*biz.Inventory) (map[string]*pb.SKUQua
 	// mapping from SkuID to pb.SKUQuantity
 	m := make(map[string]*pb.SKUQuantity)
 	for _, inventory := range inventories {
-		uuidStr := inventory.ID.String()
+		uuidStr := inventory.SkuID.String()
 		if _, ok := m[uuidStr]; ok {
 			return nil, errors.New("duplicate inventories")
 		}
