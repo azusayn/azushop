@@ -78,7 +78,7 @@ func (repo *InventoryRepo) UpdateDeltaQuantity(ctx context.Context, inventories 
 		if err := gormClient.
 			WithContext(ctx).
 			Model(&biz.Inventory{}).
-			Where("sku_id = ?", inventory.ID).
+			Where("sku_id = ?", inventory.SkuID).
 			Updates(m).Error; err != nil {
 			return err
 		}
@@ -121,9 +121,9 @@ func (repo *InventoryRepo) CreateInventoryLock(
 }
 
 func (repo *InventoryRepo) UpdateInventoryLock(ctx context.Context, inventoryLocks []*biz.InventoryLock, paths []string) error {
-	gormClient := GetTransaction(ctx)
-	if gormClient == nil {
-		gormClient = repo.data.gormClient
+	client := GetTransaction(ctx)
+	if client == nil {
+		client = repo.data.gormClient
 	}
 	for _, invLock := range inventoryLocks {
 		m := make(map[string]any)
@@ -137,7 +137,7 @@ func (repo *InventoryRepo) UpdateInventoryLock(ctx context.Context, inventoryLoc
 				return fmt.Errorf("invalid path %q", path)
 			}
 		}
-		if err := gormClient.
+		if err := client.
 			WithContext(ctx).
 			Model(&biz.InventoryLock{}).
 			Where("order_id = ?", invLock.OrderID).
@@ -146,4 +146,52 @@ func (repo *InventoryRepo) UpdateInventoryLock(ctx context.Context, inventoryLoc
 		}
 	}
 	return nil
+}
+
+func (repo *InventoryRepo) BatchCreateInventoris(ctx context.Context, skuIDs []uuid.UUID) ([]*biz.Inventory, error) {
+	client := GetTransaction(ctx)
+	if client == nil {
+		client = repo.data.gormClient
+	}
+	var inventories []*biz.Inventory
+	for _, skuID := range skuIDs {
+		inventories = append(inventories, &biz.Inventory{
+			SkuID:            skuID,
+			StockQuantity:    0,
+			ReservedQuantity: 0,
+		})
+	}
+	if err := client.WithContext(ctx).Create(&inventories).Error; err != nil {
+		return nil, err
+	}
+	return inventories, nil
+}
+
+type InventorySubscriber struct {
+	data *Data
+}
+
+func NewInventorySubscriber(data *Data) biz.InventorySubscriber {
+	return &InventorySubscriber{data: data}
+}
+
+func (s *InventorySubscriber) SubscribeProductCreated(ctx context.Context, handler func(skuIDs []uuid.UUID) error) error {
+	topics := []string{KafkaTopicProductCreated}
+	consumerHandler := NewConsumerHandler(func(bytes []byte) error {
+		var msg ProductCreatedMessage
+		if err := json.Unmarshal(bytes, &msg); err != nil {
+			return err
+		}
+		return handler(msg.SkuIDs)
+	})
+	// TODO(3): wrap this loop.
+	for {
+		err := s.data.GetKafkaConsumer().Consume(ctx, topics, consumerHandler)
+		if err != nil {
+			return err
+		}
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+	}
 }
