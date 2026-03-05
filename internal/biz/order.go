@@ -8,28 +8,54 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
+	"go.uber.org/multierr"
+)
+
+const (
+	OutboxBatchSize int = 100
 )
 
 type OrderRepo interface {
+	// orders
 	ListOrders(ctx context.Context, userID int32, status OrderStatus, pageToken int64, pageSize int32) ([]*Order, error)
 	GetOrder(ctx context.Context, orderID int64) (*Order, error)
 	CreateOrder(ctx context.Context, orderItems []*OrderItem, total decimal.Decimal, status OrderStatus, userID int32) (*Order, error)
 	UpdateOrderStatus(ctx context.Context, orderID int64, status OrderStatus) error
 	DeleteOrder(ctx context.Context, orderID int64) error
 	CancelOrder(ctx context.Context, orderID int64) error
+	// order_outbox
+	CreateOutboxMessage(ctx context.Context, order *Order) error
+	ListOutboxMessages(ctx context.Context, limit int) ([]*OrderOutboxMessage, error)
+	MarkOutboxMessagesSent(ctx context.Context, ids []uuid.UUID) error
+	MarkOutboxMessagesFailed(ctx context.Context, ids []uuid.UUID) error
 }
-
 type OrderSubscriber interface {
 	SubscribePaymentPaid(ctx context.Context, handler func(orderID int64, status PaymentStatus) error) error
 }
 
-type OrderUsecase struct {
-	repo       OrderRepo
-	subscriber OrderSubscriber
+type OrderPublisher interface {
+	PublishOrderCreated(ctx context.Context, messages []*OrderOutboxMessage) error
 }
 
-func NewOrderUsecase(repo OrderRepo) *OrderUsecase {
-	return &OrderUsecase{repo: repo}
+type OrderUsecase struct {
+	repo       OrderRepo
+	tx         Transaction
+	subscriber OrderSubscriber
+	publisher  OrderPublisher
+}
+
+func NewOrderUsecase(
+	repo OrderRepo,
+	subscriber OrderSubscriber,
+	publisher OrderPublisher,
+	tx Transaction,
+) *OrderUsecase {
+	return &OrderUsecase{
+		repo:       repo,
+		tx:         tx,
+		subscriber: subscriber,
+		publisher:  publisher,
+	}
 }
 
 type OrderStatus string
@@ -51,12 +77,21 @@ type OrderItem struct {
 }
 
 type Order struct {
-	ID         int64           `gorm:"column:id"`
-	UserID     int32           `gorm:"column:user_id"`
-	Total      decimal.Decimal `gorm:"column:total"`
-	Status     OrderStatus     `gorm:"column:status"`
+	ID     int64           `gorm:"column:id"`
+	UserID int32           `gorm:"column:user_id"`
+	Total  decimal.Decimal `gorm:"column:total"`
+	Status OrderStatus     `gorm:"column:status"`
+	// []*OrderItem
 	OrderItems json.RawMessage `gorm:"column:order_items"`
 	CreatedAt  time.Time       `gorm:"column:created_at"`
+}
+
+type OrderOutboxMessage struct {
+	ID        uuid.UUID       `gorm:"column:id"`
+	Topic     string          `gorm:"column:topic"`
+	Payload   json.RawMessage `gorm:"column:payload"`
+	CreatedAt time.Time       `gorm:"column:created_at"`
+	SentAt    time.Time       `gorm:"column:sent_at"`
 }
 
 // retrieves orders by user ID, filtered by order status.
@@ -78,9 +113,21 @@ func (uc *OrderUsecase) CreateOrder(
 	var total decimal.Decimal
 	for _, orderItem := range orderItems {
 		quantity := decimal.NewFromInt(orderItem.Quantity)
-		total.Add(orderItem.UnitPrice.Mul(quantity))
+		total = total.Add(orderItem.UnitPrice.Mul(quantity))
 	}
-	return uc.repo.CreateOrder(ctx, orderItems, total, OrderStatusPending, userID)
+	var createdOrder *Order
+	var err error
+	err = uc.tx.Transaction(ctx, func(ctx context.Context) error {
+		createdOrder, err = uc.repo.CreateOrder(ctx, orderItems, total, OrderStatusPending, userID)
+		if err != nil {
+			return err
+		}
+		return uc.repo.CreateOutboxMessage(ctx, createdOrder)
+	})
+	if err != nil {
+		return nil, err
+	}
+	return createdOrder, nil
 }
 
 func (uc *OrderUsecase) CancelOrder(ctx context.Context, orderID int64) error {
@@ -105,4 +152,19 @@ func (uc *OrderUsecase) HandlePaymentPaid(ctx context.Context) error {
 		}
 		return uc.repo.UpdateOrderStatus(ctx, orderID, OrderStatusConfirmed)
 	})
+}
+
+func (uc *OrderUsecase) ProcessOutboxMessages(ctx context.Context) error {
+	messages, err := uc.repo.ListOutboxMessages(ctx, OutboxBatchSize)
+	if err != nil {
+		return err
+	}
+	var ids []uuid.UUID
+	for _, message := range messages {
+		ids = append(ids, message.ID)
+	}
+	if err := uc.publisher.PublishOrderCreated(ctx, messages); err != nil {
+		return multierr.Append(err, uc.repo.MarkOutboxMessagesFailed(ctx, ids))
+	}
+	return uc.repo.MarkOutboxMessagesSent(ctx, ids)
 }

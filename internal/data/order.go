@@ -4,8 +4,12 @@ import (
 	"azushop/internal/biz"
 	"context"
 	"encoding/json"
+	"time"
 
+	"github.com/IBM/sarama"
+	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
+	"gorm.io/gorm"
 )
 
 type OrderRepo struct {
@@ -95,6 +99,59 @@ func (repo *OrderRepo) UpdateOrderStatus(ctx context.Context, orderID int64, sta
 	return client.WithContext(ctx).Where("id = ?", orderID).Update("status", status).Error
 }
 
+func (repo *OrderRepo) CreateOutboxMessage(ctx context.Context, order *biz.Order) error {
+	client := GetTransaction(ctx)
+	if client == nil {
+		client = repo.data.gormClient
+	}
+	payload, err := json.Marshal(order)
+	if err != nil {
+		return err
+	}
+	outboxMsg := &biz.OrderOutboxMessage{
+		Topic:   KafkaTopicOrderCreated,
+		Payload: payload,
+	}
+	return client.WithContext(ctx).Create(outboxMsg).Error
+}
+
+// returns messages that are eligible for processing.
+func (repo *OrderRepo) ListOutboxMessages(ctx context.Context, limit int) ([]*biz.OrderOutboxMessage, error) {
+	client := GetTransaction(ctx)
+	if client == nil {
+		client = repo.data.gormClient
+	}
+	var messages []*biz.OrderOutboxMessage
+	if err := client.
+		WithContext(ctx).
+		Where("sent_at IS NULL").
+		Where("retry_count < 5").
+		Order("created_at").
+		Limit(limit).
+		Find(&messages).
+		Error; err != nil {
+		return nil, err
+	}
+	return messages, nil
+}
+
+func (repo *OrderRepo) MarkOutboxMessagesSent(ctx context.Context, ids []uuid.UUID) error {
+	client := GetTransaction(ctx)
+	if client == nil {
+		client = repo.data.gormClient
+	}
+	return client.WithContext(ctx).Where("id IN ?", ids).Update("sent_at", time.Now()).Error
+}
+
+// increments the retry count by 1 for the given messageIDs.
+func (repo *OrderRepo) MarkOutboxMessagesFailed(ctx context.Context, ids []uuid.UUID) error {
+	client := GetTransaction(ctx)
+	if client == nil {
+		client = repo.data.gormClient
+	}
+	return client.WithContext(ctx).Where("id IN ?", ids).Update("retry_count", gorm.Expr("retry_count + 1")).Error
+}
+
 type OrderSubscriber struct {
 	data *Data
 }
@@ -125,4 +182,56 @@ func (s *OrderSubscriber) SubscribePaymentPaid(ctx context.Context, handler func
 			return err
 		}
 	}
+}
+
+type OrderPublisher struct {
+	data *Data
+}
+
+func NewOrderPublisher(data *Data) biz.OrderPublisher {
+	return &OrderPublisher{data: data}
+}
+
+func (p *OrderPublisher) PublishOrderCreated(ctx context.Context, messages []*biz.OrderOutboxMessage) error {
+	producer := p.data.GetKafkaProducer()
+	var prodMsgs []*sarama.ProducerMessage
+	for _, message := range messages {
+		orderCreatedMsg, err := convertToOrderCreatedMessage(message)
+		if err != nil {
+			return err
+		}
+		bytes, err := json.Marshal(orderCreatedMsg)
+		if err != nil {
+			return err
+		}
+		prodMsg := &sarama.ProducerMessage{
+			Topic: KafkaTopicOrderCreated,
+			Value: sarama.ByteEncoder(bytes),
+		}
+		prodMsgs = append(prodMsgs, prodMsg)
+	}
+	return producer.SendMessages(prodMsgs)
+}
+
+func convertToOrderCreatedMessage(message *biz.OrderOutboxMessage) (*OrderCreatedMessage, error) {
+	var order biz.Order
+	if err := json.Unmarshal(message.Payload, &order); err != nil {
+		return nil, err
+	}
+	var bizOrderItems []*biz.OrderItem
+	if err := json.Unmarshal(order.OrderItems, &bizOrderItems); err != nil {
+		return nil, err
+	}
+	var orderItems []*OrderItem
+	for _, bizOrderItem := range bizOrderItems {
+		orderItems = append(orderItems, &OrderItem{
+			SkuID:    bizOrderItem.SkuID,
+			Quantity: bizOrderItem.Quantity,
+		})
+	}
+	orderCreatedMsg := &OrderCreatedMessage{
+		OrderID:    order.ID,
+		OrderItems: orderItems,
+	}
+	return orderCreatedMsg, nil
 }

@@ -65,28 +65,6 @@ func (s *InventoryService) BatchGetStock(ctx context.Context, req *pb.BatchGetSt
 	}, nil
 }
 
-func (s *InventoryService) ReserveStock(ctx context.Context, req *pb.ReserveStockRequest) (*pb.ReserveStockResponse, error) {
-	items := req.GetItems()
-	if len(items) == 0 {
-		return nil, status.Error(codes.InvalidArgument, "empty items")
-	}
-	m := make(map[uuid.UUID]int64)
-	for _, item := range req.Items {
-		uuid, err := uuid.Parse(item.SkuId)
-		if err != nil {
-			return nil, err
-		}
-		if _, ok := m[uuid]; ok {
-			return nil, errors.New("duplicate SkuIds")
-		}
-		m[uuid] = item.Quantity
-	}
-	if err := s.uc.ReserveStock(ctx, req.OrderId, m); err != nil {
-		return nil, err
-	}
-	return &pb.ReserveStockResponse{}, nil
-}
-
 func (s *InventoryService) ReleaseStock(ctx context.Context, req *pb.ReleaseStockRequest) (*pb.ReleaseStockResponse, error) {
 	if err := s.uc.ReleaseStock(ctx, req.OrderId); err != nil {
 		return nil, err

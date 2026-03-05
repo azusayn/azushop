@@ -21,5 +21,8 @@ func (r *OrderRunner) Run(ctx context.Context) error {
 	g.Go(func() error {
 		return r.uc.HandlePaymentPaid(ctx)
 	})
+	g.Go(func() error {
+		return r.uc.ProcessOutboxMessages(ctx)
+	})
 	return g.Wait()
 }
