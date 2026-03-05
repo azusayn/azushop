@@ -15,6 +15,7 @@ type InventoryRepo interface {
 	// use delta to update the stock quantity.
 	UpdateDeltaQuantity(ctx context.Context, inventories []*Inventory, paths []string) error
 	BatchGetInventories(ctx context.Context, skuIDs []uuid.UUID) ([]*Inventory, error)
+	BatchCreateInventoris(ctx context.Context, skuIDs []uuid.UUID) ([]*Inventory, error)
 
 	// 'inventory_lock' table.
 	GetInventoryLock(ctx context.Context, orderID int64) (*InventoryLock, error)
@@ -22,8 +23,12 @@ type InventoryRepo interface {
 	UpdateInventoryLock(ctx context.Context, inventoryLocks []*InventoryLock, paths []string) error
 }
 
+type InventorySubscriber interface {
+	SubscribeProductCreated(ctx context.Context, handler func(skuIDs []uuid.UUID) error) error
+}
+
 type Inventory struct {
-	ID               uuid.UUID `gorm:"column:sku_id"`
+	SkuID            uuid.UUID `gorm:"column:sku_id"`
 	StockQuantity    int64     `gorm:"column:stock_quantity"`
 	ReservedQuantity int64     `gorm:"column:reserved_quantity"`
 }
@@ -45,14 +50,16 @@ type InventoryLock struct {
 }
 
 type InventoryUsecase struct {
-	repo InventoryRepo
-	tx   Transaction
+	repo       InventoryRepo
+	tx         Transaction
+	subscriber InventorySubscriber
 }
 
-func NewInventoryUsecase(repo InventoryRepo, tx Transaction) *InventoryUsecase {
+func NewInventoryUsecase(repo InventoryRepo, tx Transaction, sub InventorySubscriber) *InventoryUsecase {
 	return &InventoryUsecase{
-		repo: repo,
-		tx:   tx,
+		repo:       repo,
+		tx:         tx,
+		subscriber: sub,
 	}
 }
 
@@ -63,7 +70,7 @@ func (uc *InventoryUsecase) AdjustStock(
 	role UserRole,
 ) error {
 	inventories := []*Inventory{{
-		ID:            skuID,
+		SkuID:         skuID,
 		StockQuantity: stockQuantity,
 	}}
 	paths := []string{"stock_quantity"}
@@ -83,7 +90,7 @@ func (uc *InventoryUsecase) ReserveStock(ctx context.Context, orderID int64, ite
 	var inventoryDeltas []*Inventory
 	for skuID, quantity := range items {
 		inventoryDeltas = append(inventoryDeltas, &Inventory{
-			ID:               skuID,
+			SkuID:            skuID,
 			ReservedQuantity: quantity,
 		})
 	}
@@ -110,7 +117,7 @@ func (uc *InventoryUsecase) ReleaseStock(ctx context.Context, orderID int64) err
 		var inventoryDeltas []*Inventory
 		for skuID, quantity := range m {
 			inventoryDeltas = append(inventoryDeltas, &Inventory{
-				ID:               skuID,
+				SkuID:            skuID,
 				ReservedQuantity: -quantity,
 			})
 		}
@@ -141,7 +148,7 @@ func (uc *InventoryUsecase) DeductStock(ctx context.Context, orderID int64) erro
 		var inventoryDeltas []*Inventory
 		for skuID, quantity := range m {
 			inventoryDeltas = append(inventoryDeltas, &Inventory{
-				ID:               skuID,
+				SkuID:            skuID,
 				StockQuantity:    -quantity,
 				ReservedQuantity: -quantity,
 			})
@@ -155,5 +162,16 @@ func (uc *InventoryUsecase) DeductStock(ctx context.Context, orderID int64) erro
 			Status:  InventoryLockStatusConfirmed,
 		}}
 		return uc.repo.UpdateInventoryLock(ctx, inventoryLocks, []string{"status"})
+	})
+}
+
+func (uc *InventoryUsecase) HandleProductCreated(ctx context.Context) error {
+	return uc.subscriber.SubscribeProductCreated(ctx, func(skuIDs []uuid.UUID) error {
+		// TODO(1): retrying topic.
+		_, err := uc.repo.BatchCreateInventoris(ctx, skuIDs)
+		if err != nil {
+			return err
+		}
+		return err
 	})
 }

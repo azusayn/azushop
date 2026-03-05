@@ -4,10 +4,12 @@ import (
 	"log/slog"
 
 	"github.com/IBM/sarama"
+	"github.com/google/uuid"
 )
 
 const (
-	KafkaTopicPaymentPaid = "payment.status"
+	KafkaTopicPaymentPaid    = "payment.status"
+	KafkaTopicProductCreated = "product.created"
 )
 
 type PaymentStatus string
@@ -24,6 +26,10 @@ const (
 type PaymentStatusMessage struct {
 	OrderID int64
 	Status  PaymentStatus
+}
+
+type ProductCreatedMessage struct {
+	SkuIDs []uuid.UUID
 }
 
 type ConsumerHandler struct {

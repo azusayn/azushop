@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 
 	"github.com/azusayn/azutils/auth"
 	"github.com/google/uuid"
@@ -43,8 +44,13 @@ type ProductRepo interface {
 	BatchGetSkus(ctx context.Context, skuIDs []uuid.UUID, pageToken uuid.UUID, pageSize int32) ([]*Sku, error)
 }
 
+type ProductPublisher interface {
+	PublishProductCreated(ctx context.Context, skuIDs []uuid.UUID) error
+}
+
 type ProductUsecase struct {
-	repo ProductRepo
+	repo      ProductRepo
+	publisher ProductPublisher
 }
 
 func NewProductUsecase(repo ProductRepo) *ProductUsecase {
@@ -125,7 +131,22 @@ func (uc *ProductUsecase) BatchCreateProducts(
 	if err != nil {
 		return nil, err
 	}
-	return uc.repo.BatchCreateProducts(ctx, products)
+	createdProds, err := uc.repo.BatchCreateProducts(ctx, products)
+	if err != nil {
+		return nil, err
+	}
+
+	var skuIDs []uuid.UUID
+	for _, p := range createdProds {
+		for _, s := range p.Skus {
+			skuIDs = append(skuIDs, s.ID)
+		}
+	}
+	// TODO(0): outbox
+	if err := uc.publisher.PublishProductCreated(ctx, skuIDs); err != nil {
+		slog.Warn(err.Error())
+	}
+	return createdProds, nil
 }
 
 func (uc *ProductUsecase) BatchUpdateProducts(

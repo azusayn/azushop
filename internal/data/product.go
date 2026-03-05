@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/IBM/sarama"
 	"github.com/azusayn/azutils/sql"
 	"github.com/google/uuid"
 )
@@ -297,4 +298,32 @@ func (repo *ProductRepo) BatchGetSkus(
 		return nil, err
 	}
 	return skus, nil
+}
+
+type ProductPublisher struct {
+	data *Data
+}
+
+func NewProductPublisher(data *Data) biz.ProductPublisher {
+	return &ProductPublisher{data: data}
+}
+
+func (p *ProductPublisher) PublishProductCreated(ctx context.Context, skuIDs []uuid.UUID) error {
+	prodcuer := p.data.GetKafkaProducer()
+	if prodcuer == nil {
+		return errors.New("nil producer")
+	}
+	msg := ProductCreatedMessage{
+		SkuIDs: skuIDs,
+	}
+	bytes, err := json.Marshal(msg)
+	if err != nil {
+		return err
+	}
+	prodMsg := &sarama.ProducerMessage{
+		Topic: KafkaTopicProductCreated,
+		Value: sarama.ByteEncoder(bytes),
+	}
+	_, _, err = prodcuer.SendMessage(prodMsg)
+	return err
 }
