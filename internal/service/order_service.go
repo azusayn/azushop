@@ -84,7 +84,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, req *pb.CreateOrderReque
 		Items:   pbStockItems,
 	}
 	if _, err := inventoryService.ReserveStock(ctx, reserveStockReq); err != nil {
-		// TODO(0): order in 'pending' status must be cleaned by the backend worker.
+		// TODO(0): message queue & outbox.
 		if err := s.uc.DeleteOrder(ctx, order.ID); err != nil {
 			slog.Warn(err.Error())
 		}
@@ -179,12 +179,12 @@ func convertToPbOrderStatus(status *biz.OrderStatus) pb.OrderStatus {
 		switch *status {
 		case biz.OrderStatusPending:
 			return pb.OrderStatus_ORDER_STATUS_PENDING
-		case biz.OrderStatusPaid:
-			return pb.OrderStatus_ORDER_STATUS_PAID
 		case biz.OrderStatusCancelled:
 			return pb.OrderStatus_ORDER_STATUS_CANCELLED
-		case biz.OrderStatusRefunded:
-			return pb.OrderStatus_ORDER_STATUS_REFUNDED
+		case biz.OrderStatusConfirmed:
+			return pb.OrderStatus_ORDER_STATUS_CONFIRMED
+		case biz.OrderStatusCompleted:
+			return pb.OrderStatus_ORDER_STATUS_COMPLETED
 		default:
 		}
 	}
@@ -196,12 +196,12 @@ func convertToBizOrderStatus(status *pb.OrderStatus) biz.OrderStatus {
 		switch *status {
 		case pb.OrderStatus_ORDER_STATUS_PENDING:
 			return biz.OrderStatusPending
-		case pb.OrderStatus_ORDER_STATUS_PAID:
-			return biz.OrderStatusPaid
 		case pb.OrderStatus_ORDER_STATUS_CANCELLED:
 			return biz.OrderStatusCancelled
-		case pb.OrderStatus_ORDER_STATUS_REFUNDED:
-			return biz.OrderStatusRefunded
+		case pb.OrderStatus_ORDER_STATUS_CONFIRMED:
+			return biz.OrderStatusConfirmed
+		case pb.OrderStatus_ORDER_STATUS_COMPLETED:
+			return biz.OrderStatusCompleted
 		default:
 		}
 	}

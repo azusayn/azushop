@@ -28,9 +28,9 @@ type OrderStatus int32
 const (
 	OrderStatus_ORDER_STATUS_UNSPECIFIED OrderStatus = 0
 	OrderStatus_ORDER_STATUS_PENDING     OrderStatus = 1
-	OrderStatus_ORDER_STATUS_PAID        OrderStatus = 2
-	OrderStatus_ORDER_STATUS_CANCELLED   OrderStatus = 3
-	OrderStatus_ORDER_STATUS_REFUNDED    OrderStatus = 4
+	OrderStatus_ORDER_STATUS_CANCELLED   OrderStatus = 2
+	OrderStatus_ORDER_STATUS_CONFIRMED   OrderStatus = 3
+	OrderStatus_ORDER_STATUS_COMPLETED   OrderStatus = 4
 )
 
 // Enum value maps for OrderStatus.
@@ -38,16 +38,16 @@ var (
 	OrderStatus_name = map[int32]string{
 		0: "ORDER_STATUS_UNSPECIFIED",
 		1: "ORDER_STATUS_PENDING",
-		2: "ORDER_STATUS_PAID",
-		3: "ORDER_STATUS_CANCELLED",
-		4: "ORDER_STATUS_REFUNDED",
+		2: "ORDER_STATUS_CANCELLED",
+		3: "ORDER_STATUS_CONFIRMED",
+		4: "ORDER_STATUS_COMPLETED",
 	}
 	OrderStatus_value = map[string]int32{
 		"ORDER_STATUS_UNSPECIFIED": 0,
 		"ORDER_STATUS_PENDING":     1,
-		"ORDER_STATUS_PAID":        2,
-		"ORDER_STATUS_CANCELLED":   3,
-		"ORDER_STATUS_REFUNDED":    4,
+		"ORDER_STATUS_CANCELLED":   2,
+		"ORDER_STATUS_CONFIRMED":   3,
+		"ORDER_STATUS_COMPLETED":   4,
 	}
 )
 
@@ -636,13 +636,13 @@ const file_api_order_v1_order_proto_rawDesc = "" +
 	"\x0fGetOrderRequest\x12\x19\n" +
 	"\border_id\x18\x01 \x01(\x03R\aorderId\"9\n" +
 	"\x10GetOrderResponse\x12%\n" +
-	"\x05order\x18\x01 \x01(\v2\x0f.order.v1.OrderR\x05order*\x93\x01\n" +
+	"\x05order\x18\x01 \x01(\v2\x0f.order.v1.OrderR\x05order*\x99\x01\n" +
 	"\vOrderStatus\x12\x1c\n" +
 	"\x18ORDER_STATUS_UNSPECIFIED\x10\x00\x12\x18\n" +
-	"\x14ORDER_STATUS_PENDING\x10\x01\x12\x15\n" +
-	"\x11ORDER_STATUS_PAID\x10\x02\x12\x1a\n" +
-	"\x16ORDER_STATUS_CANCELLED\x10\x03\x12\x19\n" +
-	"\x15ORDER_STATUS_REFUNDED\x10\x042\x86\x03\n" +
+	"\x14ORDER_STATUS_PENDING\x10\x01\x12\x1a\n" +
+	"\x16ORDER_STATUS_CANCELLED\x10\x02\x12\x1a\n" +
+	"\x16ORDER_STATUS_CONFIRMED\x10\x03\x12\x1a\n" +
+	"\x16ORDER_STATUS_COMPLETED\x10\x042\x86\x03\n" +
 	"\fOrderService\x12a\n" +
 	"\vCreateOrder\x12\x1c.order.v1.CreateOrderRequest\x1a\x1d.order.v1.CreateOrderResponse\"\x15\x82\xd3\xe4\x93\x02\x0f:\x01*\"\n" +
 	"/v1/orders\x12s\n" +
