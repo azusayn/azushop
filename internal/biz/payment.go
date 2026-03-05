@@ -90,7 +90,7 @@ func (uc *PaymentUsecase) CreatePayment(
 	switch method {
 	case PaymentMethodStripe:
 		var amountTotal int64
-		externalID, url, amountTotal, err = handleStripeCreatePayment(orderID, userID, items, successURL)
+		externalID, url, amountTotal, err = createStripePayment(orderID, userID, items, successURL)
 		if err != nil {
 			return "", err
 		}
@@ -128,7 +128,7 @@ func (uc *PaymentUsecase) Callback(ctx context.Context, method PaymentMethod, bo
 // - PaymentIntent ID
 // - URL
 // - AmountTotal
-func handleStripeCreatePayment(
+func createStripePayment(
 	orderID int64,
 	userID int32,
 	items []*PaymentItem,

@@ -28,6 +28,11 @@ type Sku struct {
 	UnitPrice string
 }
 
+type SkuDetail struct {
+	Sku         Sku
+	ProductName string
+}
+
 type Product struct {
 	ID            uuid.UUID
 	ProductName   string
@@ -40,8 +45,7 @@ type ProductRepo interface {
 	ListProductsBySellerId(ctx context.Context, sellerID int32, pageToken int64, pageSize int32, productStatus ProductStatus) ([]*Product, error)
 	BatchCreateProducts(ctx context.Context, product []*Product) ([]*Product, error)
 	BatchUpdateProducts(ctx context.Context, product []*Product, paths []string) error
-	// table 'skus'
-	BatchGetSkus(ctx context.Context, skuIDs []uuid.UUID, pageToken uuid.UUID, pageSize int32) ([]*Sku, error)
+	BatchGetSkuDetails(ctx context.Context, skuIDs []uuid.UUID, pageToken uuid.UUID, pageSize int32) ([]*SkuDetail, error)
 }
 
 type ProductPublisher interface {
@@ -163,6 +167,6 @@ func (uc *ProductUsecase) BatchUpdateProducts(
 	return uc.repo.BatchUpdateProducts(ctx, products, paths)
 }
 
-func (uc *ProductUsecase) BatchGetSkus(ctx context.Context, skuIDs []uuid.UUID, pageToken uuid.UUID, pageSize int32) ([]*Sku, error) {
-	return uc.repo.BatchGetSkus(ctx, skuIDs, pageToken, pageSize)
+func (uc *ProductUsecase) BatchGetSkuDetails(ctx context.Context, skuIDs []uuid.UUID, pageToken uuid.UUID, pageSize int32) ([]*SkuDetail, error) {
+	return uc.repo.BatchGetSkuDetails(ctx, skuIDs, pageToken, pageSize)
 }

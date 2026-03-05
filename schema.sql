@@ -29,7 +29,7 @@ CREATE INDEX idx_products_seller_id ON products(seller_id);
 CREATE TABLE skus (
   -- UUIDv7
   id UUID PRIMARY KEY NOT NULL, 
-  product_id BIGINT NOT NULL,
+  product_id UUID NOT NULL,
   attrs JSONB,
   unit_price NUMERIC(10, 2) NOT NULL CHECK (unit_price >= 0),
   FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE

@@ -562,9 +562,61 @@ func (x *BatchGetSkusRequest) GetSkuIds() []string {
 	return nil
 }
 
+type SkuDetail struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Sku           *Sku                   `protobuf:"bytes,1,opt,name=sku,proto3" json:"sku,omitempty"`
+	ProductName   string                 `protobuf:"bytes,2,opt,name=product_name,json=productName,proto3" json:"product_name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SkuDetail) Reset() {
+	*x = SkuDetail{}
+	mi := &file_api_product_v1_product_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SkuDetail) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SkuDetail) ProtoMessage() {}
+
+func (x *SkuDetail) ProtoReflect() protoreflect.Message {
+	mi := &file_api_product_v1_product_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SkuDetail.ProtoReflect.Descriptor instead.
+func (*SkuDetail) Descriptor() ([]byte, []int) {
+	return file_api_product_v1_product_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *SkuDetail) GetSku() *Sku {
+	if x != nil {
+		return x.Sku
+	}
+	return nil
+}
+
+func (x *SkuDetail) GetProductName() string {
+	if x != nil {
+		return x.ProductName
+	}
+	return ""
+}
+
 type BatchGetSkusResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Skus          []*Sku                 `protobuf:"bytes,1,rep,name=skus,proto3" json:"skus,omitempty"`
+	SkuDetails    []*SkuDetail           `protobuf:"bytes,1,rep,name=sku_details,json=skuDetails,proto3" json:"sku_details,omitempty"`
 	NextPageToken string                 `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -572,7 +624,7 @@ type BatchGetSkusResponse struct {
 
 func (x *BatchGetSkusResponse) Reset() {
 	*x = BatchGetSkusResponse{}
-	mi := &file_api_product_v1_product_proto_msgTypes[9]
+	mi := &file_api_product_v1_product_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -584,7 +636,7 @@ func (x *BatchGetSkusResponse) String() string {
 func (*BatchGetSkusResponse) ProtoMessage() {}
 
 func (x *BatchGetSkusResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_product_v1_product_proto_msgTypes[9]
+	mi := &file_api_product_v1_product_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -597,12 +649,12 @@ func (x *BatchGetSkusResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BatchGetSkusResponse.ProtoReflect.Descriptor instead.
 func (*BatchGetSkusResponse) Descriptor() ([]byte, []int) {
-	return file_api_product_v1_product_proto_rawDescGZIP(), []int{9}
+	return file_api_product_v1_product_proto_rawDescGZIP(), []int{10}
 }
 
-func (x *BatchGetSkusResponse) GetSkus() []*Sku {
+func (x *BatchGetSkusResponse) GetSkuDetails() []*SkuDetail {
 	if x != nil {
-		return x.Skus
+		return x.SkuDetails
 	}
 	return nil
 }
@@ -652,9 +704,13 @@ const file_api_product_v1_product_proto_rawDesc = "" +
 	"\n" +
 	"page_token\x18\x01 \x01(\tR\tpageToken\x12\x1b\n" +
 	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\x12\x17\n" +
-	"\asku_ids\x18\x03 \x03(\tR\x06skuIds\"c\n" +
-	"\x14BatchGetSkusResponse\x12#\n" +
-	"\x04skus\x18\x01 \x03(\v2\x0f.product.v1.SkuR\x04skus\x12&\n" +
+	"\asku_ids\x18\x03 \x03(\tR\x06skuIds\"Q\n" +
+	"\tSkuDetail\x12!\n" +
+	"\x03sku\x18\x01 \x01(\v2\x0f.product.v1.SkuR\x03sku\x12!\n" +
+	"\fproduct_name\x18\x02 \x01(\tR\vproductName\"v\n" +
+	"\x14BatchGetSkusResponse\x126\n" +
+	"\vsku_details\x18\x01 \x03(\v2\x15.product.v1.SkuDetailR\n" +
+	"skuDetails\x12&\n" +
 	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken*\x9c\x01\n" +
 	"\rProductStatus\x12\x1e\n" +
 	"\x1aPRODUCT_STATUS_UNSPECIFIED\x10\x00\x12\x18\n" +
@@ -681,7 +737,7 @@ func file_api_product_v1_product_proto_rawDescGZIP() []byte {
 }
 
 var file_api_product_v1_product_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_api_product_v1_product_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_api_product_v1_product_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_api_product_v1_product_proto_goTypes = []any{
 	(ProductStatus)(0),                 // 0: product.v1.ProductStatus
 	(*Sku)(nil),                        // 1: product.v1.Sku
@@ -693,33 +749,35 @@ var file_api_product_v1_product_proto_goTypes = []any{
 	(*BatchUpdateProductRequest)(nil),  // 7: product.v1.BatchUpdateProductRequest
 	(*BatchUpdateProductResponse)(nil), // 8: product.v1.BatchUpdateProductResponse
 	(*BatchGetSkusRequest)(nil),        // 9: product.v1.BatchGetSkusRequest
-	(*BatchGetSkusResponse)(nil),       // 10: product.v1.BatchGetSkusResponse
-	(*structpb.Struct)(nil),            // 11: google.protobuf.Struct
-	(*fieldmaskpb.FieldMask)(nil),      // 12: google.protobuf.FieldMask
+	(*SkuDetail)(nil),                  // 10: product.v1.SkuDetail
+	(*BatchGetSkusResponse)(nil),       // 11: product.v1.BatchGetSkusResponse
+	(*structpb.Struct)(nil),            // 12: google.protobuf.Struct
+	(*fieldmaskpb.FieldMask)(nil),      // 13: google.protobuf.FieldMask
 }
 var file_api_product_v1_product_proto_depIdxs = []int32{
-	11, // 0: product.v1.Sku.attrs:type_name -> google.protobuf.Struct
+	12, // 0: product.v1.Sku.attrs:type_name -> google.protobuf.Struct
 	1,  // 1: product.v1.Product.skus:type_name -> product.v1.Sku
 	0,  // 2: product.v1.Product.product_status:type_name -> product.v1.ProductStatus
 	0,  // 3: product.v1.ListSellerProductsRequest.product_status:type_name -> product.v1.ProductStatus
 	2,  // 4: product.v1.ListSellerProductsResponse.products:type_name -> product.v1.Product
 	2,  // 5: product.v1.BatchCreateProductRequest.products:type_name -> product.v1.Product
 	2,  // 6: product.v1.BatchUpdateProductRequest.products:type_name -> product.v1.Product
-	12, // 7: product.v1.BatchUpdateProductRequest.update_mask:type_name -> google.protobuf.FieldMask
-	1,  // 8: product.v1.BatchGetSkusResponse.skus:type_name -> product.v1.Sku
-	3,  // 9: product.v1.ProductService.ListSellerProducts:input_type -> product.v1.ListSellerProductsRequest
-	5,  // 10: product.v1.ProductService.BatchCreateProduct:input_type -> product.v1.BatchCreateProductRequest
-	7,  // 11: product.v1.ProductService.BatchUpdateProduct:input_type -> product.v1.BatchUpdateProductRequest
-	9,  // 12: product.v1.ProductService.BatchGetSkus:input_type -> product.v1.BatchGetSkusRequest
-	4,  // 13: product.v1.ProductService.ListSellerProducts:output_type -> product.v1.ListSellerProductsResponse
-	6,  // 14: product.v1.ProductService.BatchCreateProduct:output_type -> product.v1.BatchCreateProductResponse
-	8,  // 15: product.v1.ProductService.BatchUpdateProduct:output_type -> product.v1.BatchUpdateProductResponse
-	10, // 16: product.v1.ProductService.BatchGetSkus:output_type -> product.v1.BatchGetSkusResponse
-	13, // [13:17] is the sub-list for method output_type
-	9,  // [9:13] is the sub-list for method input_type
-	9,  // [9:9] is the sub-list for extension type_name
-	9,  // [9:9] is the sub-list for extension extendee
-	0,  // [0:9] is the sub-list for field type_name
+	13, // 7: product.v1.BatchUpdateProductRequest.update_mask:type_name -> google.protobuf.FieldMask
+	1,  // 8: product.v1.SkuDetail.sku:type_name -> product.v1.Sku
+	10, // 9: product.v1.BatchGetSkusResponse.sku_details:type_name -> product.v1.SkuDetail
+	3,  // 10: product.v1.ProductService.ListSellerProducts:input_type -> product.v1.ListSellerProductsRequest
+	5,  // 11: product.v1.ProductService.BatchCreateProduct:input_type -> product.v1.BatchCreateProductRequest
+	7,  // 12: product.v1.ProductService.BatchUpdateProduct:input_type -> product.v1.BatchUpdateProductRequest
+	9,  // 13: product.v1.ProductService.BatchGetSkus:input_type -> product.v1.BatchGetSkusRequest
+	4,  // 14: product.v1.ProductService.ListSellerProducts:output_type -> product.v1.ListSellerProductsResponse
+	6,  // 15: product.v1.ProductService.BatchCreateProduct:output_type -> product.v1.BatchCreateProductResponse
+	8,  // 16: product.v1.ProductService.BatchUpdateProduct:output_type -> product.v1.BatchUpdateProductResponse
+	11, // 17: product.v1.ProductService.BatchGetSkus:output_type -> product.v1.BatchGetSkusResponse
+	14, // [14:18] is the sub-list for method output_type
+	10, // [10:14] is the sub-list for method input_type
+	10, // [10:10] is the sub-list for extension type_name
+	10, // [10:10] is the sub-list for extension extendee
+	0,  // [0:10] is the sub-list for field type_name
 }
 
 func init() { file_api_product_v1_product_proto_init() }
@@ -734,7 +792,7 @@ func file_api_product_v1_product_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_product_v1_product_proto_rawDesc), len(file_api_product_v1_product_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   10,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
