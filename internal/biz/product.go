@@ -1,14 +1,12 @@
 package biz
 
 import (
-	"azushop/internal/common"
 	"context"
 	"encoding/json"
 	"fmt"
 
 	"github.com/azusayn/azutils/auth"
 	"github.com/google/uuid"
-	"google.golang.org/protobuf/types/known/fieldmaskpb"
 )
 
 type ProductStatus string
@@ -133,7 +131,7 @@ func (uc *ProductUsecase) BatchCreateProducts(
 func (uc *ProductUsecase) BatchUpdateProducts(
 	ctx context.Context,
 	products []*Product,
-	updateMask *fieldmaskpb.FieldMask,
+	paths []string,
 	userID int32,
 	userRole UserRole,
 ) error {
@@ -141,8 +139,7 @@ func (uc *ProductUsecase) BatchUpdateProducts(
 	if err != nil {
 		return err
 	}
-	ss := common.NewStringSet(common.WithValues(updateMask.Paths))
-	return uc.repo.BatchUpdateProducts(ctx, products, ss.ToSlice())
+	return uc.repo.BatchUpdateProducts(ctx, products, paths)
 }
 
 func (uc *ProductUsecase) BatchGetSkus(ctx context.Context, skuIDs []uuid.UUID, pageToken uuid.UUID, pageSize int32) ([]*Sku, error) {

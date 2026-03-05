@@ -6,6 +6,8 @@ import (
 	"azushop/internal/common"
 	"azushop/internal/pkg/middleware"
 	"context"
+	"errors"
+	"fmt"
 
 	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
@@ -56,6 +58,50 @@ func (s *ProductService) ListSellerProducts(ctx context.Context, req *pb.ListSel
 		Products: pbProducts,
 	}, nil
 }
+
+func (s *ProductService) BatchCreateProduct(ctx context.Context, req *pb.BatchCreateProductRequest) (*pb.BatchCreateProductResponse, error) {
+	userID, role, err := middleware.ExtractUserInfo(&ctx)
+	if err != nil {
+		return nil, err
+	}
+	if len(req.Products) == 0 {
+		return nil, errors.New("empty products")
+	}
+	for _, product := range req.Products {
+		if len(product.Skus) == 0 {
+			return nil, fmt.Errorf("empty skus for product %q", product.ProductName[:20])
+		}
+	}
+	products, err := convertToBizProducts(req.Products)
+	if err != nil {
+		return nil, err
+	}
+	_, err = s.uc.BatchCreateProducts(ctx, products, userID, biz.UserRole(role))
+	if err != nil {
+		return nil, err
+	}
+	return &pb.BatchCreateProductResponse{}, nil
+}
+
+func (s *ProductService) BatchUpdateProduct(ctx context.Context, req *pb.BatchUpdateProductRequest) (*pb.BatchUpdateProductResponse, error) {
+	userID, role, err := middleware.ExtractUserInfo(&ctx)
+	if err != nil {
+		return nil, err
+	}
+	if len(req.Products) == 0 {
+		return nil, errors.New("empty products")
+	}
+	products, err := convertToBizProducts(req.Products)
+	if err != nil {
+		return nil, err
+	}
+	paths := convertToUniquePaths(req.UpdateMask)
+	if err := s.uc.BatchUpdateProducts(ctx, products, paths, userID, biz.UserRole(role)); err != nil {
+		return nil, err
+	}
+	return &pb.BatchUpdateProductResponse{}, nil
+}
+
 func (s *ProductService) BatchGetSkus(ctx context.Context, req *pb.BatchGetSkusRequest) (*pb.BatchGetSkusResponse, error) {
 	if req.PageSize < 1 || req.PageSize > maxPageSize {
 		return nil, status.Error(codes.OutOfRange, codes.OutOfRange.String())
