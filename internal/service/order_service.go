@@ -51,7 +51,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, req *pb.CreateOrderReque
 
 	// fetch unit price.
 	productService := s.data.GetProductService()
-	m, err := fetchAllSkus(ctx, productService, skuIDs)
+	m, err := fetchAllSkuDetails(ctx, productService, skuIDs)
 	if err != nil {
 		return nil, err
 	}
@@ -146,14 +146,14 @@ func (s *OrderService) ListOrders(ctx context.Context, req *pb.ListOrdersRequest
 	}, nil
 }
 
-func fetchAllSkus(
+func fetchAllSkuDetails(
 	ctx context.Context,
 	productService productpb.ProductServiceClient,
 	skuIDs []string,
-) (map[string]*productpb.Sku, error) {
+) (map[string]*productpb.SkuDetail, error) {
 	var nextPageToken string
-	// mapping from uuid to Sku.
-	m := make(map[string]*productpb.Sku)
+	// mapping from uuid to SkuDetail.
+	m := make(map[string]*productpb.SkuDetail)
 	for {
 		resp, err := productService.BatchGetSkus(ctx, &productpb.BatchGetSkusRequest{
 			PageToken: nextPageToken,
@@ -163,8 +163,8 @@ func fetchAllSkus(
 		if err != nil {
 			return nil, err
 		}
-		for _, sku := range resp.Skus {
-			m[sku.Id] = sku
+		for _, skuDetail := range resp.SkuDetails {
+			m[skuDetail.GetSku().GetId()] = skuDetail
 		}
 		if resp.NextPageToken == "" {
 			break
@@ -209,10 +209,10 @@ func convertToBizOrderStatus(status *pb.OrderStatus) biz.OrderStatus {
 }
 
 // mapping: mapping from skuId to productpb.Sku
-func convertToBizOrderItems(pbOrderItems []*pb.OrderItem, mapping map[string]*productpb.Sku) ([]*biz.OrderItem, error) {
+func convertToBizOrderItems(pbOrderItems []*pb.OrderItem, mapping map[string]*productpb.SkuDetail) ([]*biz.OrderItem, error) {
 	var orderItems []*biz.OrderItem
 	for _, pbOrderItem := range pbOrderItems {
-		sku, ok := mapping[pbOrderItem.SkuId]
+		skuDetail, ok := mapping[pbOrderItem.SkuId]
 		if !ok {
 			return nil, errors.New("failed to get sku from mapping")
 		}
@@ -220,19 +220,20 @@ func convertToBizOrderItems(pbOrderItems []*pb.OrderItem, mapping map[string]*pr
 		if err != nil {
 			return nil, err
 		}
-		unitPriceDecimal, err := decimal.NewFromString(sku.UnitPrice)
+		unitPriceDecimal, err := decimal.NewFromString(skuDetail.GetSku().GetUnitPrice())
 		if err != nil {
 			return nil, err
 		}
-		bytesAttrs, err := protojson.Marshal(sku.Attrs)
+		bytesAttrs, err := protojson.Marshal(skuDetail.GetSku().GetAttrs())
 		if err != nil {
 			return nil, err
 		}
 		orderItems = append(orderItems, &biz.OrderItem{
-			SkuID:     uuid,
-			Quantity:  pbOrderItem.GetQuantity(),
-			UnitPrice: unitPriceDecimal,
-			Attrs:     bytesAttrs,
+			ProductName: skuDetail.GetProductName(),
+			SkuID:       uuid,
+			Quantity:    pbOrderItem.GetQuantity(),
+			UnitPrice:   unitPriceDecimal,
+			Attrs:       bytesAttrs,
 		})
 	}
 	return orderItems, nil

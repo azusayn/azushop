@@ -57,10 +57,11 @@ message Order {
 message OrderItem {
   string sku_id = 1;
   int64 quantity = 2;
-  // TODO: currency type.
+  // TODO(3): currency type.
   // only present in responses, not required in CreateOrderRequest.
   optional string unit_price = 3;
   optional google.protobuf.Struct attrs = 4;
+  optional string product_name = 5; 
 }
 
 message ListOrdersRequest {
