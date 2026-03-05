@@ -14,10 +14,6 @@ service InventoryService {
   rpc BatchGetStock(BatchGetStockRequest) returns (BatchGetStockResponse);
   
   // interfaces used by internal services.
-  // reserves a certain quantity of stock after  
-  // an order is created.
-  rpc ReserveStock(ReserveStockRequest) returns (ReserveStockResponse);
-  
   // release reserved stock when a customer cancels an order.
   rpc ReleaseStock(ReleaseStockRequest) returns (ReleaseStockResponse);
   

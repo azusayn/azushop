@@ -19,12 +19,13 @@ type InventoryRepo interface {
 
 	// 'inventory_lock' table.
 	GetInventoryLock(ctx context.Context, orderID int64) (*InventoryLock, error)
-	CreateInventoryLock(ctx context.Context, orderID int64, payload map[uuid.UUID]int64, status InventoryLockStatus) error
+	CreateInventoryLock(ctx context.Context, orderID int64, orderItems []*OrderItem, status InventoryLockStatus) error
 	UpdateInventoryLock(ctx context.Context, inventoryLocks []*InventoryLock, paths []string) error
 }
 
 type InventorySubscriber interface {
 	SubscribeProductCreated(ctx context.Context, handler func(skuIDs []uuid.UUID) error) error
+	SubscribeOrderCreated(ctx context.Context, handler func(orderID int64, orderItems []*OrderItem) error) error
 }
 
 type Inventory struct {
@@ -85,40 +86,21 @@ func (uc *InventoryUsecase) BatchGetInventories(ctx context.Context, skuIDs []uu
 	return uc.repo.BatchGetInventories(ctx, skuIDs)
 }
 
-// items: mapping from SkuID to quantity.
-func (uc *InventoryUsecase) ReserveStock(ctx context.Context, orderID int64, items map[uuid.UUID]int64) error {
-	var inventoryDeltas []*Inventory
-	for skuID, quantity := range items {
-		inventoryDeltas = append(inventoryDeltas, &Inventory{
-			SkuID:            skuID,
-			ReservedQuantity: quantity,
-		})
-	}
-	paths := []string{"reserved_quantity"}
-	err := uc.tx.Transaction(ctx, func(ctx context.Context) error {
-		if err := uc.repo.UpdateDeltaQuantity(ctx, inventoryDeltas, paths); err != nil {
-			return err
-		}
-		return uc.repo.CreateInventoryLock(ctx, orderID, items, InventoryLockStatusLocked)
-	})
-	return err
-}
-
 func (uc *InventoryUsecase) ReleaseStock(ctx context.Context, orderID int64) error {
 	return uc.tx.Transaction(ctx, func(ctx context.Context) error {
 		inventoryLock, err := uc.repo.GetInventoryLock(ctx, orderID)
 		if err != nil {
 			return err
 		}
-		var m map[uuid.UUID]int64
-		if err := json.Unmarshal(inventoryLock.Payload, &m); err != nil {
+		var orderItems []*OrderItem
+		if err := json.Unmarshal(inventoryLock.Payload, &orderItems); err != nil {
 			return err
 		}
 		var inventoryDeltas []*Inventory
-		for skuID, quantity := range m {
+		for _, orderItem := range orderItems {
 			inventoryDeltas = append(inventoryDeltas, &Inventory{
-				SkuID:            skuID,
-				ReservedQuantity: -quantity,
+				SkuID:            orderItem.SkuID,
+				ReservedQuantity: -orderItem.Quantity,
 			})
 		}
 		if err := uc.repo.UpdateInventories(ctx, inventoryDeltas, []string{"reserved_quantity"}); err != nil {
@@ -141,16 +123,16 @@ func (uc *InventoryUsecase) DeductStock(ctx context.Context, orderID int64) erro
 		if inventoryLock.Status != InventoryLockStatusLocked {
 			return fmt.Errorf("order %q has been procceed", inventoryLock.OrderID)
 		}
-		var m map[uuid.UUID]int64
-		if err := json.Unmarshal(inventoryLock.Payload, &m); err != nil {
+		var orderItems []*OrderItem
+		if err := json.Unmarshal(inventoryLock.Payload, &orderItems); err != nil {
 			return err
 		}
 		var inventoryDeltas []*Inventory
-		for skuID, quantity := range m {
+		for _, orderItem := range orderItems {
 			inventoryDeltas = append(inventoryDeltas, &Inventory{
-				SkuID:            skuID,
-				StockQuantity:    -quantity,
-				ReservedQuantity: -quantity,
+				SkuID:            orderItem.SkuID,
+				StockQuantity:    -orderItem.Quantity,
+				ReservedQuantity: -orderItem.Quantity,
 			})
 		}
 		paths := []string{"stock_quantity", "reserved_quantity"}
@@ -173,5 +155,24 @@ func (uc *InventoryUsecase) HandleProductCreated(ctx context.Context) error {
 			return err
 		}
 		return err
+	})
+}
+
+func (uc *InventoryUsecase) HandleOrderCreated(ctx context.Context) error {
+	return uc.subscriber.SubscribeOrderCreated(ctx, func(orderID int64, orderItems []*OrderItem) error {
+		var inventoryDeltas []*Inventory
+		for _, orderItem := range orderItems {
+			inventoryDeltas = append(inventoryDeltas, &Inventory{
+				SkuID:            orderItem.SkuID,
+				ReservedQuantity: orderItem.Quantity,
+			})
+		}
+		paths := []string{"reserved_quantity"}
+		return uc.tx.Transaction(ctx, func(ctx context.Context) error {
+			if err := uc.repo.UpdateDeltaQuantity(ctx, inventoryDeltas, paths); err != nil {
+				return err
+			}
+			return uc.repo.CreateInventoryLock(ctx, orderID, orderItems, InventoryLockStatusLocked)
+		})
 	})
 }

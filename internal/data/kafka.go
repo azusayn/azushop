@@ -10,6 +10,7 @@ import (
 const (
 	KafkaTopicPaymentPaid    = "payment.status"
 	KafkaTopicProductCreated = "product.created"
+	KafkaTopicOrderCreated   = "order.created"
 )
 
 type PaymentStatus string
@@ -30,6 +31,16 @@ type PaymentStatusMessage struct {
 
 type ProductCreatedMessage struct {
 	SkuIDs []uuid.UUID
+}
+
+type OrderItem struct {
+	SkuID    uuid.UUID
+	Quantity int64
+}
+
+type OrderCreatedMessage struct {
+	OrderID    int64
+	OrderItems []*OrderItem
 }
 
 type ConsumerHandler struct {

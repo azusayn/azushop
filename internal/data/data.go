@@ -30,6 +30,7 @@ var ProviderSet = wire.NewSet(
 	NewTransaction,
 	NewPaymentPublisher,
 	NewOrderSubscriber,
+	NewOrderPublisher,
 	NewProductPublisher,
 	NewInventorySubscriber,
 	NewUserRepo,
@@ -143,6 +144,7 @@ func NewData(c *conf.Data) (*Data, func(), error) {
 	orderConsumerConfig := sarama.NewConfig()
 	orderConsumerConfig.Consumer.Offsets.Initial = sarama.OffsetNewest
 	// orderConsumerConfig.Consumer.Group.Rebalance.GroupStrategies
+	// TODO(0): proper consumer for different service.
 	kafkaOrderConsumer, err := sarama.NewConsumerGroup(brokerAddrs, "order-service", orderConsumerConfig)
 	if err != nil {
 		err = multierr.Combine(

@@ -52,7 +52,6 @@ CREATE TYPE inventory_lock_status AS ENUM (
 
 CREATE TABLE inventory_lock (
   order_id BIGINT NOT NULL PRIMARY KEY,
-  -- mapping from sku_id to quantity.
   payload NOT NULL JSONB,
   status inventory_lock_status NOT NULL,
 )
@@ -71,12 +70,20 @@ CREATE TYPE order_status AS ENUM (
 CREATE TABLE orders (
   id BIGSERIAL PRIMARY KEY,
   user_id INT NOT NULL,
-  -- without tax, TODO(3): this should be renamed to 'subtotal'.
+  -- subtotal without tax, TODO(3): this should be renamed to 'subtotal'.
   total NUMERIC(10, 2) NOT NULL,
   status order_status NOT NULL,
   order_items JSONB NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- TODO(4): Debezium CDC.
+CREATE TABLE order_outbox (
+  topic VARCHAR(255) NOT NULL,
+  payload JSON NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  sent_at TIMESTAMPTZ
+)
 
 -- payment service.
 CREATE TYPE payment_method AS ENUM (

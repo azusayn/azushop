@@ -593,11 +593,10 @@ const file_api_inventory_v1_inventory_proto_rawDesc = "" +
 	"\x14ReleaseStockResponse\"/\n" +
 	"\x12DeductStockRequest\x12\x19\n" +
 	"\border_id\x18\x01 \x01(\x03R\aorderId\"\x15\n" +
-	"\x13DeductStockResponse2\xc2\x03\n" +
+	"\x13DeductStockResponse2\xeb\x02\n" +
 	"\x10InventoryService\x12R\n" +
 	"\vAdjustStock\x12 .inventory.v1.AdjustStockRequest\x1a!.inventory.v1.AdjustStockResponse\x12X\n" +
 	"\rBatchGetStock\x12\".inventory.v1.BatchGetStockRequest\x1a#.inventory.v1.BatchGetStockResponse\x12U\n" +
-	"\fReserveStock\x12!.inventory.v1.ReserveStockRequest\x1a\".inventory.v1.ReserveStockResponse\x12U\n" +
 	"\fReleaseStock\x12!.inventory.v1.ReleaseStockRequest\x1a\".inventory.v1.ReleaseStockResponse\x12R\n" +
 	"\vDeductStock\x12 .inventory.v1.DeductStockRequest\x1a!.inventory.v1.DeductStockResponseB\x1dZ\x1bazushop/api/inventory/v1;v1b\x06proto3"
 
@@ -635,16 +634,14 @@ var file_api_inventory_v1_inventory_proto_depIdxs = []int32{
 	3,  // 2: inventory.v1.BatchGetStockResponse.StocksEntry.value:type_name -> inventory.v1.SKUQuantity
 	0,  // 3: inventory.v1.InventoryService.AdjustStock:input_type -> inventory.v1.AdjustStockRequest
 	2,  // 4: inventory.v1.InventoryService.BatchGetStock:input_type -> inventory.v1.BatchGetStockRequest
-	6,  // 5: inventory.v1.InventoryService.ReserveStock:input_type -> inventory.v1.ReserveStockRequest
-	8,  // 6: inventory.v1.InventoryService.ReleaseStock:input_type -> inventory.v1.ReleaseStockRequest
-	10, // 7: inventory.v1.InventoryService.DeductStock:input_type -> inventory.v1.DeductStockRequest
-	1,  // 8: inventory.v1.InventoryService.AdjustStock:output_type -> inventory.v1.AdjustStockResponse
-	4,  // 9: inventory.v1.InventoryService.BatchGetStock:output_type -> inventory.v1.BatchGetStockResponse
-	7,  // 10: inventory.v1.InventoryService.ReserveStock:output_type -> inventory.v1.ReserveStockResponse
-	9,  // 11: inventory.v1.InventoryService.ReleaseStock:output_type -> inventory.v1.ReleaseStockResponse
-	11, // 12: inventory.v1.InventoryService.DeductStock:output_type -> inventory.v1.DeductStockResponse
-	8,  // [8:13] is the sub-list for method output_type
-	3,  // [3:8] is the sub-list for method input_type
+	8,  // 5: inventory.v1.InventoryService.ReleaseStock:input_type -> inventory.v1.ReleaseStockRequest
+	10, // 6: inventory.v1.InventoryService.DeductStock:input_type -> inventory.v1.DeductStockRequest
+	1,  // 7: inventory.v1.InventoryService.AdjustStock:output_type -> inventory.v1.AdjustStockResponse
+	4,  // 8: inventory.v1.InventoryService.BatchGetStock:output_type -> inventory.v1.BatchGetStockResponse
+	9,  // 9: inventory.v1.InventoryService.ReleaseStock:output_type -> inventory.v1.ReleaseStockResponse
+	11, // 10: inventory.v1.InventoryService.DeductStock:output_type -> inventory.v1.DeductStockResponse
+	7,  // [7:11] is the sub-list for method output_type
+	3,  // [3:7] is the sub-list for method input_type
 	3,  // [3:3] is the sub-list for extension type_name
 	3,  // [3:3] is the sub-list for extension extendee
 	0,  // [0:3] is the sub-list for field type_name

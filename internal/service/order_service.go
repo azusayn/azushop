@@ -1,7 +1,6 @@
 package service
 
 import (
-	inventorypb "azushop/api/inventory/v1"
 	v1 "azushop/api/inventory/v1"
 	pb "azushop/api/order/v1"
 	productpb "azushop/api/product/v1"
@@ -12,7 +11,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log/slog"
 
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
@@ -67,27 +65,6 @@ func (s *OrderService) CreateOrder(ctx context.Context, req *pb.CreateOrderReque
 	}
 	pbOrder, err := convertToPbOrder(order)
 	if err != nil {
-		return nil, err
-	}
-
-	// reserve stocks.
-	var pbStockItems []*inventorypb.StockItem
-	for _, orderItem := range req.OrderItems {
-		pbStockItems = append(pbStockItems, &inventorypb.StockItem{
-			SkuId:    orderItem.SkuId,
-			Quantity: orderItem.Quantity,
-		})
-	}
-	inventoryService := s.data.GetIventoryService()
-	reserveStockReq := &v1.ReserveStockRequest{
-		OrderId: order.ID,
-		Items:   pbStockItems,
-	}
-	if _, err := inventoryService.ReserveStock(ctx, reserveStockReq); err != nil {
-		// TODO(0): message queue & outbox.
-		if err := s.uc.DeleteOrder(ctx, order.ID); err != nil {
-			slog.Warn(err.Error())
-		}
 		return nil, err
 	}
 
