@@ -164,7 +164,7 @@ type orderConsumerHandler struct {
 	handler func(string) error
 }
 
-func (s *OrderSubscriber) SubscribePaymentPaid(ctx context.Context, handler func(int64, biz.PaymentStatus) error) error {
+func (s *OrderSubscriber) SubscribePaymentStatus(ctx context.Context, handler func(int64, biz.PaymentStatus) error) error {
 	topics := []string{KafkaTopicPaymentPaid}
 	consumerHandler := NewConsumerHandler(func(bytes []byte) error {
 		var msg PaymentStatusMessage

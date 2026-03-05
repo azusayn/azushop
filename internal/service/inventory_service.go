@@ -72,13 +72,6 @@ func (s *InventoryService) ReleaseStock(ctx context.Context, req *pb.ReleaseStoc
 	return &pb.ReleaseStockResponse{}, nil
 }
 
-func (s *InventoryService) DeductStock(ctx context.Context, req *pb.DeductStockRequest) (*pb.DeductStockResponse, error) {
-	if err := s.uc.DeductStock(ctx, req.OrderId); err != nil {
-		return nil, err
-	}
-	return &pb.DeductStockResponse{}, nil
-}
-
 func convertToPbInventories(inventories []*biz.Inventory) (map[string]*pb.SKUQuantity, error) {
 	// mapping from SkuID to pb.SKUQuantity
 	m := make(map[string]*pb.SKUQuantity)

@@ -214,3 +214,26 @@ func (s *InventorySubscriber) SubscribeOrderCreated(
 		}
 	}
 }
+
+func (s *InventorySubscriber) SubscribePaymentStatus(
+	ctx context.Context,
+	handler func(orderID int64, success bool) error,
+) error {
+	topics := []string{KafkaTopicOrderCreated}
+	consumerHandler := NewConsumerHandler(func(bytes []byte) error {
+		var msg PaymentStatusMessage
+		if err := json.Unmarshal(bytes, &msg); err != nil {
+			return err
+		}
+		return handler(msg.OrderID, msg.Status == PaymentStatusPaid)
+	})
+	for {
+		err := s.data.GetKafkaConsumer().Consume(ctx, topics, consumerHandler)
+		if err != nil {
+			return err
+		}
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+	}
+}

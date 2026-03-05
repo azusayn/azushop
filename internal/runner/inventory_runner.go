@@ -23,5 +23,8 @@ func (r *InventoryRunner) Run(ctx context.Context) error {
 	g.Go(func() error {
 		return r.uc.HandleOrderCreated(ctx)
 	})
+	g.Go(func() error {
+		return r.uc.HandlePaymentStatus(ctx)
+	})
 	return g.Wait()
 }

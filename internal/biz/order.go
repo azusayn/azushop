@@ -30,7 +30,7 @@ type OrderRepo interface {
 	MarkOutboxMessagesFailed(ctx context.Context, ids []uuid.UUID) error
 }
 type OrderSubscriber interface {
-	SubscribePaymentPaid(ctx context.Context, handler func(orderID int64, status PaymentStatus) error) error
+	SubscribePaymentStatus(ctx context.Context, handler func(orderID int64, status PaymentStatus) error) error
 }
 
 type OrderPublisher interface {
@@ -142,8 +142,8 @@ func (uc *OrderUsecase) GetOrder(ctx context.Context, orderID int64) (*Order, er
 	return uc.repo.GetOrder(ctx, orderID)
 }
 
-func (uc *OrderUsecase) HandlePaymentPaid(ctx context.Context) error {
-	return uc.subscriber.SubscribePaymentPaid(ctx, func(orderID int64, status PaymentStatus) error {
+func (uc *OrderUsecase) HandlePaymentStatus(ctx context.Context) error {
+	return uc.subscriber.SubscribePaymentStatus(ctx, func(orderID int64, status PaymentStatus) error {
 		switch status {
 		case PaymentStatusPaid,
 			PaymentStatusCancelled:
