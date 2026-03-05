@@ -42,7 +42,7 @@ type Product struct {
 }
 
 type ProductRepo interface {
-	ListProductsBySellerId(ctx context.Context, sellerID int32, pageToken int64, pageSize int32, productStatus ProductStatus) ([]*Product, error)
+	ListProductsBySellerId(ctx context.Context, sellerID int32, pageToken uuid.UUID, pageSize int32, productStatus ProductStatus) ([]*Product, error)
 	BatchCreateProducts(ctx context.Context, product []*Product) ([]*Product, error)
 	BatchUpdateProducts(ctx context.Context, product []*Product, paths []string) error
 	BatchGetSkuDetails(ctx context.Context, skuIDs []uuid.UUID, pageToken uuid.UUID, pageSize int32) ([]*SkuDetail, error)
@@ -87,7 +87,7 @@ func productStatusFilter(productStatus ProductStatus, sellerID, userID int32, ro
 func (uc *ProductUsecase) ListSellerProducts(
 	ctx context.Context,
 	sellerID int32,
-	pageToken int64,
+	pageToken uuid.UUID,
 	pageSize int32,
 	productStatus ProductStatus,
 	userID int32,

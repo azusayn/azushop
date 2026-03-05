@@ -215,11 +215,10 @@ func (x *Product) GetProductStatus() ProductStatus {
 	return ProductStatus_PRODUCT_STATUS_UNSPECIFIED
 }
 
-// TODO(0): page token is string
 type ListSellerProductsRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// use 0 for the first request.
-	PageToken int64 `protobuf:"varint,1,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	PageToken string `protobuf:"bytes,1,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	// max 100
 	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	SellerId int32 `protobuf:"varint,3,opt,name=seller_id,json=sellerId,proto3" json:"seller_id,omitempty"`
@@ -259,11 +258,11 @@ func (*ListSellerProductsRequest) Descriptor() ([]byte, []int) {
 	return file_api_product_v1_product_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *ListSellerProductsRequest) GetPageToken() int64 {
+func (x *ListSellerProductsRequest) GetPageToken() string {
 	if x != nil {
 		return x.PageToken
 	}
-	return 0
+	return ""
 }
 
 func (x *ListSellerProductsRequest) GetPageSize() int32 {
@@ -685,7 +684,7 @@ const file_api_product_v1_product_proto_rawDesc = "" +
 	"\x0eproduct_status\x18\x05 \x01(\x0e2\x19.product.v1.ProductStatusR\rproductStatus\"\xce\x01\n" +
 	"\x19ListSellerProductsRequest\x12\x1d\n" +
 	"\n" +
-	"page_token\x18\x01 \x01(\x03R\tpageToken\x12\x1b\n" +
+	"page_token\x18\x01 \x01(\tR\tpageToken\x12\x1b\n" +
 	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\x12\x1b\n" +
 	"\tseller_id\x18\x03 \x01(\x05R\bsellerId\x12E\n" +
 	"\x0eproduct_status\x18\x04 \x01(\x0e2\x19.product.v1.ProductStatusH\x00R\rproductStatus\x88\x01\x01B\x11\n" +
