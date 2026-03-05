@@ -26,6 +26,7 @@ type InventoryRepo interface {
 type InventorySubscriber interface {
 	SubscribeProductCreated(ctx context.Context, handler func(skuIDs []uuid.UUID) error) error
 	SubscribeOrderCreated(ctx context.Context, handler func(orderID int64, orderItems []*OrderItem) error) error
+	SubscribePaymentStatus(ctx context.Context, handler func(orderID int64, success bool) error) error
 }
 
 type Inventory struct {
@@ -44,8 +45,7 @@ const (
 
 type InventoryLock struct {
 	OrderID int64 `gorm:"column:order_id"`
-	// mapping from sku_id to quantity.
-	// map[uuid.UUID]int64
+	// []*biz.OrderItem
 	Payload []byte              `gorm:"column:payload"`
 	Status  InventoryLockStatus `gorm:"column:status"`
 }
@@ -84,6 +84,23 @@ func (uc *InventoryUsecase) AdjustStock(
 
 func (uc *InventoryUsecase) BatchGetInventories(ctx context.Context, skuIDs []uuid.UUID) ([]*Inventory, error) {
 	return uc.repo.BatchGetInventories(ctx, skuIDs)
+}
+
+func (uc *InventoryUsecase) ReserveStock(ctx context.Context, orderID int64, orderItems []*OrderItem) error {
+	var inventoryDeltas []*Inventory
+	for _, orderItem := range orderItems {
+		inventoryDeltas = append(inventoryDeltas, &Inventory{
+			SkuID:            orderItem.SkuID,
+			ReservedQuantity: orderItem.Quantity,
+		})
+	}
+	paths := []string{"reserved_quantity"}
+	return uc.tx.Transaction(ctx, func(ctx context.Context) error {
+		if err := uc.repo.UpdateDeltaQuantity(ctx, inventoryDeltas, paths); err != nil {
+			return err
+		}
+		return uc.repo.CreateInventoryLock(ctx, orderID, orderItems, InventoryLockStatusLocked)
+	})
 }
 
 func (uc *InventoryUsecase) ReleaseStock(ctx context.Context, orderID int64) error {
@@ -160,19 +177,16 @@ func (uc *InventoryUsecase) HandleProductCreated(ctx context.Context) error {
 
 func (uc *InventoryUsecase) HandleOrderCreated(ctx context.Context) error {
 	return uc.subscriber.SubscribeOrderCreated(ctx, func(orderID int64, orderItems []*OrderItem) error {
-		var inventoryDeltas []*Inventory
-		for _, orderItem := range orderItems {
-			inventoryDeltas = append(inventoryDeltas, &Inventory{
-				SkuID:            orderItem.SkuID,
-				ReservedQuantity: orderItem.Quantity,
-			})
+		return uc.ReserveStock(ctx, orderID, orderItems)
+	})
+}
+
+func (uc *InventoryUsecase) HandlePaymentStatus(ctx context.Context) error {
+	return uc.subscriber.SubscribePaymentStatus(ctx, func(orderID int64, success bool) error {
+		// ignore failed payment message.
+		if !success {
+			return nil
 		}
-		paths := []string{"reserved_quantity"}
-		return uc.tx.Transaction(ctx, func(ctx context.Context) error {
-			if err := uc.repo.UpdateDeltaQuantity(ctx, inventoryDeltas, paths); err != nil {
-				return err
-			}
-			return uc.repo.CreateInventoryLock(ctx, orderID, orderItems, InventoryLockStatusLocked)
-		})
+		return uc.DeductStock(ctx, orderID)
 	})
 }

@@ -19,7 +19,7 @@ func NewOrderRunner(uc *biz.OrderUsecase) Runner {
 func (r *OrderRunner) Run(ctx context.Context) error {
 	g, ctx := errgroup.WithContext(ctx)
 	g.Go(func() error {
-		return r.uc.HandlePaymentPaid(ctx)
+		return r.uc.HandlePaymentStatus(ctx)
 	})
 	g.Go(func() error {
 		return r.uc.ProcessOutboxMessages(ctx)

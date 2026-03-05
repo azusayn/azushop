@@ -15,10 +15,9 @@ service InventoryService {
   
   // interfaces used by internal services.
   // release reserved stock when a customer cancels an order.
+  // TODO(3): remove it and use message queue.
   rpc ReleaseStock(ReleaseStockRequest) returns (ReleaseStockResponse);
-  
-  // deducts stock when an order is paid.
-  rpc DeductStock(DeductStockRequest) returns (DeductStockResponse);
+
 }
 
 message AdjustStockRequest {
@@ -48,22 +47,9 @@ message StockItem {
   string sku_id = 1;
   int64 quantity = 2;
 }
-
-message ReserveStockRequest {
-  int64 order_id = 1;
-  repeated StockItem items = 2;
-}
-
-message ReserveStockResponse {}
-
 message ReleaseStockRequest {
   int64 order_id = 1;
 }
 
 message ReleaseStockResponse {}
 
-message DeductStockRequest {
-  int64 order_id = 1;
-}
-
-message DeductStockResponse {}
