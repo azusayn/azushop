@@ -37,10 +37,14 @@ func (s *ProductService) ListSellerProducts(ctx context.Context, req *pb.ListSel
 	if err != nil {
 		return nil, err
 	}
+	uuid, err := uuid.Parse(req.PageToken)
+	if err != nil {
+		return nil, err
+	}
 	products, err := s.uc.ListSellerProducts(
 		ctx,
 		req.SellerId,
-		req.PageToken,
+		uuid,
 		req.PageSize,
 		convertToBizProductStatus(req.ProductStatus),
 		userID,

@@ -27,8 +27,8 @@ func NewProductRepo(data *Data) biz.ProductRepo {
 	return &ProductRepo{data: data}
 }
 
-func cacheKeyProduct(sellerID int32, pageToken int64, pageSize int32, productStatus biz.ProductStatus) string {
-	return fmt.Sprintf("product:%d:%d:%d:%s", sellerID, pageToken, pageSize, productStatus)
+func cacheKeyProduct(sellerID int32, pageToken uuid.UUID, pageSize int32, productStatus biz.ProductStatus) string {
+	return fmt.Sprintf("product:%d:%s:%d:%s", sellerID, pageToken.String(), pageSize, productStatus)
 }
 
 func cacheKeyProductSet(sellerID int32) string {
@@ -38,7 +38,7 @@ func cacheKeyProductSet(sellerID int32) string {
 func (repo *ProductRepo) ListProductsBySellerId(
 	ctx context.Context,
 	sellerID int32,
-	pageToken int64,
+	pageToken uuid.UUID,
 	pageSize int32,
 	productStatus biz.ProductStatus,
 ) ([]*biz.Product, error) {
