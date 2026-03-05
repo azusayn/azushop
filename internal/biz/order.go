@@ -43,10 +43,11 @@ const (
 )
 
 type OrderItem struct {
-	SkuID     uuid.UUID
-	Quantity  int64
-	UnitPrice decimal.Decimal
-	Attrs     json.RawMessage
+	ProductName string
+	SkuID       uuid.UUID
+	Quantity    int64
+	UnitPrice   decimal.Decimal
+	Attrs       json.RawMessage
 }
 
 type Order struct {
