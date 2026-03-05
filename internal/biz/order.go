@@ -38,8 +38,8 @@ const (
 	OrderStatusUnspcified OrderStatus = "unspecified"
 	OrderStatusPending    OrderStatus = "pending"
 	OrderStatusCancelled  OrderStatus = "cancelled"
-	OrderStatusPaid       OrderStatus = "confirmed"
-	OrderStatusRefunded   OrderStatus = "completed"
+	OrderStatusConfirmed  OrderStatus = "confirmed"
+	OrderStatusCompleted  OrderStatus = "completed"
 )
 
 type OrderItem struct {
@@ -103,6 +103,6 @@ func (uc *OrderUsecase) HandlePaymentPaid(ctx context.Context) error {
 		default:
 			return fmt.Errorf("invalid status %q", status)
 		}
-		return uc.repo.UpdateOrderStatus(ctx, orderID, OrderStatusPaid)
+		return uc.repo.UpdateOrderStatus(ctx, orderID, OrderStatusConfirmed)
 	})
 }
