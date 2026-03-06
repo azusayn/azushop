@@ -15,6 +15,12 @@ var ProviderSet = wire.NewSet(
 	NewPaymentUsecase,
 )
 
+const (
+	KafkaTopicPaymentStatus  = "payment.status"
+	KafkaTopicProductCreated = "product.created"
+	KafkaTopicOrderCreated   = "order.created"
+)
+
 type Transaction interface {
 	Transaction(ctx context.Context, f func(ctx context.Context) error) error
 }

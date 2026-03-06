@@ -7,12 +7,6 @@ import (
 	"github.com/google/uuid"
 )
 
-const (
-	KafkaTopicPaymentStatus  = "payment.status"
-	KafkaTopicProductCreated = "product.created"
-	KafkaTopicOrderCreated   = "order.created"
-)
-
 type PaymentStatus string
 
 const (

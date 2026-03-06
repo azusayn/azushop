@@ -12,6 +12,10 @@ import (
 	"gorm.io/gorm"
 )
 
+const (
+	maxRetryCount = 5
+)
+
 type OrderRepo struct {
 	data *Data
 }
@@ -99,33 +103,31 @@ func (repo *OrderRepo) UpdateOrderStatus(ctx context.Context, orderID int64, sta
 	return client.WithContext(ctx).Where("id = ?", orderID).Update("status", status).Error
 }
 
-func (repo *OrderRepo) CreateOutboxMessage(ctx context.Context, order *biz.Order) error {
+func (repo *OrderRepo) CreateOutboxMessage(ctx context.Context, topic string, payload json.RawMessage) error {
 	client := GetTransaction(ctx)
 	if client == nil {
 		client = repo.data.gormClient
 	}
-	payload, err := json.Marshal(order)
-	if err != nil {
-		return err
-	}
 	outboxMsg := &biz.OrderOutboxMessage{
-		Topic:   KafkaTopicOrderCreated,
+		Topic:   topic,
 		Payload: payload,
 	}
 	return client.WithContext(ctx).Create(outboxMsg).Error
 }
 
 // returns messages that are eligible for processing.
-func (repo *OrderRepo) ListOutboxMessages(ctx context.Context, limit int) ([]*biz.OrderOutboxMessage, error) {
+func (repo *OrderRepo) ListOutboxMessages(ctx context.Context, topic string, limit int) ([]*biz.OrderOutboxMessage, error) {
 	client := GetTransaction(ctx)
 	if client == nil {
 		client = repo.data.gormClient
 	}
+	// TODO(4): composite index?
 	var messages []*biz.OrderOutboxMessage
 	if err := client.
 		WithContext(ctx).
 		Where("sent_at IS NULL").
-		Where("retry_count < 5").
+		Where("topic = ?", topic).
+		Where("retry_count < ?", maxRetryCount).
 		Order("created_at").
 		Limit(limit).
 		Find(&messages).
@@ -165,7 +167,7 @@ type orderConsumerHandler struct {
 }
 
 func (s *OrderSubscriber) SubscribePaymentStatus(ctx context.Context, handler func(int64, biz.PaymentStatus) error) error {
-	topics := []string{KafkaTopicPaymentStatus}
+	topics := []string{biz.KafkaTopicPaymentStatus}
 	consumerHandler := NewConsumerHandler(func(bytes []byte) error {
 		var msg PaymentStatusMessage
 		if err := json.Unmarshal(bytes, &msg); err != nil {
@@ -205,7 +207,7 @@ func (p *OrderPublisher) PublishOrderCreated(ctx context.Context, messages []*bi
 			return err
 		}
 		prodMsg := &sarama.ProducerMessage{
-			Topic: KafkaTopicOrderCreated,
+			Topic: biz.KafkaTopicOrderCreated,
 			Value: sarama.ByteEncoder(bytes),
 		}
 		prodMsgs = append(prodMsgs, prodMsg)
