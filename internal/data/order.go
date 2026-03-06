@@ -174,7 +174,7 @@ func (s *OrderSubscriber) SubscribePaymentStatus(ctx context.Context, handler fu
 		return handler(msg.OrderID, biz.PaymentStatus(string(msg.Status)))
 	})
 	for {
-		err := s.data.GetKafkaConsumer().Consume(ctx, topics, consumerHandler)
+		err := s.data.GetPaymentConsumer().Consume(ctx, topics, consumerHandler)
 		if err != nil {
 			return err
 		}

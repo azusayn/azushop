@@ -36,11 +36,11 @@ message Data {
     google.protobuf.Duration read_timeout = 3;
     google.protobuf.Duration write_timeout = 4;
   }
-  message Service {
-    string product_service_addr = 1;
-    string inventory_service_addr = 2;
-    string order_service_addr = 3;
-    string auth_service_addr = 4;
+  message ServiceAddr {
+    string product = 1;
+    string inventory = 2;
+    string order = 3;
+    string auth = 4;
   }
   message Payment {
     string stripe_secret_key = 1;
@@ -51,7 +51,7 @@ message Data {
   }
   Database database = 1;
   Redis redis = 2;
-  Service service = 3;
+  ServiceAddr service_addr = 3;
   Payment payment = 4;
   Kafka kafka = 5;
   string app_name = 6;
