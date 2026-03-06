@@ -24,8 +24,8 @@ type OrderRepo interface {
 	DeleteOrder(ctx context.Context, orderID int64) error
 	CancelOrder(ctx context.Context, orderID int64) error
 	// order_outbox
-	CreateOutboxMessage(ctx context.Context, order *Order) error
-	ListOutboxMessages(ctx context.Context, limit int) ([]*OrderOutboxMessage, error)
+	CreateOutboxMessage(ctx context.Context, topic string, payload json.RawMessage) error
+	ListOutboxMessages(ctx context.Context, topic string, limit int) ([]*OrderOutboxMessage, error)
 	MarkOutboxMessagesSent(ctx context.Context, ids []uuid.UUID) error
 	MarkOutboxMessagesFailed(ctx context.Context, ids []uuid.UUID) error
 }
@@ -122,7 +122,11 @@ func (uc *OrderUsecase) CreateOrder(
 		if err != nil {
 			return err
 		}
-		return uc.repo.CreateOutboxMessage(ctx, createdOrder)
+		payload, err := json.Marshal(createdOrder)
+		if err != nil {
+			return err
+		}
+		return uc.repo.CreateOutboxMessage(ctx, KafkaTopicOrderCreated, payload)
 	})
 	if err != nil {
 		return nil, err
@@ -154,8 +158,8 @@ func (uc *OrderUsecase) HandlePaymentStatus(ctx context.Context) error {
 	})
 }
 
-func (uc *OrderUsecase) ProcessOutboxMessages(ctx context.Context) error {
-	messages, err := uc.repo.ListOutboxMessages(ctx, OutboxBatchSize)
+func (uc *OrderUsecase) ProcessOutboxMessages(ctx context.Context, topic string) error {
+	messages, err := uc.repo.ListOutboxMessages(ctx, topic, OutboxBatchSize)
 	if err != nil {
 		return err
 	}
@@ -163,7 +167,13 @@ func (uc *OrderUsecase) ProcessOutboxMessages(ctx context.Context) error {
 	for _, message := range messages {
 		ids = append(ids, message.ID)
 	}
-	if err := uc.publisher.PublishOrderCreated(ctx, messages); err != nil {
+	switch topic {
+	case KafkaTopicOrderCreated:
+		err = uc.publisher.PublishOrderCreated(ctx, messages)
+	default:
+		return fmt.Errorf("unsupported topic %q", topic)
+	}
+	if err != nil {
 		return multierr.Append(err, uc.repo.MarkOutboxMessagesFailed(ctx, ids))
 	}
 	return uc.repo.MarkOutboxMessagesSent(ctx, ids)

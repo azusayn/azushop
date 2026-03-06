@@ -166,7 +166,7 @@ func NewInventorySubscriber(data *Data) biz.InventorySubscriber {
 
 // TODO(3): wrap these subscriber function.
 func (s *InventorySubscriber) SubscribeProductCreated(ctx context.Context, handler func(skuIDs []uuid.UUID) error) error {
-	topics := []string{KafkaTopicProductCreated}
+	topics := []string{biz.KafkaTopicProductCreated}
 	consumerHandler := NewConsumerHandler(func(bytes []byte) error {
 		var msg ProductCreatedMessage
 		if err := json.Unmarshal(bytes, &msg); err != nil {
@@ -189,7 +189,7 @@ func (s *InventorySubscriber) SubscribeOrderCreated(
 	ctx context.Context,
 	handler func(orderID int64, orderItems []*biz.OrderItem) error,
 ) error {
-	topics := []string{KafkaTopicOrderCreated}
+	topics := []string{biz.KafkaTopicOrderCreated}
 	consumerHandler := NewConsumerHandler(func(bytes []byte) error {
 		var msg OrderCreatedMessage
 		if err := json.Unmarshal(bytes, &msg); err != nil {
@@ -219,7 +219,7 @@ func (s *InventorySubscriber) SubscribePaymentStatus(
 	ctx context.Context,
 	handler func(orderID int64, success bool) error,
 ) error {
-	topics := []string{KafkaTopicOrderCreated}
+	topics := []string{biz.KafkaTopicOrderCreated}
 	consumerHandler := NewConsumerHandler(func(bytes []byte) error {
 		var msg PaymentStatusMessage
 		if err := json.Unmarshal(bytes, &msg); err != nil {

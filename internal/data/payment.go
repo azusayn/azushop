@@ -88,7 +88,7 @@ func (p *PaymentPublisher) PublishPaymentStatus(ctx context.Context, orderID int
 		return err
 	}
 	msg := &sarama.ProducerMessage{
-		Topic: KafkaTopicPaymentStatus,
+		Topic: biz.KafkaTopicPaymentStatus,
 		Value: sarama.ByteEncoder(bytes),
 	}
 	_, _, err = producer.SendMessage(msg)

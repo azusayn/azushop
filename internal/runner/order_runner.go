@@ -22,7 +22,7 @@ func (r *OrderRunner) Run(ctx context.Context) error {
 		return r.uc.HandlePaymentStatus(ctx)
 	})
 	g.Go(func() error {
-		return r.uc.ProcessOutboxMessages(ctx)
+		return r.uc.ProcessOutboxMessages(ctx, biz.KafkaTopicOrderCreated)
 	})
 	return g.Wait()
 }
