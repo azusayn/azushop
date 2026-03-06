@@ -130,7 +130,7 @@ type Data struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Database      *Data_Database         `protobuf:"bytes,1,opt,name=database,proto3" json:"database,omitempty"`
 	Redis         *Data_Redis            `protobuf:"bytes,2,opt,name=redis,proto3" json:"redis,omitempty"`
-	Service       *Data_Service          `protobuf:"bytes,3,opt,name=service,proto3" json:"service,omitempty"`
+	ServiceAddr   *Data_ServiceAddr      `protobuf:"bytes,3,opt,name=service_addr,json=serviceAddr,proto3" json:"service_addr,omitempty"`
 	Payment       *Data_Payment          `protobuf:"bytes,4,opt,name=payment,proto3" json:"payment,omitempty"`
 	Kafka         *Data_Kafka            `protobuf:"bytes,5,opt,name=kafka,proto3" json:"kafka,omitempty"`
 	AppName       string                 `protobuf:"bytes,6,opt,name=app_name,json=appName,proto3" json:"app_name,omitempty"`
@@ -182,9 +182,9 @@ func (x *Data) GetRedis() *Data_Redis {
 	return nil
 }
 
-func (x *Data) GetService() *Data_Service {
+func (x *Data) GetServiceAddr() *Data_ServiceAddr {
 	if x != nil {
-		return x.Service
+		return x.ServiceAddr
 	}
 	return nil
 }
@@ -450,30 +450,30 @@ func (x *Data_Redis) GetWriteTimeout() *durationpb.Duration {
 	return nil
 }
 
-type Data_Service struct {
-	state                protoimpl.MessageState `protogen:"open.v1"`
-	ProductServiceAddr   string                 `protobuf:"bytes,1,opt,name=product_service_addr,json=productServiceAddr,proto3" json:"product_service_addr,omitempty"`
-	InventoryServiceAddr string                 `protobuf:"bytes,2,opt,name=inventory_service_addr,json=inventoryServiceAddr,proto3" json:"inventory_service_addr,omitempty"`
-	OrderServiceAddr     string                 `protobuf:"bytes,3,opt,name=order_service_addr,json=orderServiceAddr,proto3" json:"order_service_addr,omitempty"`
-	AuthServiceAddr      string                 `protobuf:"bytes,4,opt,name=auth_service_addr,json=authServiceAddr,proto3" json:"auth_service_addr,omitempty"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
+type Data_ServiceAddr struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Product       string                 `protobuf:"bytes,1,opt,name=product,proto3" json:"product,omitempty"`
+	Inventory     string                 `protobuf:"bytes,2,opt,name=inventory,proto3" json:"inventory,omitempty"`
+	Order         string                 `protobuf:"bytes,3,opt,name=order,proto3" json:"order,omitempty"`
+	Auth          string                 `protobuf:"bytes,4,opt,name=auth,proto3" json:"auth,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
-func (x *Data_Service) Reset() {
-	*x = Data_Service{}
+func (x *Data_ServiceAddr) Reset() {
+	*x = Data_ServiceAddr{}
 	mi := &file_internal_conf_conf_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *Data_Service) String() string {
+func (x *Data_ServiceAddr) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*Data_Service) ProtoMessage() {}
+func (*Data_ServiceAddr) ProtoMessage() {}
 
-func (x *Data_Service) ProtoReflect() protoreflect.Message {
+func (x *Data_ServiceAddr) ProtoReflect() protoreflect.Message {
 	mi := &file_internal_conf_conf_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -485,35 +485,35 @@ func (x *Data_Service) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Data_Service.ProtoReflect.Descriptor instead.
-func (*Data_Service) Descriptor() ([]byte, []int) {
+// Deprecated: Use Data_ServiceAddr.ProtoReflect.Descriptor instead.
+func (*Data_ServiceAddr) Descriptor() ([]byte, []int) {
 	return file_internal_conf_conf_proto_rawDescGZIP(), []int{2, 2}
 }
 
-func (x *Data_Service) GetProductServiceAddr() string {
+func (x *Data_ServiceAddr) GetProduct() string {
 	if x != nil {
-		return x.ProductServiceAddr
+		return x.Product
 	}
 	return ""
 }
 
-func (x *Data_Service) GetInventoryServiceAddr() string {
+func (x *Data_ServiceAddr) GetInventory() string {
 	if x != nil {
-		return x.InventoryServiceAddr
+		return x.Inventory
 	}
 	return ""
 }
 
-func (x *Data_Service) GetOrderServiceAddr() string {
+func (x *Data_ServiceAddr) GetOrder() string {
 	if x != nil {
-		return x.OrderServiceAddr
+		return x.Order
 	}
 	return ""
 }
 
-func (x *Data_Service) GetAuthServiceAddr() string {
+func (x *Data_ServiceAddr) GetAuth() string {
 	if x != nil {
-		return x.AuthServiceAddr
+		return x.Auth
 	}
 	return ""
 }
@@ -633,11 +633,11 @@ const file_internal_conf_conf_proto_rawDesc = "" +
 	"\x04GRPC\x12\x18\n" +
 	"\anetwork\x18\x01 \x01(\tR\anetwork\x12\x12\n" +
 	"\x04addr\x18\x02 \x01(\tR\x04addr\x123\n" +
-	"\atimeout\x18\x03 \x01(\v2\x19.google.protobuf.DurationR\atimeout\"\xed\x06\n" +
+	"\atimeout\x18\x03 \x01(\v2\x19.google.protobuf.DurationR\atimeout\"\x9d\x06\n" +
 	"\x04Data\x125\n" +
 	"\bdatabase\x18\x01 \x01(\v2\x19.kratos.api.Data.DatabaseR\bdatabase\x12,\n" +
-	"\x05redis\x18\x02 \x01(\v2\x16.kratos.api.Data.RedisR\x05redis\x122\n" +
-	"\aservice\x18\x03 \x01(\v2\x18.kratos.api.Data.ServiceR\aservice\x122\n" +
+	"\x05redis\x18\x02 \x01(\v2\x16.kratos.api.Data.RedisR\x05redis\x12?\n" +
+	"\fservice_addr\x18\x03 \x01(\v2\x1c.kratos.api.Data.ServiceAddrR\vserviceAddr\x122\n" +
 	"\apayment\x18\x04 \x01(\v2\x18.kratos.api.Data.PaymentR\apayment\x12,\n" +
 	"\x05kafka\x18\x05 \x01(\v2\x16.kratos.api.Data.KafkaR\x05kafka\x12\x19\n" +
 	"\bapp_name\x18\x06 \x01(\tR\aappName\x1a:\n" +
@@ -648,12 +648,12 @@ const file_internal_conf_conf_proto_rawDesc = "" +
 	"\anetwork\x18\x01 \x01(\tR\anetwork\x12\x12\n" +
 	"\x04addr\x18\x02 \x01(\tR\x04addr\x12<\n" +
 	"\fread_timeout\x18\x03 \x01(\v2\x19.google.protobuf.DurationR\vreadTimeout\x12>\n" +
-	"\rwrite_timeout\x18\x04 \x01(\v2\x19.google.protobuf.DurationR\fwriteTimeout\x1a\xcb\x01\n" +
-	"\aService\x120\n" +
-	"\x14product_service_addr\x18\x01 \x01(\tR\x12productServiceAddr\x124\n" +
-	"\x16inventory_service_addr\x18\x02 \x01(\tR\x14inventoryServiceAddr\x12,\n" +
-	"\x12order_service_addr\x18\x03 \x01(\tR\x10orderServiceAddr\x12*\n" +
-	"\x11auth_service_addr\x18\x04 \x01(\tR\x0fauthServiceAddr\x1ac\n" +
+	"\rwrite_timeout\x18\x04 \x01(\v2\x19.google.protobuf.DurationR\fwriteTimeout\x1ao\n" +
+	"\vServiceAddr\x12\x18\n" +
+	"\aproduct\x18\x01 \x01(\tR\aproduct\x12\x1c\n" +
+	"\tinventory\x18\x02 \x01(\tR\tinventory\x12\x14\n" +
+	"\x05order\x18\x03 \x01(\tR\x05order\x12\x12\n" +
+	"\x04auth\x18\x04 \x01(\tR\x04auth\x1ac\n" +
 	"\aPayment\x12*\n" +
 	"\x11stripe_secret_key\x18\x01 \x01(\tR\x0fstripeSecretKey\x12,\n" +
 	"\x12stripe_success_url\x18\x02 \x01(\tR\x10stripeSuccessUrl\x1a*\n" +
@@ -681,7 +681,7 @@ var file_internal_conf_conf_proto_goTypes = []any{
 	(*Server_GRPC)(nil),         // 4: kratos.api.Server.GRPC
 	(*Data_Database)(nil),       // 5: kratos.api.Data.Database
 	(*Data_Redis)(nil),          // 6: kratos.api.Data.Redis
-	(*Data_Service)(nil),        // 7: kratos.api.Data.Service
+	(*Data_ServiceAddr)(nil),    // 7: kratos.api.Data.ServiceAddr
 	(*Data_Payment)(nil),        // 8: kratos.api.Data.Payment
 	(*Data_Kafka)(nil),          // 9: kratos.api.Data.Kafka
 	(*durationpb.Duration)(nil), // 10: google.protobuf.Duration
@@ -693,7 +693,7 @@ var file_internal_conf_conf_proto_depIdxs = []int32{
 	4,  // 3: kratos.api.Server.grpc:type_name -> kratos.api.Server.GRPC
 	5,  // 4: kratos.api.Data.database:type_name -> kratos.api.Data.Database
 	6,  // 5: kratos.api.Data.redis:type_name -> kratos.api.Data.Redis
-	7,  // 6: kratos.api.Data.service:type_name -> kratos.api.Data.Service
+	7,  // 6: kratos.api.Data.service_addr:type_name -> kratos.api.Data.ServiceAddr
 	8,  // 7: kratos.api.Data.payment:type_name -> kratos.api.Data.Payment
 	9,  // 8: kratos.api.Data.kafka:type_name -> kratos.api.Data.Kafka
 	10, // 9: kratos.api.Server.HTTP.timeout:type_name -> google.protobuf.Duration

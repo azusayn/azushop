@@ -43,6 +43,22 @@ type OrderCreatedMessage struct {
 	OrderItems []*OrderItem
 }
 
+func NewConsumerGroup(brokerAddrs []string, groupID string) (sarama.ConsumerGroup, error) {
+	consumerConfig := sarama.NewConfig()
+	consumerConfig.Consumer.Offsets.Initial = sarama.OffsetNewest
+	consumerConfig.Consumer.Group.Rebalance.GroupStrategies = []sarama.BalanceStrategy{
+		sarama.NewBalanceStrategyRoundRobin(),
+	}
+	return sarama.NewConsumerGroup(brokerAddrs, groupID, consumerConfig)
+}
+
+func NewSyncProducer(brokerAddrs []string) (sarama.SyncProducer, error) {
+	kafkaConfig := sarama.NewConfig()
+	kafkaConfig.Producer.RequiredAcks = sarama.WaitForAll
+	kafkaConfig.Producer.Return.Successes = true
+	return sarama.NewSyncProducer(brokerAddrs, kafkaConfig)
+}
+
 type ConsumerHandler struct {
 	handler func([]byte) error
 }

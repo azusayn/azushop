@@ -24,7 +24,13 @@ import (
 	"gorm.io/gorm"
 )
 
-// ProviderSet is data providers.
+const (
+	ServiceNameOrder     = "service.order"
+	ServiceNameInventory = "service.inventory"
+	ServiceNameProduct   = "service.product"
+	ServiceNamePayment   = "service.payment"
+)
+
 var ProviderSet = wire.NewSet(
 	NewData,
 	NewTransaction,
@@ -41,18 +47,23 @@ var ProviderSet = wire.NewSet(
 )
 
 type Data struct {
-	// TODO: DDD design.
-	postgresClient     *sql.DB
-	gormClient         *gorm.DB
-	redisClient        *redis.Client
-	productService     productpb.ProductServiceClient
-	inventoryService   inventorypb.InventoryServiceClient
-	orderService       orderpb.OrderServiceClient
-	kafkaProducer      sarama.SyncProducer
-	kafkaOrderConsumer sarama.ConsumerGroup
-	privateKey         *rsa.PrivateKey
-	stripeSuccessURL   string
-	appName            string
+	// TODO(3): DDD design.
+	postgresClient *sql.DB
+	gormClient     *gorm.DB
+	redisClient    *redis.Client
+	// mapping from service name to client conn.
+	serviceConns  map[string]*ServiceConn
+	kafkaProducer sarama.SyncProducer
+	// mapping from service name to consumer group.
+	kafkaConsumers   map[string]sarama.ConsumerGroup
+	privateKey       *rsa.PrivateKey
+	stripeSuccessURL string
+	appName          string
+}
+
+type ServiceConn struct {
+	Addr string
+	conn *grpc.ClientConn
 }
 
 func NewData(c *conf.Data) (*Data, func(), error) {
@@ -85,78 +96,70 @@ func NewData(c *conf.Data) (*Data, func(), error) {
 	}
 
 	// TODO(1): mtls.
-	// grpc service clients.
-	productServiceAddr := c.GetService().GetProductServiceAddr()
-	productServiceConn, err := grpc.NewClient(productServiceAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		err = multierr.Combine(
-			err,
-			postgresClient.Close(),
-			redisClient.Close(),
-		)
-		return nil, nil, err
+	// grpc service client conns
+	serviceConns := map[string]*ServiceConn{
+		ServiceNameOrder:     {Addr: c.GetServiceAddr().GetOrder()},
+		ServiceNameInventory: {Addr: c.GetServiceAddr().GetInventory()},
+		ServiceNameProduct:   {Addr: c.GetServiceAddr().GetProduct()},
 	}
-
-	inventoryServiceAddr := c.GetService().GetInventoryServiceAddr()
-	inventoryServiceConn, err := grpc.NewClient(inventoryServiceAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		err = multierr.Combine(
-			err,
-			postgresClient.Close(),
-			redisClient.Close(),
-			productServiceConn.Close(),
+	for name, serviceConn := range serviceConns {
+		conn, err := grpc.NewClient(
+			serviceConn.Addr,
+			grpc.WithTransportCredentials(insecure.NewCredentials()),
 		)
-		return nil, nil, err
-	}
-
-	orderServiceAddr := c.GetService().GetOrderServiceAddr()
-	orderServiceConn, err := grpc.NewClient(orderServiceAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		err = multierr.Combine(
-			err,
-			postgresClient.Close(),
-			redisClient.Close(),
-			productServiceConn.Close(),
-			inventoryServiceConn.Close(),
-		)
-		return nil, nil, err
+		if err != nil {
+			err = multierr.Combine(
+				err,
+				postgresClient.Close(),
+				redisClient.Close(),
+			)
+			for _, serviceConn := range serviceConns {
+				err = multierr.Append(err, serviceConn.conn.Close())
+			}
+			return nil, nil, err
+		}
+		serviceConns[name].conn = conn
 	}
 
 	// kafka producer & client.
 	// TODO(1): async producer.
 	brokerAddrs := c.GetKafka().GetBrokerAddrs()
-	kafkaConfig := sarama.NewConfig()
-	kafkaConfig.Producer.RequiredAcks = sarama.WaitForAll
-	kafkaConfig.Producer.Return.Successes = true
-	kafkaProducer, err := sarama.NewSyncProducer(brokerAddrs, kafkaConfig)
+	kafkaProducer, err := NewSyncProducer(brokerAddrs)
 	if err != nil {
 		err = multierr.Combine(
 			err,
 			postgresClient.Close(),
 			redisClient.Close(),
-			productServiceConn.Close(),
-			inventoryServiceConn.Close(),
-			orderServiceConn.Close(),
 		)
+		for _, serviceConn := range serviceConns {
+			err = multierr.Append(err, serviceConn.conn.Close())
+		}
 		return nil, nil, err
 	}
-
-	orderConsumerConfig := sarama.NewConfig()
-	orderConsumerConfig.Consumer.Offsets.Initial = sarama.OffsetNewest
-	// orderConsumerConfig.Consumer.Group.Rebalance.GroupStrategies
-	// TODO(0): proper consumer for different service.
-	kafkaOrderConsumer, err := sarama.NewConsumerGroup(brokerAddrs, "order-service", orderConsumerConfig)
-	if err != nil {
-		err = multierr.Combine(
-			err,
-			postgresClient.Close(),
-			redisClient.Close(),
-			productServiceConn.Close(),
-			inventoryServiceConn.Close(),
-			orderServiceConn.Close(),
-			kafkaOrderConsumer.Close(),
-		)
-		return nil, nil, err
+	kafkaConsumers := map[string]sarama.ConsumerGroup{
+		ServiceNameOrder:     nil,
+		ServiceNameInventory: nil,
+		ServiceNameProduct:   nil,
+		ServiceNamePayment:   nil,
+	}
+	for name := range kafkaConsumers {
+		consumer, err := NewConsumerGroup(brokerAddrs, name)
+		if err != nil {
+			err = multierr.Combine(
+				err,
+				postgresClient.Close(),
+				redisClient.Close(),
+				kafkaProducer.Close(),
+			)
+			for _, serviceConn := range serviceConns {
+				err = multierr.Append(err, serviceConn.conn.Close())
+			}
+			for _, consumer := range kafkaConsumers {
+				err = multierr.Append(err, consumer.Close())
+			}
+			return nil, nil, err
+		}
+		kafkaConsumers[name] = consumer
 	}
 
 	cleanup := func() {
@@ -164,83 +167,71 @@ func NewData(c *conf.Data) (*Data, func(), error) {
 			err,
 			postgresClient.Close(),
 			redisClient.Close(),
-			productServiceConn.Close(),
-			inventoryServiceConn.Close(),
-			orderServiceConn.Close(),
 			kafkaProducer.Close(),
-			kafkaOrderConsumer.Close(),
 		)
+		for _, serviceConn := range serviceConns {
+			err = multierr.Append(err, serviceConn.conn.Close())
+		}
+		for _, consumer := range kafkaConsumers {
+			err = multierr.Append(err, consumer.Close())
+		}
 		if err != nil {
 			slog.Warn(err.Error())
 		}
 	}
 
 	return &Data{
-		privateKey:         key,
-		postgresClient:     postgresClient,
-		gormClient:         gormClient,
-		appName:            c.AppName,
-		productService:     productpb.NewProductServiceClient(productServiceConn),
-		inventoryService:   inventorypb.NewInventoryServiceClient(inventoryServiceConn),
-		orderService:       orderpb.NewOrderServiceClient(orderServiceConn),
-		stripeSuccessURL:   c.GetPayment().GetStripeSuccessUrl(),
-		kafkaProducer:      kafkaProducer,
-		kafkaOrderConsumer: kafkaOrderConsumer,
+		privateKey:       key,
+		postgresClient:   postgresClient,
+		gormClient:       gormClient,
+		appName:          c.AppName,
+		serviceConns:     serviceConns,
+		kafkaProducer:    kafkaProducer,
+		kafkaConsumers:   kafkaConsumers,
+		stripeSuccessURL: c.GetPayment().GetStripeSuccessUrl(),
 	}, cleanup, nil
 }
 
 func (d *Data) GetPrivateKey() *rsa.PrivateKey {
-	if d == nil {
-		return nil
-	}
 	return d.privateKey
 }
 
 func (d *Data) GetAppName() string {
-	if d == nil {
-		return ""
-	}
 	return d.appName
 }
 
 func (d *Data) GetProductService() productpb.ProductServiceClient {
-	if d == nil {
-		return nil
-	}
-	return d.productService
+	return productpb.NewProductServiceClient(d.serviceConns[ServiceNameProduct].conn)
 }
 
 func (d *Data) GetIventoryService() inventorypb.InventoryServiceClient {
-	if d == nil {
-		return nil
-	}
-	return d.inventoryService
+	return inventorypb.NewInventoryServiceClient(d.serviceConns[ServiceNameInventory].conn)
 }
 
 func (d *Data) GetOrderService() orderpb.OrderServiceClient {
-	if d == nil {
-		return nil
-	}
-	return d.orderService
+	return orderpb.NewOrderServiceClient(d.serviceConns[ServiceNameOrder].conn)
 }
 
-func (d *Data) GetKafkaConsumer() sarama.ConsumerGroup {
-	if d == nil {
-		return nil
-	}
-	return d.kafkaOrderConsumer
+func (d *Data) GetOrderConsumer() sarama.ConsumerGroup {
+	return d.kafkaConsumers[ServiceNameOrder]
+}
+
+func (d *Data) GetProductConsumer() sarama.ConsumerGroup {
+	return d.kafkaConsumers[ServiceNameProduct]
+}
+
+func (d *Data) GetInventoryConsumer() sarama.ConsumerGroup {
+	return d.kafkaConsumers[ServiceNameInventory]
+}
+
+func (d *Data) GetPaymentConsumer() sarama.ConsumerGroup {
+	return d.kafkaConsumers[ServiceNamePayment]
 }
 
 func (d *Data) GetKafkaProducer() sarama.SyncProducer {
-	if d == nil {
-		return nil
-	}
 	return d.kafkaProducer
 }
 
 func (d *Data) GetStripeSuccessUrl() string {
-	if d == nil {
-		return ""
-	}
 	return d.stripeSuccessURL
 }
