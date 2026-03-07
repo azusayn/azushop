@@ -5,7 +5,7 @@ CREATE TABLE users (
   password_hash VARCHAR(255) NOT NULL,
   salt VARCHAR(255) NOT NULL,
   role VARCHAR(255) NOT NULL CHECK (role IN ('admin', 'merchant', 'customer'))
-)
+);
 
 -- product service.
 CREATE TYPE product_status AS ENUM (
@@ -21,7 +21,7 @@ CREATE TABLE products (
   status product_status NOT NULL,
   seller_id INT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_products_seller_id ON products(seller_id);
@@ -38,31 +38,31 @@ CREATE TABLE skus (
 CREATE INDEX idx_skus_product_id ON skus(product_id);
 
 -- inventory service. 
-CREATE TABLE inventory (,
+CREATE TABLE inventory (
   sku_id UUID NOT NULL PRIMARY KEY,
   stock_quantity BIGINT NOT NULL CHECK (stock_quantity >= 0),
-  reserved_quantity BIGINT NOT NULL CHECK (reserved_quantity >= 0),
-)
+  reserved_quantity BIGINT NOT NULL CHECK (reserved_quantity >= 0)
+);
 
 CREATE TYPE inventory_lock_status AS ENUM (
   'locked',
   'confirmed',
   'released'
-)
+);
 
 CREATE TABLE inventory_lock (
   order_id BIGINT NOT NULL PRIMARY KEY,
-  payload NOT NULL JSONB,
-  status inventory_lock_status NOT NULL,
-)
+  payload JSONB NOT NULL,
+  status inventory_lock_status NOT NULL
+);
 
 -- order service.
 CREATE TYPE order_status AS ENUM (
   'pending',
-  'cancelled'
+  'cancelled',
   'confirmed',
-  'completed',
-)
+  'completed'
+);
 
 -- TODO(3): coupons & currency
 -- currently use cny as default currency.
@@ -79,19 +79,19 @@ CREATE TABLE orders (
 
 -- TODO(4): Debezium CDC.
 CREATE TABLE order_outbox (
-  id uuid.UUID NOT NULL,
+  id UUID NOT NULL,
   topic VARCHAR(255) NOT NULL,
   payload JSON NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   sent_at TIMESTAMPTZ
-)
+);
 
 -- payment service.
 CREATE TYPE payment_method AS ENUM (
   'stripe',
   'alipay',
   'wechat'
-)
+);
 
 CREATE TYPE payment_status AS ENUM (
   'pending',
@@ -99,7 +99,7 @@ CREATE TYPE payment_status AS ENUM (
   'paid',
   'refunding',
   'refunded'
-)
+);
 
 CREATE TABLE payments (
   id BIGSERIAL NOT NULL PRIMARY KEY,
@@ -110,8 +110,8 @@ CREATE TABLE payments (
   method payment_method NOT NULL,
   status payment_status NOT NULL,
   amount_total DECIMAL(10, 2) NOT NULL CHECK (amount_total >= 0),
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-)
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 
 CREATE INDEX idx_payments_user_id ON payments(user_id);
 CREATE UNIQUE INDEX idx_payments_external_id ON payments(external_id);
