@@ -13,12 +13,17 @@ var ProviderSet = wire.NewSet(
 	NewInventoryUsecase,
 	NewOrderUsecase,
 	NewPaymentUsecase,
+	NewDelayMsgRealyUsecase,
 )
 
 const (
 	KafkaTopicPaymentStatus  = "payment.status"
 	KafkaTopicProductCreated = "product.created"
 	KafkaTopicOrderCreated   = "order.created"
+	// "order.cancelled.delay" is an intermediate topic
+	// used by the delay runner to defer delivery to "order.cancelled"
+	KafkaTopicOrderCancelledDelay = "order.cancelled.delay"
+	KafkaTopicOrderCancelled      = "order.cancelled"
 )
 
 type Transaction interface {

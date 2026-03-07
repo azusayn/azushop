@@ -2,6 +2,7 @@ package data
 
 import (
 	"log/slog"
+	"time"
 
 	"github.com/IBM/sarama"
 	"github.com/google/uuid"
@@ -35,6 +36,11 @@ type OrderItem struct {
 type OrderCreatedMessage struct {
 	OrderID    int64
 	OrderItems []*OrderItem
+}
+
+type OrderCancelledMessage struct {
+	OrderID     int64
+	ExpiredTime time.Time
 }
 
 func NewConsumerGroup(brokerAddrs []string, groupID string) (sarama.ConsumerGroup, error) {

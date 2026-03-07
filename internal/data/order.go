@@ -14,6 +14,7 @@ import (
 
 const (
 	maxRetryCount = 5
+	orderTimeout  = time.Second * 30
 )
 
 type OrderRepo struct {
@@ -108,7 +109,12 @@ func (repo *OrderRepo) CreateOutboxMessage(ctx context.Context, topic string, pa
 	if client == nil {
 		client = repo.data.gormClient
 	}
+	id, err := uuid.NewV7()
+	if err != nil {
+		return err
+	}
 	outboxMsg := &biz.OrderOutboxMessage{
+		ID:      id,
 		Topic:   topic,
 		Payload: payload,
 	}
@@ -186,6 +192,27 @@ func (s *OrderSubscriber) SubscribePaymentStatus(ctx context.Context, handler fu
 	}
 }
 
+func (s *OrderSubscriber) SubscribeOrderCancelled(ctx context.Context, handler func(int64) error) error {
+	topics := []string{biz.KafkaTopicOrderCancelled}
+	consumerHandler := NewConsumerHandler(func(bytes []byte) error {
+		var msg OrderCancelledMessage
+		if err := json.Unmarshal(bytes, &msg); err != nil {
+			return err
+		}
+		return handler(msg.OrderID)
+	})
+	for {
+		// TODO(0): concurrency problem for common consumer.
+		err := s.data.GetOrderConsumer().Consume(ctx, topics, consumerHandler)
+		if err != nil {
+			return err
+		}
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+	}
+}
+
 type OrderPublisher struct {
 	data *Data
 }
@@ -194,11 +221,12 @@ func NewOrderPublisher(data *Data) biz.OrderPublisher {
 	return &OrderPublisher{data: data}
 }
 
+// TODO(0): maybe wrap this function.
 func (p *OrderPublisher) PublishOrderCreated(ctx context.Context, messages []*biz.OrderOutboxMessage) error {
 	producer := p.data.GetKafkaProducer()
 	var prodMsgs []*sarama.ProducerMessage
 	for _, message := range messages {
-		orderCreatedMsg, err := convertToOrderCreatedMessage(message)
+		orderCreatedMsg, err := toOrderCreatedMessage(message)
 		if err != nil {
 			return err
 		}
@@ -215,7 +243,40 @@ func (p *OrderPublisher) PublishOrderCreated(ctx context.Context, messages []*bi
 	return producer.SendMessages(prodMsgs)
 }
 
-func convertToOrderCreatedMessage(message *biz.OrderOutboxMessage) (*OrderCreatedMessage, error) {
+func (p *OrderPublisher) PublishOrderCancelledDelay(ctx context.Context, messages []*biz.OrderOutboxMessage) error {
+	producer := p.data.GetKafkaProducer()
+	var prodMsgs []*sarama.ProducerMessage
+	for _, message := range messages {
+		orderCancelledMsg, err := toOrderCancelledMsg(message)
+		if err != nil {
+			return err
+		}
+		bytes, err := json.Marshal(orderCancelledMsg)
+		if err != nil {
+			return err
+		}
+		prodMsg := &sarama.ProducerMessage{
+			Topic: biz.KafkaTopicOrderCancelledDelay,
+			Value: sarama.ByteEncoder(bytes),
+		}
+		prodMsgs = append(prodMsgs, prodMsg)
+	}
+	return producer.SendMessages(prodMsgs)
+}
+
+func toOrderCancelledMsg(message *biz.OrderOutboxMessage) (*OrderCancelledMessage, error) {
+	var order biz.Order
+	if err := json.Unmarshal(message.Payload, &order); err != nil {
+		return nil, err
+	}
+	orderCancelledMsg := &OrderCancelledMessage{
+		OrderID:     order.ID,
+		ExpiredTime: time.Now().Add(orderTimeout),
+	}
+	return orderCancelledMsg, nil
+}
+
+func toOrderCreatedMessage(message *biz.OrderOutboxMessage) (*OrderCreatedMessage, error) {
 	var order biz.Order
 	if err := json.Unmarshal(message.Payload, &order); err != nil {
 		return nil, err

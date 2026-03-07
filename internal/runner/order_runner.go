@@ -24,5 +24,11 @@ func (r *OrderRunner) Run(ctx context.Context) error {
 	g.Go(func() error {
 		return r.uc.ProcessOutboxMessages(ctx, biz.KafkaTopicOrderCreated)
 	})
+	g.Go(func() error {
+		return r.uc.ProcessOutboxMessages(ctx, biz.KafkaTopicOrderCancelledDelay)
+	})
+	g.Go(func() error {
+		return r.uc.HandleOrderCancelled(ctx)
+	})
 	return g.Wait()
 }

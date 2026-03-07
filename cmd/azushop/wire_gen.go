@@ -51,7 +51,10 @@ func wireApp(confServer *conf.Server, confData *conf.Data, logger log.Logger) (*
 	paymentService := service.NewPaymentService(paymentUsecase, dataData)
 	grpcServer := server.NewGRPCServer(confServer, authServiceService, productService, inventoryService, orderService, paymentService, dataData, logger)
 	httpServer := server.NewHTTPServer(confServer, authServiceService, logger)
-	runnerManager := runner.NewRunnerManager(orderUsecase, inventoryUsecase)
+	delayMsgRelaySubscriber := data.NewDelayMsgRelaySubscriber(dataData)
+	delayMsgRelayPublisher := data.NewDelayRelayPublisher(dataData)
+	delayMsgRealyUsecase := biz.NewDelayMsgRealyUsecase(delayMsgRelaySubscriber, delayMsgRelayPublisher)
+	runnerManager := runner.NewRunnerManager(orderUsecase, inventoryUsecase, delayMsgRealyUsecase)
 	app := newApp(logger, grpcServer, httpServer, runnerManager)
 	return app, func() {
 		cleanup()
