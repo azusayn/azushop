@@ -27,7 +27,6 @@ type OrderServiceHTTPServer interface {
 	// CancelOrder cancels order for given order ID.
 	CancelOrder(context.Context, *CancelOrderRequest) (*CancelOrderResponse, error)
 	// CreateOrder create order
-	// TODO(0): payment timeout.
 	CreateOrder(context.Context, *CreateOrderRequest) (*CreateOrderResponse, error)
 	// ListOrders lists all orders owned by the customer.
 	// TODO(1): filter options in query parameters?
@@ -111,7 +110,6 @@ type OrderServiceHTTPClient interface {
 	// CancelOrder cancels order for given order ID.
 	CancelOrder(ctx context.Context, req *CancelOrderRequest, opts ...http.CallOption) (rsp *CancelOrderResponse, err error)
 	// CreateOrder create order
-	// TODO(0): payment timeout.
 	CreateOrder(ctx context.Context, req *CreateOrderRequest, opts ...http.CallOption) (rsp *CreateOrderResponse, err error)
 	// ListOrders lists all orders owned by the customer.
 	// TODO(1): filter options in query parameters?
@@ -141,7 +139,6 @@ func (c *OrderServiceHTTPClientImpl) CancelOrder(ctx context.Context, in *Cancel
 }
 
 // CreateOrder create order
-// TODO(0): payment timeout.
 func (c *OrderServiceHTTPClientImpl) CreateOrder(ctx context.Context, in *CreateOrderRequest, opts ...http.CallOption) (*CreateOrderResponse, error) {
 	var out CreateOrderResponse
 	pattern := "/v1/orders"

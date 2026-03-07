@@ -10,7 +10,6 @@ option go_package = "azushop/api/order/v1;v1";
 // order service.
 service OrderService {
   // create order 
-  // TODO(0): payment timeout.
   rpc CreateOrder(CreateOrderRequest) returns (CreateOrderResponse){
     option (google.api.http) = {
       post: "/v1/orders"

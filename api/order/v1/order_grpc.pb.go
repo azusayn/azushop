@@ -32,7 +32,6 @@ const (
 // order service.
 type OrderServiceClient interface {
 	// create order
-	// TODO(0): payment timeout.
 	CreateOrder(ctx context.Context, in *CreateOrderRequest, opts ...grpc.CallOption) (*CreateOrderResponse, error)
 	// cancels order for given order ID.
 	CancelOrder(ctx context.Context, in *CancelOrderRequest, opts ...grpc.CallOption) (*CancelOrderResponse, error)
@@ -98,7 +97,6 @@ func (c *orderServiceClient) GetOrder(ctx context.Context, in *GetOrderRequest, 
 // order service.
 type OrderServiceServer interface {
 	// create order
-	// TODO(0): payment timeout.
 	CreateOrder(context.Context, *CreateOrderRequest) (*CreateOrderResponse, error)
 	// cancels order for given order ID.
 	CancelOrder(context.Context, *CancelOrderRequest) (*CancelOrderResponse, error)

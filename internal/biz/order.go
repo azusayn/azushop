@@ -31,10 +31,12 @@ type OrderRepo interface {
 }
 type OrderSubscriber interface {
 	SubscribePaymentStatus(ctx context.Context, handler func(orderID int64, status PaymentStatus) error) error
+	SubscribeOrderCancelled(context.Context, func(int64) error) error
 }
 
 type OrderPublisher interface {
 	PublishOrderCreated(ctx context.Context, messages []*OrderOutboxMessage) error
+	PublishOrderCancelledDelay(ctx context.Context, messages []*OrderOutboxMessage) error
 }
 
 type OrderUsecase struct {
@@ -126,7 +128,11 @@ func (uc *OrderUsecase) CreateOrder(
 		if err != nil {
 			return err
 		}
-		return uc.repo.CreateOutboxMessage(ctx, KafkaTopicOrderCreated, payload)
+		err = uc.repo.CreateOutboxMessage(ctx, KafkaTopicOrderCreated, payload)
+		if err != nil {
+			return err
+		}
+		return uc.repo.CreateOutboxMessage(ctx, KafkaTopicOrderCancelledDelay, payload)
 	})
 	if err != nil {
 		return nil, err
@@ -158,6 +164,19 @@ func (uc *OrderUsecase) HandlePaymentStatus(ctx context.Context) error {
 	})
 }
 
+func (uc *OrderUsecase) HandleOrderCancelled(ctx context.Context) error {
+	return uc.subscriber.SubscribeOrderCancelled(ctx, func(orderID int64) error {
+		order, err := uc.repo.GetOrder(ctx, orderID)
+		if err != nil {
+			return err
+		}
+		if order.Status != OrderStatusPending {
+			return nil
+		}
+		return uc.repo.UpdateOrderStatus(ctx, orderID, OrderStatusCancelled)
+	})
+}
+
 func (uc *OrderUsecase) ProcessOutboxMessages(ctx context.Context, topic string) error {
 	messages, err := uc.repo.ListOutboxMessages(ctx, topic, OutboxBatchSize)
 	if err != nil {
@@ -170,6 +189,8 @@ func (uc *OrderUsecase) ProcessOutboxMessages(ctx context.Context, topic string)
 	switch topic {
 	case KafkaTopicOrderCreated:
 		err = uc.publisher.PublishOrderCreated(ctx, messages)
+	case KafkaTopicOrderCancelledDelay:
+		err = uc.publisher.PublishOrderCancelledDelay(ctx, messages)
 	default:
 		return fmt.Errorf("unsupported topic %q", topic)
 	}

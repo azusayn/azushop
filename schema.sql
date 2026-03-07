@@ -79,6 +79,7 @@ CREATE TABLE orders (
 
 -- TODO(4): Debezium CDC.
 CREATE TABLE order_outbox (
+  id uuid.UUID NOT NULL,
   topic VARCHAR(255) NOT NULL,
   payload JSON NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),

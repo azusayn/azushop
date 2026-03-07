@@ -39,6 +39,8 @@ var ProviderSet = wire.NewSet(
 	NewOrderPublisher,
 	NewProductPublisher,
 	NewInventorySubscriber,
+	NewDelayMsgRelaySubscriber,
+	NewDelayRelayPublisher,
 	NewUserRepo,
 	NewProductRepo,
 	NewInventoryRepo,

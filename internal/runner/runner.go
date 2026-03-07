@@ -9,7 +9,6 @@ import (
 )
 
 var ProviderSet = wire.NewSet(
-	NewOrderRunner,
 	NewRunnerManager,
 )
 
@@ -25,11 +24,13 @@ type RunnerManager struct {
 func NewRunnerManager(
 	orderUsecase *biz.OrderUsecase,
 	inventoryUsecase *biz.InventoryUsecase,
+	delayMsgRelayUsecase *biz.DelayMsgRealyUsecase,
 ) *RunnerManager {
 	return &RunnerManager{
 		runners: []Runner{
 			NewOrderRunner(orderUsecase),
 			NewInventoryRunner(inventoryUsecase),
+			NewDelayMsgRelayRunner(delayMsgRelayUsecase),
 		},
 	}
 }
