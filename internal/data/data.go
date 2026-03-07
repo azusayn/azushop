@@ -78,7 +78,7 @@ func NewData(c *conf.Data) (*Data, func(), error) {
 	}
 
 	// postgres client.
-	postgresClient, err := sql.Open(c.GetDatabase().GetDriver(), c.Database.Source)
+	postgresClient, err := sql.Open(c.GetDatabase().GetDriver(), c.GetDatabase().GetSource())
 	if err != nil {
 		return nil, nil, err
 	}

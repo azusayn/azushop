@@ -18,7 +18,7 @@ func NewUserRepo(data *Data) biz.UserRepo {
 func (repo *UserRepo) FindByName(ctx context.Context, name string) (*biz.User, error) {
 	client := repo.data.postgresClient
 	var user biz.User
-	stmt := "select id, username, password_hash, salt from users where username=$1"
+	stmt := "select id, username, password_hash, salt, role from users where username=$1"
 	row := client.QueryRowContext(ctx, stmt, name)
 	if err := row.Scan(&user.ID, &user.Name, &user.PasswordHash, &user.Salt, &user.Role); err != nil {
 		return nil, err
