@@ -28,9 +28,9 @@ func NewRunnerManager(
 ) *RunnerManager {
 	return &RunnerManager{
 		runners: []Runner{
-			NewOrderRunner(orderUsecase),
-			NewInventoryRunner(inventoryUsecase),
-			NewDelayMsgRelayRunner(delayMsgRelayUsecase),
+			// NewOrderRunner(orderUsecase),
+			// NewInventoryRunner(inventoryUsecase),
+			// NewDelayMsgRelayRunner(delayMsgRelayUsecase),
 		},
 	}
 }
