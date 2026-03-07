@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/rsa"
 	"database/sql"
+	"fmt"
 	"log/slog"
 
 	inventorypb "azushop/api/inventory/v1"
@@ -126,6 +127,10 @@ func NewData(c *conf.Data) (*Data, func(), error) {
 	// kafka producer & client.
 	// TODO(1): async producer.
 	brokerAddrs := c.GetKafka().GetBrokerAddrs()
+	slog.Info(fmt.Sprintf("%v", brokerAddrs))
+	if len(brokerAddrs) == 0 {
+		panic("wtf bro...")
+	}
 	kafkaProducer, err := NewSyncProducer(brokerAddrs)
 	if err != nil {
 		err = multierr.Combine(
