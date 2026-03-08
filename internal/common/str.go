@@ -51,3 +51,10 @@ func ParseUUID(s string) (uuid.UUID, error) {
 	}
 	return uuid.Parse(s)
 }
+
+func Truncate(s string, n int) string {
+	if len(s) > n {
+		return s[:n] + "..."
+	}
+	return s
+}

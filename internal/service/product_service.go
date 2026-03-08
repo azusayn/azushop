@@ -73,7 +73,7 @@ func (s *ProductService) BatchCreateProduct(ctx context.Context, req *pb.BatchCr
 	}
 	for _, product := range req.Products {
 		if len(product.Skus) == 0 {
-			return nil, fmt.Errorf("empty skus for product %q", product.ProductName[:20])
+			return nil, fmt.Errorf("empty skus for product %q", common.Truncate(product.ProductName, 20))
 		}
 	}
 	products, err := convertToBizProducts(req.Products)
