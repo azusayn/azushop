@@ -36,7 +36,7 @@ func (s *ProductService) ListSellerProducts(ctx context.Context, req *pb.ListSel
 	if err != nil {
 		return nil, err
 	}
-	uuid, err := uuid.Parse(req.PageToken)
+	uuid, err := common.ParseUUID(req.PageToken)
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +52,6 @@ func (s *ProductService) ListSellerProducts(ctx context.Context, req *pb.ListSel
 	if err != nil {
 		return nil, err
 	}
-
 	pbProducts, err := convertToPbProducts(products)
 	if err != nil {
 		return nil, err
@@ -105,6 +104,9 @@ func (s *ProductService) BatchGetSkus(ctx context.Context, req *pb.BatchGetSkusR
 		return nil, status.Error(codes.OutOfRange, codes.OutOfRange.String())
 	}
 	var uuids []uuid.UUID
+	if len(req.SkuIds) == 0 {
+		return nil, errors.New("empty sku IDs")
+	}
 	for _, skuId := range req.SkuIds {
 		u, err := uuid.Parse(skuId)
 		if err != nil {
@@ -183,7 +185,7 @@ func convertToBizSkus(pbSkus []*pb.Sku) ([]*biz.Sku, error) {
 		skus = append(skus, &biz.Sku{
 			ID:        bytesUuid,
 			Attrs:     attrsJson,
-			UnitPrice: pbSku.GetUnitPrice(),
+			UnitPrice: biz.Numeric(pbSku.GetUnitPrice()),
 		})
 	}
 	return skus, nil
@@ -197,7 +199,7 @@ func convertToPbSku(sku *biz.Sku) (*pb.Sku, error) {
 	pbSku := &pb.Sku{
 		Id:        sku.ID.String(),
 		Attrs:     &attrs,
-		UnitPrice: sku.UnitPrice,
+		UnitPrice: string(sku.UnitPrice),
 	}
 	return pbSku, nil
 }

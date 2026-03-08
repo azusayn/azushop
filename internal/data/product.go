@@ -96,7 +96,7 @@ func (repo *ProductRepo) ListProductsBySellerId(
 		sku := &biz.Sku{
 			ID:        skuID,
 			Attrs:     attrs,
-			UnitPrice: unitPrice,
+			UnitPrice: biz.Numeric(unitPrice),
 			ProductID: productID,
 		}
 		if skus, ok := m[productID]; ok {
@@ -226,28 +226,34 @@ func (repo *ProductRepo) BatchUpdateProducts(ctx context.Context, products []*bi
 	defer tx.Rollback()
 
 	// table 'products'
-	productColNames := make([]string, 0, lenPaths)
-	productColVals := make([][]any, 0, lenPaths)
+	productColNames := make([]string, 0, lenPaths+1)
+	productColVals := make([][]any, 0, lenPaths+1)
+	productColTypes := []string{"::UUID"}
+	productColNames = append(productColNames, "id")
+	productColVals = append(productColVals, productIds)
 	if len(productNames) != 0 {
 		productColNames = append(productColNames, "product_name")
 		productColVals = append(productColVals, productNames)
+		productColTypes = append(productColTypes, "")
 	}
 	if len(productColNames) != 0 {
-		stmt, values := sql.BuildBatchUpdateSQL("products", productIds, productColNames, productColVals)
+		stmt, values := sql.BuildBatchUpdateSQL("products", productColNames, productColTypes, productColVals)
 		if _, err := tx.ExecContext(ctx, stmt, values...); err != nil {
 			return err
 		}
 	}
 
 	// table skus
-	skuColNames := make([]string, 0)
-	skuColVals := make([][]any, 0)
+	skuColNames := []string{"id"}
+	skuColTypes := []string{"::UUID"}
+	skuColVals := [][]any{skuIDs}
 	if len(attrs) != 0 && len(unitPrices) != 0 {
 		skuColNames = append(skuColNames, "attrs", "unit_price")
 		skuColVals = append(skuColVals, attrs, unitPrices)
+		skuColTypes = append(skuColTypes, "::JSON", "::NUMERIC(10,2)")
 	}
 	if len(skuColNames) != 0 {
-		stmt, values := sql.BuildBatchUpdateSQL("skus", skuIDs, skuColNames, skuColVals)
+		stmt, values := sql.BuildBatchUpdateSQL("skus", skuColNames, skuColTypes, skuColVals)
 		if _, err := tx.ExecContext(ctx, stmt, values...); err != nil {
 			return err
 		}
@@ -277,8 +283,8 @@ func (repo *ProductRepo) BatchGetSkuDetails(
 			s.unit_price
 		FROM skus s
 		JOIN products p ON p.id = s.product_id
-		WHERE id IN (%s) AND id > $1
-		ORDER BY id
+		WHERE s.id IN (%s) AND s.id > $1
+		ORDER BY s.id
 		LIMIT $2
 	`
 	var args []string

@@ -21,12 +21,14 @@ const (
 	ProductStatusOffline     ProductStatus = "offline"
 )
 
+type Numeric string
+
 type Sku struct {
 	ID        uuid.UUID
 	ProductID uuid.UUID
 	// map[string]string
 	Attrs     json.RawMessage
-	UnitPrice string
+	UnitPrice Numeric
 }
 
 type SkuDetail struct {
@@ -88,7 +90,7 @@ func productStatusFilter(productStatus ProductStatus, sellerID, userID int32, ro
 // TODO(3): product quantity limits.
 func (uc *ProductUsecase) BatchCheckProducts(products []*Product) error {
 	nc := auth.NewNameChecker(
-		auth.WithLengthLimit(1, 20),
+		auth.WithLengthLimit(1, 50),
 		auth.WithAllowSpace(),
 		auth.WithAllowPunct(),
 	)
