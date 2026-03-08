@@ -7,10 +7,10 @@ import (
 	"strings"
 
 	"github.com/azusayn/azutils/auth"
-	"github.com/go-kratos/kratos/v2/metadata"
 	"github.com/go-kratos/kratos/v2/middleware"
 	"github.com/go-kratos/kratos/v2/transport"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
 
@@ -21,13 +21,17 @@ func AuthInterceptor(publicKey *rsa.PublicKey, issuer string) middleware.Middlew
 			if !ok {
 				return nil, status.Error(codes.Internal, codes.Internal.String())
 			}
+			// ei wtf is wrong with kratos, I can't extract metadata from it.
 			if requireAuth(tr.Operation()) {
-				md, ok := metadata.FromServerContext(ctx)
+				md, ok := metadata.FromIncomingContext(ctx)
 				if !ok {
 					return nil, status.Error(codes.Unauthenticated, codes.Unauthenticated.String())
 				}
-				val := md.Get(auth.HttpHeaderAuthorization)
-				tokens := strings.Split(val, " ")
+				vals := md.Get(auth.HttpHeaderAuthorization)
+				if len(vals) == 0 {
+					return nil, status.Error(codes.Unauthenticated, "missing token")
+				}
+				tokens := strings.Split(vals[0], " ")
 				if len(tokens) != 2 || strings.ToLower(tokens[0]) != auth.HttpHeaderBearer {
 					return nil, status.Error(codes.Unauthenticated, "invalid access token format")
 				}

@@ -104,6 +104,7 @@ func (uc *ProductUsecase) ListSellerProducts(
 func productsFilter(products []*Product, userID int32, role UserRole) ([]*Product, error) {
 	switch role {
 	case UserRoleAdministrator:
+		// TODO(3): pass seller ID in...
 		return products, nil
 	case UserRoleMerchant:
 		nc := auth.NewNameChecker(
