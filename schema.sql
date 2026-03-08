@@ -39,7 +39,7 @@ CREATE TABLE skus (
 CREATE INDEX idx_skus_product_id ON skus(product_id);
 
 -- inventory service. 
-CREATE TABLE inventory (
+CREATE TABLE inventories (
   sku_id UUID NOT NULL PRIMARY KEY,
   stock_quantity BIGINT NOT NULL CHECK (stock_quantity >= 0),
   reserved_quantity BIGINT NOT NULL CHECK (reserved_quantity >= 0)
@@ -51,7 +51,7 @@ CREATE TYPE inventory_lock_status AS ENUM (
   'released'
 );
 
-CREATE TABLE inventory_lock (
+CREATE TABLE inventory_locks (
   order_id BIGINT NOT NULL PRIMARY KEY,
   payload JSONB NOT NULL,
   status inventory_lock_status NOT NULL

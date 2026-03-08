@@ -45,7 +45,8 @@ type OrderCancelledMessage struct {
 
 func NewConsumerGroup(brokerAddrs []string, groupID string) (sarama.ConsumerGroup, error) {
 	consumerConfig := sarama.NewConfig()
-	consumerConfig.Consumer.Offsets.Initial = sarama.OffsetNewest
+	// consumes messages at least once, make sure all the APIs are idempotent.
+	consumerConfig.Consumer.Offsets.Initial = sarama.OffsetOldest
 	consumerConfig.Consumer.Group.Rebalance.GroupStrategies = []sarama.BalanceStrategy{
 		sarama.NewBalanceStrategyRoundRobin(),
 	}
