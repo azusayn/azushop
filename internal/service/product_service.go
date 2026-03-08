@@ -182,7 +182,7 @@ func convertToBizSkus(pbSkus []*pb.Sku) ([]*biz.Sku, error) {
 		if err != nil {
 			return nil, err
 		}
-		bytesUuid, err := uuid.Parse(pbSku.GetId())
+		bytesUuid, err := common.ParseUUID(pbSku.GetId())
 		if err != nil {
 			return nil, err
 		}
@@ -260,7 +260,7 @@ func convertToBizProducts(pbProducts []*pb.Product) ([]*biz.Product, error) {
 		if err != nil {
 			return nil, err
 		}
-		bytesUuid, err := uuid.Parse(p.Id)
+		bytesUuid, err := common.ParseUUID(p.Id)
 		if err != nil {
 			return nil, err
 		}

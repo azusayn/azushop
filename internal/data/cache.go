@@ -70,10 +70,14 @@ func SetCacheSAdd(ctx context.Context, data *Data, key string, members ...any) {
 	}
 }
 
+// returns true if any keys are found.
 func GetCacheSMembers(ctx context.Context, data *Data, key string) ([]string, bool) {
 	strs, err := data.redisClient.SMembers(ctx, key).Result()
 	if err != nil {
 		slog.Warn(err.Error())
+		return nil, false
+	}
+	if len(strs) == 0 {
 		return nil, false
 	}
 	return strs, true

@@ -57,9 +57,10 @@ type ProductUsecase struct {
 	publisher ProductPublisher
 }
 
-func NewProductUsecase(repo ProductRepo) *ProductUsecase {
+func NewProductUsecase(repo ProductRepo, publisher ProductPublisher) *ProductUsecase {
 	return &ProductUsecase{
-		repo: repo,
+		repo:      repo,
+		publisher: publisher,
 	}
 }
 
