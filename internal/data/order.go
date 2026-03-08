@@ -182,7 +182,7 @@ func (s *OrderSubscriber) SubscribePaymentStatus(ctx context.Context, handler fu
 		return handler(msg.OrderID, biz.PaymentStatus(string(msg.Status)))
 	})
 	for {
-		err := s.data.GetPaymentConsumer().Consume(ctx, topics, consumerHandler)
+		err := s.data.GetOrder2PaymentConsumer().Consume(ctx, topics, consumerHandler)
 		if err != nil {
 			return err
 		}
@@ -202,8 +202,7 @@ func (s *OrderSubscriber) SubscribeOrderCancelled(ctx context.Context, handler f
 		return handler(msg.OrderID)
 	})
 	for {
-		// TODO(0): concurrency problem for common consumer.
-		err := s.data.GetOrderConsumer().Consume(ctx, topics, consumerHandler)
+		err := s.data.GetOrder2OrderConsumer().Consume(ctx, topics, consumerHandler)
 		if err != nil {
 			return err
 		}
@@ -221,7 +220,7 @@ func NewOrderPublisher(data *Data) biz.OrderPublisher {
 	return &OrderPublisher{data: data}
 }
 
-// TODO(0): maybe wrap this function.
+// TODO(1): maybe wrap this function.
 func (p *OrderPublisher) PublishOrderCreated(ctx context.Context, messages []*biz.OrderOutboxMessage) error {
 	producer := p.data.GetKafkaProducer()
 	var prodMsgs []*sarama.ProducerMessage

@@ -144,10 +144,12 @@ func NewData(c *conf.Data) (*Data, func(), error) {
 		return nil, nil, err
 	}
 	kafkaConsumers := map[string]sarama.ConsumerGroup{
-		ServiceNameOrder:     nil,
-		ServiceNameInventory: nil,
-		ServiceNameProduct:   nil,
-		ServiceNamePayment:   nil,
+		"order2payment":       nil,
+		"order2order":         nil,
+		"inventory2product":   nil,
+		"inventory2order":     nil,
+		"inventory2payment":   nil,
+		"delayMsgRelay2Order": nil,
 	}
 	for name := range kafkaConsumers {
 		consumer, err := NewConsumerGroup(brokerAddrs, name)
@@ -219,20 +221,28 @@ func (d *Data) GetOrderService() orderpb.OrderServiceClient {
 	return orderpb.NewOrderServiceClient(d.serviceConns[ServiceNameOrder].conn)
 }
 
-func (d *Data) GetOrderConsumer() sarama.ConsumerGroup {
-	return d.kafkaConsumers[ServiceNameOrder]
+func (d *Data) GetOrder2PaymentConsumer() sarama.ConsumerGroup {
+	return d.kafkaConsumers["order2payment"]
 }
 
-func (d *Data) GetProductConsumer() sarama.ConsumerGroup {
-	return d.kafkaConsumers[ServiceNameProduct]
+func (d *Data) GetOrder2OrderConsumer() sarama.ConsumerGroup {
+	return d.kafkaConsumers["order2order"]
 }
 
-func (d *Data) GetInventoryConsumer() sarama.ConsumerGroup {
-	return d.kafkaConsumers[ServiceNameInventory]
+func (d *Data) GetInventory2ProductConsumer() sarama.ConsumerGroup {
+	return d.kafkaConsumers["inventory2product"]
 }
 
-func (d *Data) GetPaymentConsumer() sarama.ConsumerGroup {
-	return d.kafkaConsumers[ServiceNamePayment]
+func (d *Data) GetInventory2PaymentConsumer() sarama.ConsumerGroup {
+	return d.kafkaConsumers["inventory2payment"]
+}
+
+func (d *Data) GetInventory2OrderConsumer() sarama.ConsumerGroup {
+	return d.kafkaConsumers["inventory2order"]
+}
+
+func (d *Data) GetDelayMsgRelay2Order() sarama.ConsumerGroup {
+	return d.kafkaConsumers["delayMsgRelay2Order"]
 }
 
 func (d *Data) GetKafkaProducer() sarama.SyncProducer {

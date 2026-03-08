@@ -45,12 +45,12 @@ func NewDelayMsgRelaySubscriber(data *Data) biz.DelayMsgRelaySubscriber {
 
 func (s *DelayMsgRelaySubscriber) SubscribeDelayMessage(ctx context.Context, handler func(orderID int64) error) error {
 	topics := []string{biz.KafkaTopicOrderCancelledDelay}
-	consumer := s.data.GetOrderConsumer()
+	consumer := s.data.GetDelayMsgRelay2Order()
 	consumerHandler := NewDelayConsumerHandler(consumer, func(orderID int64) error {
 		return handler(orderID)
 	})
 	for {
-		err := s.data.GetOrderConsumer().Consume(ctx, topics, consumerHandler)
+		err := s.data.GetDelayMsgRelay2Order().Consume(ctx, topics, consumerHandler)
 		if err != nil {
 			return err
 		}

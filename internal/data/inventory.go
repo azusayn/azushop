@@ -175,7 +175,7 @@ func (s *InventorySubscriber) SubscribeProductCreated(ctx context.Context, handl
 		return handler(msg.SkuIDs)
 	})
 	for {
-		err := s.data.GetProductConsumer().Consume(ctx, topics, consumerHandler)
+		err := s.data.GetInventory2ProductConsumer().Consume(ctx, topics, consumerHandler)
 		if err != nil {
 			return err
 		}
@@ -205,7 +205,7 @@ func (s *InventorySubscriber) SubscribeOrderCreated(
 		return handler(msg.OrderID, bizOrderItems)
 	})
 	for {
-		err := s.data.GetOrderConsumer().Consume(ctx, topics, consumerHandler)
+		err := s.data.GetInventory2OrderConsumer().Consume(ctx, topics, consumerHandler)
 		if err != nil {
 			return err
 		}
@@ -228,7 +228,7 @@ func (s *InventorySubscriber) SubscribePaymentStatus(
 		return handler(msg.OrderID, msg.Status == PaymentStatusPaid)
 	})
 	for {
-		err := s.data.GetPaymentConsumer().Consume(ctx, topics, consumerHandler)
+		err := s.data.GetInventory2PaymentConsumer().Consume(ctx, topics, consumerHandler)
 		if err != nil {
 			return err
 		}
