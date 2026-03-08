@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log/slog"
 
 	"github.com/google/uuid"
 )
@@ -166,7 +165,6 @@ func (uc *InventoryUsecase) DeductStock(ctx context.Context, orderID int64) erro
 }
 
 func (uc *InventoryUsecase) HandleProductCreated(ctx context.Context) error {
-	slog.Error("start listening...")
 	return uc.subscriber.SubscribeProductCreated(ctx, func(skuIDs []uuid.UUID) error {
 		// TODO(1): retrying topic.
 		_, err := uc.repo.BatchCreateInventoris(ctx, skuIDs)
