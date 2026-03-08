@@ -29,7 +29,7 @@ func NewRunnerManager(
 	return &RunnerManager{
 		runners: []Runner{
 			// NewOrderRunner(orderUsecase),
-			// NewInventoryRunner(inventoryUsecase),
+			NewInventoryRunner(inventoryUsecase),
 			// NewDelayMsgRelayRunner(delayMsgRelayUsecase),
 		},
 	}

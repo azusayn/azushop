@@ -21,24 +21,12 @@ func NewInventoryRepo(data *Data) biz.InventoryRepo {
 
 // updates the same set of fields (defined by paths) for each inventory.
 func (repo *InventoryRepo) UpdateInventories(ctx context.Context, inventories []*biz.Inventory, paths []string) error {
-	gormClient := GetTransaction(ctx)
-	if gormClient == nil {
-		gormClient = repo.data.gormClient.WithContext(ctx)
+	client := GetTransaction(ctx)
+	if client == nil {
+		client = repo.data.gormClient
 	}
 	for _, inv := range inventories {
-		vals := map[string]interface{}{}
-		for _, path := range paths {
-			switch path {
-			case "stock_quantity":
-				vals["stock_quantity"] = inv.StockQuantity
-			case "reserved_quantity":
-				vals["reserved_quantity"] = inv.ReservedQuantity
-			}
-		}
-		if len(vals) == 0 {
-			return errors.New("no valid paths")
-		}
-		if err := gormClient.Model(inv).Updates(vals).Error; err != nil {
+		if err := client.WithContext(ctx).Model(inv).Select(paths).Updates(inv).Error; err != nil {
 			return err
 		}
 	}
