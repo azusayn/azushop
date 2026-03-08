@@ -192,6 +192,7 @@ func NewData(c *conf.Data) (*Data, func(), error) {
 	return &Data{
 		privateKey:       key,
 		postgresClient:   postgresClient,
+		redisClient:      redisClient,
 		gormClient:       gormClient,
 		appName:          c.AppName,
 		serviceConns:     serviceConns,
