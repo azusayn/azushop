@@ -48,14 +48,17 @@ enum ProductStatus {
 }
 
 message Sku {
+  // TODO(3): optional when used as input
   string id = 1;
   google.protobuf.Struct attrs = 2;
   string unit_price = 3;
 }
 
 message Product {
+  // TODO(3): optional when used as input
   string id = 1;
   string product_name = 2;
+  // TODO(3): optional when used as input
   int32 seller_id = 3;
   repeated Sku skus = 4;
   ProductStatus product_status = 5;
