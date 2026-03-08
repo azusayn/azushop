@@ -4,8 +4,8 @@ go 1.25.5
 
 require (
 	github.com/IBM/sarama v1.47.0
-	github.com/azusayn/azutils v0.0.0-20260225192947-e5ed16b5dd0b
-	github.com/go-kratos/kratos/v2 v2.8.4
+	github.com/azusayn/azutils v0.0.0-20260308091830-a4e122a98458
+	github.com/go-kratos/kratos/v2 v2.9.2
 	github.com/google/uuid v1.6.0
 	github.com/google/wire v0.6.0
 	github.com/jackc/pgx/v5 v5.8.0
