@@ -3,6 +3,7 @@ package biz
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 
@@ -84,6 +85,27 @@ func productStatusFilter(productStatus ProductStatus, sellerID, userID int32, ro
 	return ProductStatusUnspecified
 }
 
+// TODO(3): product quantity limits.
+func (uc *ProductUsecase) BatchCheckProducts(products []*Product) error {
+	nc := auth.NewNameChecker(
+		auth.WithLengthLimit(1, 20),
+		auth.WithAllowSpace(),
+		auth.WithAllowPunct(),
+	)
+	if len(products) == 0 {
+		return errors.New("empty products")
+	}
+	for _, p := range products {
+		if err := nc.BasicCheck(p.ProductName); err != nil {
+			return err
+		}
+		if len(p.Skus) == 0 {
+			return fmt.Errorf("empty skus for product %q", p.ProductName)
+		}
+	}
+	return nil
+}
+
 // userID is the user calling the API.
 func (uc *ProductUsecase) ListSellerProducts(
 	ctx context.Context,
@@ -108,16 +130,8 @@ func productsFilter(products []*Product, userID int32, role UserRole) ([]*Produc
 		// TODO(3): pass seller ID in...
 		return products, nil
 	case UserRoleMerchant:
-		nc := auth.NewNameChecker(
-			auth.WithLengthLimit(1, 20),
-			auth.WithAllowSpace(),
-			auth.WithAllowPunct(),
-		)
 		for _, p := range products {
 			p.SellerID = userID
-			if err := nc.BasicCheck(p.ProductName); err != nil {
-				return nil, err
-			}
 			p.ProductStatus = ProductStatusOffline
 		}
 

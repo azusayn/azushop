@@ -25,6 +25,7 @@ CREATE TABLE products (
 );
 
 CREATE INDEX idx_products_seller_id ON products(seller_id);
+CREATE UNIQUE INDEX idx_products_seller_id_product_name ON products(seller_id, product_name);
 
 CREATE TABLE skus (
   -- UUIDv7

@@ -7,7 +7,6 @@ import (
 	"azushop/internal/pkg/middleware"
 	"context"
 	"errors"
-	"fmt"
 
 	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
@@ -68,16 +67,11 @@ func (s *ProductService) BatchCreateProduct(ctx context.Context, req *pb.BatchCr
 	if err != nil {
 		return nil, err
 	}
-	if len(req.Products) == 0 {
-		return nil, errors.New("empty products")
-	}
-	for _, product := range req.Products {
-		if len(product.Skus) == 0 {
-			return nil, fmt.Errorf("empty skus for product %q", common.Truncate(product.ProductName, 20))
-		}
-	}
 	products, err := convertToBizProducts(req.Products)
 	if err != nil {
+		return nil, err
+	}
+	if err := s.uc.BatchCheckProducts(products); err != nil {
 		return nil, err
 	}
 	_, err = s.uc.BatchCreateProducts(ctx, products, userID, biz.UserRole(role))
