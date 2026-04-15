@@ -16,6 +16,12 @@ import (
 	"github.com/go-kratos/kratos/v2/log"
 )
 
+import (
+	_ "go.uber.org/automaxprocs"
+)
+
+// Injectors from wire.go:
+
 func wireAuthApp(confServer *conf.Server, confData *conf.Data, logger log.Logger) (*kratos.App, func(), error) {
 	dataData, cleanup, err := data.NewData(confData)
 	if err != nil {

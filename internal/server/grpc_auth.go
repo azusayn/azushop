@@ -8,6 +8,7 @@ import (
 	"azushop/internal/service"
 
 	"github.com/go-kratos/kratos/v2/log"
+	"github.com/go-kratos/kratos/v2/middleware/logging"
 	"github.com/go-kratos/kratos/v2/middleware/recovery"
 	"github.com/go-kratos/kratos/v2/transport/grpc"
 )
@@ -20,6 +21,7 @@ func NewAuthGRPCServer(c *conf.Server,
 		grpc.Middleware(
 			recovery.Recovery(),
 			middleware.AuthInterceptor(&config.GetPrivateKey().PublicKey, config.GetAppName()),
+			logging.Server(logger),
 		),
 	}
 	if c.Grpc.Network != "" {
