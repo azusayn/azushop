@@ -9,10 +9,14 @@ type DelayMsgRelayRunner struct {
 	uc *biz.DelayMsgRealyUsecase
 }
 
-func NewDelayMsgRelayRunner(uc *biz.DelayMsgRealyUsecase) Runner {
+func NewDelayMsgRelayRunner(uc *biz.DelayMsgRealyUsecase) *DelayMsgRelayRunner {
 	return &DelayMsgRelayRunner{uc: uc}
 }
 
-func (r *DelayMsgRelayRunner) Run(ctx context.Context) error {
+func (r *DelayMsgRelayRunner) Start(ctx context.Context) error {
 	return r.uc.HandleDelayMessage(ctx)
+}
+
+func (r *DelayMsgRelayRunner) Stop(ctx context.Context) error {
+	return nil
 }

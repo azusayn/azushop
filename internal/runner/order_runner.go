@@ -11,12 +11,11 @@ type OrderRunner struct {
 	uc *biz.OrderUsecase
 }
 
-func NewOrderRunner(uc *biz.OrderUsecase) Runner {
+func NewOrderRunner(uc *biz.OrderUsecase) *OrderRunner {
 	return &OrderRunner{uc: uc}
 }
 
-// TODO(3): function for stopping.
-func (r *OrderRunner) Run(ctx context.Context) error {
+func (r *OrderRunner) Start(ctx context.Context) error {
 	g, ctx := errgroup.WithContext(ctx)
 	g.Go(func() error {
 		return r.uc.HandlePaymentStatus(ctx)
@@ -31,4 +30,8 @@ func (r *OrderRunner) Run(ctx context.Context) error {
 		return r.uc.HandleOrderCancelled(ctx)
 	})
 	return g.Wait()
+}
+
+func (r *OrderRunner) Stop(ctx context.Context) error {
+	return nil
 }
