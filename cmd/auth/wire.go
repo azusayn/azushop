@@ -15,7 +15,7 @@ import (
 	"github.com/google/wire"
 )
 
-func wireAuthApp(*conf.Server, log.Logger) (*kratos.App, func(), error) {
+func wireAuthApp(*conf.Server, *conf.Data, log.Logger) (*kratos.App, func(), error) {
 	panic(wire.Build(
 		server.NewAuthGRPCServer,
 		server.NewAuthHTTPServer,
