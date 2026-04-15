@@ -5,7 +5,6 @@ import (
 	"os"
 
 	"azushop/internal/conf"
-	"azushop/internal/runner"
 
 	"github.com/go-kratos/kratos/v2"
 	"github.com/go-kratos/kratos/v2/config"
@@ -18,27 +17,22 @@ import (
 	_ "go.uber.org/automaxprocs"
 )
 
-// go build -ldflags "-X main.Version=x.y.z"
 var (
-	// Name is the name of the compiled software.
-	Name string
-	// Version is the version of the compiled software.
-	Version string
-	// flagconf is the config flag.
+	Name     string
+	Version  string
 	flagconf string
 
 	id, _ = os.Hostname()
 )
 
 func init() {
-	flag.StringVar(&flagconf, "conf", "../../configs", "config path, eg: -conf config.yaml")
+	flag.StringVar(&flagconf, "conf", "../../configs/product.yaml", "config path, eg: -conf config.yaml")
 }
 
 func newApp(
 	logger log.Logger,
 	grpcServer *grpc.Server,
 	httpServer *http.Server,
-	runnerManager *runner.RunnerManager,
 ) *kratos.App {
 	return kratos.New(
 		kratos.ID(id),
@@ -49,7 +43,6 @@ func newApp(
 		kratos.Server(
 			grpcServer,
 			httpServer,
-			runnerManager,
 		),
 	)
 }
@@ -81,13 +74,12 @@ func main() {
 		panic(err)
 	}
 
-	app, cleanup, err := wireApp(bc.Server, bc.Data, logger)
+	app, cleanup, err := wireProductApp(bc.Server, bc.Data, logger)
 	if err != nil {
 		panic(err)
 	}
 	defer cleanup()
 
-	// start and wait for stop signal
 	if err := app.Run(); err != nil {
 		panic(err)
 	}

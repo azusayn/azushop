@@ -11,11 +11,11 @@ type InventoryRunner struct {
 	uc *biz.InventoryUsecase
 }
 
-func NewInventoryRunner(uc *biz.InventoryUsecase) Runner {
+func NewInventoryRunner(uc *biz.InventoryUsecase) *InventoryRunner {
 	return &InventoryRunner{uc: uc}
 }
 
-func (r *InventoryRunner) Run(ctx context.Context) error {
+func (r *InventoryRunner) Start(ctx context.Context) error {
 	g, ctx := errgroup.WithContext(ctx)
 	g.Go(func() error {
 		return r.uc.HandleProductCreated(ctx)
@@ -27,4 +27,8 @@ func (r *InventoryRunner) Run(ctx context.Context) error {
 		return r.uc.HandlePaymentStatus(ctx)
 	})
 	return g.Wait()
+}
+
+func (r *InventoryRunner) Stop(ctx context.Context) error {
+	return nil
 }

@@ -1,12 +1,12 @@
 server:
   http:
-    addr: 0.0.0.0:8000
+    addr: 0.0.0.0:8002
     timeout: 1s
   grpc:
-    addr: 0.0.0.0:9000
+    addr: 0.0.0.0:9002
     timeout: 1s
 data:
-  app_name: "azushop"
+  app_name: "azushop.inventory"
   database:
     driver: pgx
     source: postgres://postgres:270153@localhost:5432/postgres?sslmode=disable
@@ -16,9 +16,9 @@ data:
     write_timeout: 0.2s
   service_addr:
     product: 127.0.0.1:9000
-    inventory: 127.0.0.1:9000
-    order: 127.0.0.1:9000
-    auth: 127.0.0.1:9000
+    inventory: 127.0.0.1:9002
+    order: 127.0.0.1:9003
+    auth: 127.0.0.1:9001
   payment:
     stripe_secret_key:
     stripe_success_url:
