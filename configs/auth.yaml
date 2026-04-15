@@ -24,4 +24,4 @@ data:
     stripe_success_url:
   kafka:
     broker_addrs:
-      - "192.168.1.100:9092"
+      - "192.168.68.143:9092"

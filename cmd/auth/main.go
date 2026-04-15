@@ -10,7 +10,6 @@ import (
 	"github.com/go-kratos/kratos/v2/config"
 	"github.com/go-kratos/kratos/v2/config/file"
 	"github.com/go-kratos/kratos/v2/log"
-	"github.com/go-kratos/kratos/v2/middleware/tracing"
 	"github.com/go-kratos/kratos/v2/transport/grpc"
 	"github.com/go-kratos/kratos/v2/transport/http"
 
@@ -26,7 +25,7 @@ var (
 )
 
 func init() {
-	flag.StringVar(&flagconf, "conf", "../../configs/auth.yaml", "config path, eg: -conf config.yaml")
+	flag.StringVar(&flagconf, "conf", "configs/auth.yaml", "config path, eg: -conf config.yaml")
 }
 
 func newApp(
@@ -49,15 +48,7 @@ func newApp(
 
 func main() {
 	flag.Parse()
-	logger := log.With(log.NewStdLogger(os.Stdout),
-		"ts", log.DefaultTimestamp,
-		"caller", log.DefaultCaller,
-		"service.id", id,
-		"service.name", Name,
-		"service.version", Version,
-		"trace.id", tracing.TraceID(),
-		"span.id", tracing.SpanID(),
-	)
+	logger := log.With(log.NewStdLogger(os.Stdout))
 	c := config.New(
 		config.WithSource(
 			file.NewSource(flagconf),
@@ -73,7 +64,6 @@ func main() {
 	if err := c.Scan(&bc); err != nil {
 		panic(err)
 	}
-
 	app, cleanup, err := wireAuthApp(bc.Server, bc.Data, logger)
 	if err != nil {
 		panic(err)
