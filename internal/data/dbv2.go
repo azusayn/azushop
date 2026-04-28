@@ -22,7 +22,7 @@ func (tx *TransactionV2) Transaction(ctx context.Context, fn func(ctx context.Co
 	}
 	// NOTES: this can be replaced with gorm.Transaction() API,
 	// but deeply nested closures hurt readability.
-	gormClient := tx.postgres.gormClient
+	gormClient := tx.postgres.GormClient
 	if gormClient == nil {
 		return errors.New("nil gorm client")
 	}

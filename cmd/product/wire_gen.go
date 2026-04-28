@@ -16,18 +16,32 @@ import (
 	"github.com/go-kratos/kratos/v2/log"
 )
 
+import (
+	_ "go.uber.org/automaxprocs"
+)
+
+// Injectors from wire.go:
+
 func wireProductApp(confServer *conf.Server, confData *conf.Data, logger log.Logger) (*kratos.App, func(), error) {
-	dataData, cleanup, err := data.NewData(confData)
+	postgres, err := data.NewPostgres(confData)
 	if err != nil {
 		return nil, nil, err
 	}
-	productRepo := data.NewProductRepo(dataData)
-	productPublisher := data.NewProductPublisher(dataData)
+	redis, err := data.NewRedis(confData)
+	if err != nil {
+		return nil, nil, err
+	}
+	productRepo := data.NewProductRepo(postgres, redis)
+	kafkaProducer, err := data.NewKafkaProducer(confData)
+	if err != nil {
+		return nil, nil, err
+	}
+	productPublisher := data.NewProductPublisher(kafkaProducer)
 	productUsecase := biz.NewProductUsecase(productRepo, productPublisher)
 	productService := service.NewProductService(productUsecase)
-	grpcServer := server.NewProductGRPCServer(confServer, productService, dataData, logger)
-	app := newApp(logger, grpcServer, nil)
+	grpcServer := server.NewProductGRPCServer(confServer, productService, logger)
+	httpServer := server.NewProductHTTPServer(confServer, productService, logger)
+	app := newApp(logger, grpcServer, httpServer)
 	return app, func() {
-		cleanup()
 	}, nil
 }

@@ -1,12 +1,30 @@
 package data
 
 import (
+	"azushop/internal/conf"
 	"log/slog"
 	"time"
 
 	"github.com/IBM/sarama"
 	"github.com/google/uuid"
 )
+
+type KafkaProducer struct {
+	syncProducer sarama.SyncProducer
+}
+
+// TODO: async producer.
+func NewKafkaProducer(config *conf.Data) (*KafkaProducer, error) {
+	brokerAddrs := config.GetKafka().GetBrokerAddrs()
+	if len(brokerAddrs) == 0 {
+		panic("broker address list is empty")
+	}
+	syncProducer, err := NewSyncProducer(brokerAddrs)
+	if err != nil {
+		return nil, err
+	}
+	return &KafkaProducer{syncProducer: syncProducer}, nil
+}
 
 type PaymentStatus string
 
@@ -22,10 +40,6 @@ const (
 type PaymentStatusMessage struct {
 	OrderID int64
 	Status  PaymentStatus
-}
-
-type ProductCreatedMessage struct {
-	SkuIDs []uuid.UUID
 }
 
 type OrderItem struct {

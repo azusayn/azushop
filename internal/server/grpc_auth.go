@@ -3,7 +3,6 @@ package server
 import (
 	auth "azushop/api/auth/v1"
 	"azushop/internal/conf"
-	"azushop/internal/pkg/middleware"
 	"azushop/internal/service"
 
 	"github.com/go-kratos/kratos/v2/log"
@@ -19,7 +18,6 @@ func NewAuthGRPCServer(
 	var opts = []grpc.ServerOption{
 		grpc.Middleware(
 			recovery.Recovery(),
-			middleware.AuthInterceptor(authService.PublicKey, authService.AppName),
 			logging.Server(logger),
 		),
 	}

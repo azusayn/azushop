@@ -19,9 +19,9 @@ func wireAuthApp(*conf.Server, *conf.Data, log.Logger) (*kratos.App, func(), err
 	panic(wire.Build(
 		server.NewAuthGRPCServer,
 		server.NewAuthHTTPServer,
-		data.AuthProviderSet,
+		data.AuthDataProviderSet,
 		biz.AuthBizProviderSet,
-		service.NewAuthServiceService,
+		service.AuthServiceProviderSet,
 		newApp,
 	))
 }

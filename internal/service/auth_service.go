@@ -8,16 +8,18 @@ import (
 	"crypto/rsa"
 
 	"github.com/azusayn/azutils/auth"
+	"github.com/google/wire"
 )
 
-var secret *rsa.PrivateKey
+var AuthServiceProviderSet = wire.NewSet(
+	NewAuthServiceService,
+)
 
 type AuthServiceService struct {
 	pb.UnimplementedAuthServiceServer
 	uc         *biz.UserUsecase
 	privateKey *rsa.PrivateKey
-	PublicKey  *rsa.PublicKey
-	AppName    string
+	appName    string
 }
 
 func NewAuthServiceService(uc *biz.UserUsecase, config *conf.Data) *AuthServiceService {
@@ -28,13 +30,12 @@ func NewAuthServiceService(uc *biz.UserUsecase, config *conf.Data) *AuthServiceS
 	return &AuthServiceService{
 		uc:         uc,
 		privateKey: privateKey,
-		PublicKey:  &privateKey.PublicKey,
-		AppName:    config.AppName,
+		appName:    config.AppName,
 	}
 }
 
 func (s *AuthServiceService) Login(ctx context.Context, req *pb.LoginRequest) (*pb.LoginResponse, error) {
-	token, err := s.uc.Login(ctx, s.privateKey, s.AppName, req.Name, req.Password)
+	token, err := s.uc.Login(ctx, s.privateKey, s.appName, req.Name, req.Password)
 	if err != nil {
 		return nil, err
 	}

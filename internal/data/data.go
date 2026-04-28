@@ -69,28 +69,19 @@ type ServiceConn struct {
 	conn *grpc.ClientConn
 }
 
-type PostgresConfig struct {
-	DriverName     string
-	DataSourceName string
-}
-
-func NewPostgresConfig(config *conf.Data) *PostgresConfig {
-	return &PostgresConfig{
-		DriverName:     config.Database.Driver,
-		DataSourceName: config.Database.Source,
-	}
-}
-
 type Postgres struct {
-	conn       *sql.DB
-	gormClient *gorm.DB
+	Conn       *sql.DB
+	GormClient *gorm.DB
 }
 
-func NewPostgres(config *PostgresConfig) (*Postgres, error) {
+func NewPostgres(config *conf.Data) (*Postgres, error) {
 	if config == nil {
 		return nil, errors.New("nil PostgresConfig")
 	}
-	postgresConn, err := sql.Open(config.DriverName, config.DataSourceName)
+	postgresConn, err := sql.Open(
+		config.GetDatabase().GetDriver(),
+		config.GetDatabase().GetSource(),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -102,8 +93,8 @@ func NewPostgres(config *PostgresConfig) (*Postgres, error) {
 		return nil, err
 	}
 	return &Postgres{
-		conn:       postgresConn,
-		gormClient: gormClient,
+		Conn:       postgresConn,
+		GormClient: gormClient,
 	}, nil
 }
 
@@ -162,7 +153,7 @@ func NewData(c *conf.Data) (*Data, func(), error) {
 		serviceConns[name].conn = conn
 	}
 
-	// kafka producer & client.
+	// kafka producer & consumer.
 	// TODO(1): async producer.
 	brokerAddrs := c.GetKafka().GetBrokerAddrs()
 	slog.Info(fmt.Sprintf("%v", brokerAddrs))

@@ -7,8 +7,7 @@ import (
 	"github.com/google/wire"
 )
 
-var AuthProviderSet = wire.NewSet(
-	NewPostgresConfig,
+var AuthDataProviderSet = wire.NewSet(
 	NewPostgres,
 	NewTransactionV2,
 	NewUserRepo,
@@ -25,7 +24,7 @@ func NewUserRepo(postgres *Postgres) biz.UserRepo {
 }
 
 func (repo *UserRepo) FindByName(ctx context.Context, name string) (*biz.User, error) {
-	client := repo.postgres.conn
+	client := repo.postgres.Conn
 	var user biz.User
 	stmt := "select id, username, password_hash, salt, role from users where username=$1"
 	row := client.QueryRowContext(ctx, stmt, name)
@@ -36,7 +35,7 @@ func (repo *UserRepo) FindByName(ctx context.Context, name string) (*biz.User, e
 }
 
 func (repo *UserRepo) Save(ctx context.Context, user *biz.User) error {
-	client := repo.postgres.conn
+	client := repo.postgres.Conn
 	stmt := "insert into users(username, password_hash, salt, role) values($1, $2, $3, $4)"
 	_, err := client.ExecContext(ctx, stmt, user.Name, user.PasswordHash, user.Salt, user.Role)
 	return err
