@@ -13,18 +13,35 @@ import (
 	"github.com/IBM/sarama"
 	"github.com/azusayn/azutils/sql"
 	"github.com/google/uuid"
+	"github.com/google/wire"
 )
+
+var ProductDataProviderSet = wire.NewSet(
+	NewPostgres,
+	NewRedis,
+	NewProductRepo,
+	NewKafkaProducer,
+	NewProductPublisher,
+)
+
+type ProductCreatedMessage struct {
+	SkuIDs []uuid.UUID
+}
 
 const (
 	productCacheTime = time.Minute
 )
 
 type ProductRepo struct {
-	data *Data
+	postgres *Postgres
+	redis    *Redis
 }
 
-func NewProductRepo(data *Data) biz.ProductRepo {
-	return &ProductRepo{data: data}
+func NewProductRepo(postgres *Postgres, redis *Redis) biz.ProductRepo {
+	return &ProductRepo{
+		postgres: postgres,
+		redis:    redis,
+	}
 }
 
 func cacheKeyProduct(sellerID int32, pageToken uuid.UUID, pageSize int32, productStatus biz.ProductStatus) string {
@@ -43,11 +60,11 @@ func (repo *ProductRepo) ListProductsBySellerId(
 	productStatus biz.ProductStatus,
 ) ([]*biz.Product, error) {
 	fullKey := cacheKeyProduct(sellerID, pageToken, pageSize, productStatus)
-	if cachedProducts, found := GetCache[[]*biz.Product](ctx, repo.data, fullKey); found {
+	if cachedProducts, found := GetCache[[]*biz.Product](ctx, repo.redis, fullKey); found {
 		return cachedProducts, nil
 	}
 
-	client := repo.data.postgresClient
+	client := repo.postgres.Conn
 
 	stmt := `
 		SELECT p.id, p.product_name, p.status, 
@@ -118,27 +135,27 @@ func (repo *ProductRepo) ListProductsBySellerId(
 		p.Skus = m[p.ID]
 	}
 
-	SetCache(ctx, repo.data, fullKey, products, productCacheTime)
+	SetCache(ctx, repo.redis, fullKey, products, productCacheTime)
 	setKey := cacheKeyProductSet(sellerID)
-	SetCacheSAdd(ctx, repo.data, setKey, fullKey)
+	SetCacheSAdd(ctx, repo.redis, setKey, fullKey)
 
 	return products, nil
 }
 
 // TODO(2): use version.
-func delProductCaches(ctx context.Context, data *Data, setKeys []string) {
+func delProductCaches(ctx context.Context, r *Redis, setKeys []string) {
 	for _, setKey := range setKeys {
-		mems, ok := GetCacheSMembers(ctx, data, setKey)
+		mems, ok := GetCacheSMembers(ctx, r, setKey)
 		if !ok {
 			continue
 		}
-		DelCache(ctx, data, mems...)
-		DelCache(ctx, data, setKey)
+		DelCache(ctx, r, mems...)
+		DelCache(ctx, r, setKey)
 	}
 }
 
 func (repo *ProductRepo) BatchCreateProducts(ctx context.Context, products []*biz.Product) ([]*biz.Product, error) {
-	client := repo.data.postgresClient
+	client := repo.postgres.Conn
 
 	ss := common.NewStringSet()
 	productsColNames := []string{"id", "product_name", "seller_id", "status"}
@@ -180,7 +197,7 @@ func (repo *ProductRepo) BatchCreateProducts(ctx context.Context, products []*bi
 		return nil, err
 	}
 
-	delProductCaches(ctx, repo.data, ss.ToSlice())
+	delProductCaches(ctx, repo.redis, ss.ToSlice())
 	return products, nil
 }
 
@@ -189,7 +206,7 @@ func (repo *ProductRepo) BatchUpdateProducts(ctx context.Context, products []*bi
 		return nil
 	}
 
-	client := repo.data.postgresClient
+	client := repo.postgres.Conn
 	ss := common.NewStringSet()
 
 	lenPaths := len(paths)
@@ -263,7 +280,7 @@ func (repo *ProductRepo) BatchUpdateProducts(ctx context.Context, products []*bi
 		return err
 	}
 
-	delProductCaches(ctx, repo.data, ss.ToSlice())
+	delProductCaches(ctx, repo.redis, ss.ToSlice())
 	return nil
 }
 
@@ -273,7 +290,7 @@ func (repo *ProductRepo) BatchGetSkuDetails(
 	pageToken uuid.UUID,
 	pageSize int32,
 ) ([]*biz.SkuDetail, error) {
-	client := repo.data.postgresClient
+	client := repo.postgres.Conn
 	stmt := `
 		SELECT 
 			p.product_name, 
@@ -319,15 +336,15 @@ func (repo *ProductRepo) BatchGetSkuDetails(
 }
 
 type ProductPublisher struct {
-	data *Data
+	kafkaProducer *KafkaProducer
 }
 
-func NewProductPublisher(data *Data) biz.ProductPublisher {
-	return &ProductPublisher{data: data}
+func NewProductPublisher(producer *KafkaProducer) biz.ProductPublisher {
+	return &ProductPublisher{kafkaProducer: producer}
 }
 
 func (p *ProductPublisher) PublishProductCreated(ctx context.Context, skuIDs []uuid.UUID) error {
-	prodcuer := p.data.GetKafkaProducer()
+	prodcuer := p.kafkaProducer.syncProducer
 	if prodcuer == nil {
 		return errors.New("nil producer")
 	}

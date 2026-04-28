@@ -23,8 +23,7 @@ import (
 // Injectors from wire.go:
 
 func wireAuthApp(confServer *conf.Server, confData *conf.Data, logger log.Logger) (*kratos.App, func(), error) {
-	postgresConfig := data.NewPostgresConfig(confData)
-	postgres, err := data.NewPostgres(postgresConfig)
+	postgres, err := data.NewPostgres(confData)
 	if err != nil {
 		return nil, nil, err
 	}
