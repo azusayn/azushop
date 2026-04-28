@@ -23,17 +23,17 @@ import (
 // Injectors from wire.go:
 
 func wireAuthApp(confServer *conf.Server, confData *conf.Data, logger log.Logger) (*kratos.App, func(), error) {
-	dataData, cleanup, err := data.NewData(confData)
+	postgresConfig := data.NewPostgresConfig(confData)
+	postgres, err := data.NewPostgres(postgresConfig)
 	if err != nil {
 		return nil, nil, err
 	}
-	userRepo := data.NewUserRepo(dataData)
+	userRepo := data.NewUserRepo(postgres)
 	userUsecase := biz.NewUserUsecase(userRepo)
-	authServiceService := service.NewAuthServiceService(userUsecase, dataData)
-	grpcServer := server.NewAuthGRPCServer(confServer, authServiceService, dataData, logger)
+	authServiceService := service.NewAuthServiceService(userUsecase, confData)
+	grpcServer := server.NewAuthGRPCServer(confServer, authServiceService, logger)
 	httpServer := server.NewAuthHTTPServer(confServer, authServiceService, logger)
 	app := newApp(logger, grpcServer, httpServer)
 	return app, func() {
-		cleanup()
 	}, nil
 }
