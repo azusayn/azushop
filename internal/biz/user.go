@@ -9,6 +9,11 @@ import (
 
 	"github.com/azusayn/azutils/auth"
 	"github.com/azusayn/azutils/crypto"
+	"github.com/google/wire"
+)
+
+var AuthBizProviderSet = wire.NewSet(
+	NewUserUsecase,
 )
 
 type UserRole string
