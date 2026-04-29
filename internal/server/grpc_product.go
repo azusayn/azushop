@@ -3,8 +3,6 @@ package server
 import (
 	productpb "azushop/api/product/v1"
 	"azushop/internal/conf"
-	"azushop/internal/data"
-	"azushop/internal/pkg/middleware"
 	"azushop/internal/service"
 
 	"github.com/go-kratos/kratos/v2/log"
@@ -14,12 +12,10 @@ import (
 
 func NewProductGRPCServer(c *conf.Server,
 	productService *service.ProductService,
-	config *data.Data,
 	logger log.Logger) *grpc.Server {
 	var opts = []grpc.ServerOption{
 		grpc.Middleware(
 			recovery.Recovery(),
-			middleware.AuthInterceptor(&config.GetPrivateKey().PublicKey, config.GetAppName()),
 		),
 	}
 	if c.Grpc.Network != "" {

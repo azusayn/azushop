@@ -16,6 +16,7 @@ import (
 	"github.com/azusayn/azutils/auth"
 	"github.com/google/wire"
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/pkg/errors"
 	"github.com/redis/go-redis/v9"
 	"github.com/stripe/stripe-go/v84"
 	"go.uber.org/multierr"
@@ -42,7 +43,6 @@ var ProviderSet = wire.NewSet(
 	NewInventorySubscriber,
 	NewDelayMsgRelaySubscriber,
 	NewDelayRelayPublisher,
-	NewUserRepo,
 	NewProductRepo,
 	NewInventoryRepo,
 	NewOrderRepo,
@@ -67,6 +67,35 @@ type Data struct {
 type ServiceConn struct {
 	Addr string
 	conn *grpc.ClientConn
+}
+
+type Postgres struct {
+	Conn       *sql.DB
+	GormClient *gorm.DB
+}
+
+func NewPostgres(config *conf.Data) (*Postgres, error) {
+	if config == nil {
+		return nil, errors.New("nil PostgresConfig")
+	}
+	postgresConn, err := sql.Open(
+		config.GetDatabase().GetDriver(),
+		config.GetDatabase().GetSource(),
+	)
+	if err != nil {
+		return nil, err
+	}
+	// only a wrapper of the pg connection.
+	pgCfg := postgres.Config{Conn: postgresConn}
+	gormClient, err := gorm.Open(postgres.New(pgCfg), &gorm.Config{})
+	if err != nil {
+		_ = postgresConn.Close()
+		return nil, err
+	}
+	return &Postgres{
+		Conn:       postgresConn,
+		GormClient: gormClient,
+	}, nil
 }
 
 func NewData(c *conf.Data) (*Data, func(), error) {
@@ -124,7 +153,7 @@ func NewData(c *conf.Data) (*Data, func(), error) {
 		serviceConns[name].conn = conn
 	}
 
-	// kafka producer & client.
+	// kafka producer & consumer.
 	// TODO(1): async producer.
 	brokerAddrs := c.GetKafka().GetBrokerAddrs()
 	slog.Info(fmt.Sprintf("%v", brokerAddrs))
