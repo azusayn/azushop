@@ -3,8 +3,6 @@ package server
 import (
 	inventorypb "azushop/api/inventory/v1"
 	"azushop/internal/conf"
-	"azushop/internal/data"
-	"azushop/internal/pkg/middleware"
 	"azushop/internal/service"
 
 	"github.com/go-kratos/kratos/v2/log"
@@ -14,12 +12,10 @@ import (
 
 func NewInventoryGRPCServer(c *conf.Server,
 	inventoryService *service.InventoryService,
-	config *data.Data,
 	logger log.Logger) *grpc.Server {
 	var opts = []grpc.ServerOption{
 		grpc.Middleware(
 			recovery.Recovery(),
-			middleware.AuthInterceptor(&config.GetPrivateKey().PublicKey, config.GetAppName()),
 		),
 	}
 	if c.Grpc.Network != "" {

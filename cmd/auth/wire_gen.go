@@ -29,9 +29,9 @@ func wireAuthApp(confServer *conf.Server, confData *conf.Data, logger log.Logger
 	}
 	userRepo := data.NewUserRepo(postgres)
 	userUsecase := biz.NewUserUsecase(userRepo)
-	authServiceService := service.NewAuthServiceService(userUsecase, confData)
-	grpcServer := server.NewAuthGRPCServer(confServer, authServiceService, logger)
-	httpServer := server.NewAuthHTTPServer(confServer, authServiceService, logger)
+	authService := service.NewAuthService(userUsecase, confData)
+	grpcServer := server.NewAuthGRPCServer(confServer, authService, logger)
+	httpServer := server.NewAuthHTTPServer(confServer, authService, logger)
 	app := newApp(logger, grpcServer, httpServer)
 	return app, func() {
 	}, nil

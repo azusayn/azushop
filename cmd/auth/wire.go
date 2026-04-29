@@ -20,8 +20,8 @@ func wireAuthApp(*conf.Server, *conf.Data, log.Logger) (*kratos.App, func(), err
 		server.NewAuthGRPCServer,
 		server.NewAuthHTTPServer,
 		data.AuthDataProviderSet,
-		biz.AuthBizProviderSet,
-		service.AuthServiceProviderSet,
+		biz.NewUserUsecase,
+		service.NewAuthService,
 		newApp,
 	))
 }

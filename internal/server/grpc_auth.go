@@ -13,7 +13,7 @@ import (
 
 func NewAuthGRPCServer(
 	serverConf *conf.Server,
-	authService *service.AuthServiceService,
+	authService *service.AuthService,
 	logger log.Logger) *grpc.Server {
 	var opts = []grpc.ServerOption{
 		grpc.Middleware(

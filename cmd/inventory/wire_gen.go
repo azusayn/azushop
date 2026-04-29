@@ -17,20 +17,28 @@ import (
 	"github.com/go-kratos/kratos/v2/log"
 )
 
+import (
+	_ "go.uber.org/automaxprocs"
+)
+
+// Injectors from wire.go:
+
 func wireInventoryApp(confServer *conf.Server, confData *conf.Data, logger log.Logger) (*kratos.App, func(), error) {
-	dataData, cleanup, err := data.NewData(confData)
+	postgres, err := data.NewPostgres(confData)
 	if err != nil {
 		return nil, nil, err
 	}
-	inventoryRepo := data.NewInventoryRepo(dataData)
-	transaction := data.NewTransaction(dataData)
-	inventorySubscriber := data.NewInventorySubscriber(dataData)
+	inventoryRepo := data.NewInventoryRepo(postgres)
+	transaction := data.NewTransactionV2(postgres)
+	inventorySubscriber, err := data.NewInventorySubscriber(confData)
+	if err != nil {
+		return nil, nil, err
+	}
 	inventoryUsecase := biz.NewInventoryUsecase(inventoryRepo, transaction, inventorySubscriber)
 	inventoryService := service.NewInventoryService(inventoryUsecase)
-	grpcServer := server.NewInventoryGRPCServer(confServer, inventoryService, dataData, logger)
+	grpcServer := server.NewInventoryGRPCServer(confServer, inventoryService, logger)
 	inventoryRunner := runner.NewInventoryRunner(inventoryUsecase)
 	app := newApp(logger, grpcServer, inventoryRunner)
 	return app, func() {
-		cleanup()
 	}, nil
 }

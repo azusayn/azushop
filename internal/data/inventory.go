@@ -2,28 +2,38 @@ package data
 
 import (
 	"azushop/internal/biz"
+	"azushop/internal/conf"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 
+	"github.com/IBM/sarama"
 	"github.com/google/uuid"
+	"github.com/google/wire"
+	"github.com/pkg/errors"
 	"gorm.io/gorm"
 )
 
+var InventoryDataProviderSet = wire.NewSet(
+	NewPostgres,
+	NewTransactionV2,
+	NewInventoryRepo,
+	NewInventorySubscriber,
+)
+
 type InventoryRepo struct {
-	data *Data
+	postgres *Postgres
 }
 
-func NewInventoryRepo(data *Data) biz.InventoryRepo {
-	return &InventoryRepo{data: data}
+func NewInventoryRepo(postgres *Postgres) biz.InventoryRepo {
+	return &InventoryRepo{postgres: postgres}
 }
 
 // updates the same set of fields (defined by paths) for each inventory.
 func (repo *InventoryRepo) UpdateInventories(ctx context.Context, inventories []*biz.Inventory, paths []string) error {
 	client := GetTransaction(ctx)
 	if client == nil {
-		client = repo.data.gormClient
+		client = repo.postgres.GormClient
 	}
 	for _, inv := range inventories {
 		if err := client.WithContext(ctx).Model(inv).Select(paths).Updates(inv).Error; err != nil {
@@ -37,7 +47,7 @@ func (repo *InventoryRepo) BatchGetInventories(ctx context.Context, skuIDs []uui
 	if len(skuIDs) == 0 {
 		return nil, errors.New("empty skuIDs")
 	}
-	gormClient := repo.data.gormClient
+	gormClient := repo.postgres.GormClient
 	var inventories []*biz.Inventory
 	err := gormClient.WithContext(ctx).Where("sku_id IN ?", skuIDs).Find(&inventories).Error
 	if err != nil {
@@ -49,7 +59,7 @@ func (repo *InventoryRepo) BatchGetInventories(ctx context.Context, skuIDs []uui
 func (repo *InventoryRepo) UpdateDeltaQuantity(ctx context.Context, inventories []*biz.Inventory, paths []string) error {
 	gormClient := GetTransaction(ctx)
 	if gormClient == nil {
-		gormClient = repo.data.gormClient
+		gormClient = repo.postgres.GormClient
 	}
 	for _, inventory := range inventories {
 		m := make(map[string]any)
@@ -77,7 +87,7 @@ func (repo *InventoryRepo) UpdateDeltaQuantity(ctx context.Context, inventories 
 func (repo *InventoryRepo) GetInventoryLock(ctx context.Context, orderID int64) (*biz.InventoryLock, error) {
 	gormClient := GetTransaction(ctx)
 	if gormClient == nil {
-		gormClient = repo.data.gormClient
+		gormClient = repo.postgres.GormClient
 	}
 	var inventoryLock biz.InventoryLock
 	if err := gormClient.WithContext(ctx).Where("order_id = ?", orderID).Find(&inventoryLock).Error; err != nil {
@@ -94,7 +104,7 @@ func (repo *InventoryRepo) CreateInventoryLock(
 ) error {
 	gormClient := GetTransaction(ctx)
 	if gormClient == nil {
-		gormClient = repo.data.gormClient
+		gormClient = repo.postgres.GormClient
 	}
 	payload, err := json.Marshal(orderItems)
 	if err != nil {
@@ -111,7 +121,7 @@ func (repo *InventoryRepo) CreateInventoryLock(
 func (repo *InventoryRepo) UpdateInventoryLock(ctx context.Context, inventoryLocks []*biz.InventoryLock, paths []string) error {
 	client := GetTransaction(ctx)
 	if client == nil {
-		client = repo.data.gormClient
+		client = repo.postgres.GormClient
 	}
 	for _, invLock := range inventoryLocks {
 		if err := client.
@@ -128,7 +138,7 @@ func (repo *InventoryRepo) UpdateInventoryLock(ctx context.Context, inventoryLoc
 func (repo *InventoryRepo) BatchCreateInventoris(ctx context.Context, skuIDs []uuid.UUID) ([]*biz.Inventory, error) {
 	client := GetTransaction(ctx)
 	if client == nil {
-		client = repo.data.gormClient
+		client = repo.postgres.GormClient
 	}
 	var inventories []*biz.Inventory
 	for _, skuID := range skuIDs {
@@ -145,11 +155,33 @@ func (repo *InventoryRepo) BatchCreateInventoris(ctx context.Context, skuIDs []u
 }
 
 type InventorySubscriber struct {
-	data *Data
+	orderCreatedSub   sarama.ConsumerGroup
+	productCreatedSub sarama.ConsumerGroup
+	paymentStatusSub  sarama.ConsumerGroup
 }
 
-func NewInventorySubscriber(data *Data) biz.InventorySubscriber {
-	return &InventorySubscriber{data: data}
+func NewInventorySubscriber(config *conf.Data) (biz.InventorySubscriber, error) {
+	brokerAddrs := config.GetKafka().GetBrokerAddrs()
+	orderCreatedGroupID := "inventory.order.created"
+	orderCreatedSub, err := NewConsumerGroup(brokerAddrs, orderCreatedGroupID)
+	if err != nil {
+		return nil, err
+	}
+	productCreatedGroupID := "inventory.product.created"
+	productCreatedSub, err := NewConsumerGroup(brokerAddrs, productCreatedGroupID)
+	if err != nil {
+		return nil, err
+	}
+	paymentStatusGroupID := "inventory.payment.status"
+	paymentStatusSub, err := NewConsumerGroup(brokerAddrs, paymentStatusGroupID)
+	if err != nil {
+		return nil, err
+	}
+	return &InventorySubscriber{
+		orderCreatedSub:   orderCreatedSub,
+		productCreatedSub: productCreatedSub,
+		paymentStatusSub:  paymentStatusSub,
+	}, nil
 }
 
 // TODO(3): wrap these subscriber function.
@@ -163,7 +195,7 @@ func (s *InventorySubscriber) SubscribeProductCreated(ctx context.Context, handl
 		return handler(msg.SkuIDs)
 	})
 	for {
-		err := s.data.GetInventory2ProductConsumer().Consume(ctx, topics, consumerHandler)
+		err := s.productCreatedSub.Consume(ctx, topics, consumerHandler)
 		if err != nil {
 			return err
 		}
@@ -193,7 +225,7 @@ func (s *InventorySubscriber) SubscribeOrderCreated(
 		return handler(msg.OrderID, bizOrderItems)
 	})
 	for {
-		err := s.data.GetInventory2OrderConsumer().Consume(ctx, topics, consumerHandler)
+		err := s.orderCreatedSub.Consume(ctx, topics, consumerHandler)
 		if err != nil {
 			return err
 		}
@@ -216,7 +248,7 @@ func (s *InventorySubscriber) SubscribePaymentStatus(
 		return handler(msg.OrderID, msg.Status == PaymentStatusPaid)
 	})
 	for {
-		err := s.data.GetInventory2PaymentConsumer().Consume(ctx, topics, consumerHandler)
+		err := s.paymentStatusSub.Consume(ctx, topics, consumerHandler)
 		if err != nil {
 			return err
 		}

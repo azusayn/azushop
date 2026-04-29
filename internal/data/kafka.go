@@ -7,6 +7,7 @@ import (
 
 	"github.com/IBM/sarama"
 	"github.com/google/uuid"
+	"github.com/pkg/errors"
 )
 
 type KafkaProducer struct {
@@ -64,7 +65,11 @@ func NewConsumerGroup(brokerAddrs []string, groupID string) (sarama.ConsumerGrou
 	consumerConfig.Consumer.Group.Rebalance.GroupStrategies = []sarama.BalanceStrategy{
 		sarama.NewBalanceStrategyRoundRobin(),
 	}
-	return sarama.NewConsumerGroup(brokerAddrs, groupID, consumerConfig)
+	consumerGroup, err := sarama.NewConsumerGroup(brokerAddrs, groupID, consumerConfig)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to create consumer group %q", groupID)
+	}
+	return consumerGroup, nil
 }
 
 func NewSyncProducer(brokerAddrs []string) (sarama.SyncProducer, error) {
