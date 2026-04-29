@@ -18,9 +18,10 @@ import (
 func wireProductApp(*conf.Server, *conf.Data, log.Logger) (*kratos.App, func(), error) {
 	panic(wire.Build(
 		server.NewProductGRPCServer,
-		data.ProviderSet,
-		biz.NewProductUsecase,
-		service.NewProductService,
+		server.NewProductHTTPServer,
+		data.ProductDataProviderSet,
+		biz.ProductBizProviderSet,
+		service.ProductServiceProviderSet,
 		newApp,
 	))
 }

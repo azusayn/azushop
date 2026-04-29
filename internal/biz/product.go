@@ -9,6 +9,11 @@ import (
 
 	"github.com/azusayn/azutils/auth"
 	"github.com/google/uuid"
+	"github.com/google/wire"
+)
+
+var ProductBizProviderSet = wire.NewSet(
+	NewProductUsecase,
 )
 
 type ProductStatus string

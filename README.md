@@ -4,7 +4,7 @@ Go microservices e-commerce platform with product, inventory, order, payment and
 
 ```bash
   wire cmd/auth 
-  # or use take go 'generate cmd/auth' as a replacement
+  # or use go 'generate cmd/auth' as a replacement
   
   go run cmd/auth
 ```
