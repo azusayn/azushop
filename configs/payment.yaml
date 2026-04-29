@@ -9,9 +9,9 @@ data:
   app_name: "azushop.payment"
   database:
     driver: pgx
-    source: postgres://postgres:270153@localhost:5432/postgres?sslmode=disable
+    source: postgres://postgres:270153@192.168.68.153:5432/postgres?sslmode=disable
   redis:
-    addr: 127.0.0.1:6379
+    addr: 192.168.68.153:6379
     read_timeout: 0.2s
     write_timeout: 0.2s
   service_addr:
