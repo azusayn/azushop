@@ -9,15 +9,10 @@ import (
 	"errors"
 
 	"github.com/google/uuid"
-	"github.com/google/wire"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
-)
-
-var ProductServiceProviderSet = wire.NewSet(
-	NewProductService,
 )
 
 type ProductService struct {

@@ -11,7 +11,7 @@ import (
 )
 
 func NewAuthHTTPServer(c *conf.Server,
-	authService *service.AuthServiceService,
+	authService *service.AuthService,
 	logger log.Logger) *http.Server {
 	var opts = []http.ServerOption{
 		http.Middleware(

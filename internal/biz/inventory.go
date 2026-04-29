@@ -6,6 +6,11 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/google/wire"
+)
+
+var InventoryBizProviderSet = wire.NewSet(
+	NewInventoryUsecase,
 )
 
 type InventoryRepo interface {
