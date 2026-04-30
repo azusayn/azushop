@@ -3,7 +3,7 @@ package service
 import (
 	pb "azushop/api/inventory/v1"
 	"azushop/internal/biz"
-	actx "azushop/internal/pkg/context"
+	"azushop/internal/common"
 	"context"
 	"errors"
 
@@ -30,7 +30,7 @@ func (s *InventoryService) AdjustStock(ctx context.Context, req *pb.AdjustStockR
 	if err != nil {
 		return nil, err
 	}
-	_, role, err := actx.ExtractUserInfo(&ctx)
+	_, role, err := common.ExtractUserInfo(&ctx)
 	if err != nil {
 		return nil, status.Error(codes.Unauthenticated, err.Error())
 	}

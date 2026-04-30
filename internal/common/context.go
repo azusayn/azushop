@@ -1,4 +1,4 @@
-package context
+package common
 
 import (
 	"context"
@@ -7,11 +7,13 @@ import (
 
 type ContextKey int
 
-// 0 ~ 100
-// TODO(2): context key value.
 const (
+	// 0 ~ 100
 	UserIDCtxKey   ContextKey = 0
 	UserRoleCtxKey ContextKey = 1
+	// 101 ~ 200
+
+	TransactionCtxKey = 101
 )
 
 // append user id & user role to the ctx.
