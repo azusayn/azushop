@@ -2,6 +2,7 @@ package data
 
 import (
 	"azushop/internal/biz"
+	"azushop/internal/conf"
 	"context"
 	"encoding/json"
 	"log/slog"
@@ -11,15 +12,19 @@ import (
 )
 
 type DelayMsgRelayPublisher struct {
-	data *Data
+	kafkaProducer *KafkaProducer
 }
 
-func NewDelayRelayPublisher(data *Data) biz.DelayMsgRelayPublisher {
-	return &DelayMsgRelayPublisher{data: data}
+func NewDelayRelayPublisher(config *conf.Data) (biz.DelayMsgRelayPublisher, error) {
+	producer, err := NewKafkaProducer(config)
+	if err != nil {
+		return nil, err
+	}
+	return &DelayMsgRelayPublisher{kafkaProducer: producer}, nil
 }
 
 func (p *DelayMsgRelayPublisher) PublishOrderCancelled(ctx context.Context, orderID int64) error {
-	producer := p.data.GetKafkaProducer()
+	producer := p.kafkaProducer.syncProducer
 	orderCancelledMsg := &OrderCancelledMessage{
 		OrderID: orderID,
 	}
@@ -36,21 +41,25 @@ func (p *DelayMsgRelayPublisher) PublishOrderCancelled(ctx context.Context, orde
 }
 
 type DelayMsgRelaySubscriber struct {
-	data *Data
+	delayMessageRelaySub sarama.ConsumerGroup
 }
 
-func NewDelayMsgRelaySubscriber(data *Data) biz.DelayMsgRelaySubscriber {
-	return &DelayMsgRelaySubscriber{data: data}
+func NewDelayMsgRelaySubscriber(config *conf.Data) (biz.DelayMsgRelaySubscriber, error) {
+	sub, err := NewConsumerGroup(config.GetKafka().GetBrokerAddrs(), "delay.message")
+	if err != nil {
+		return nil, err
+	}
+	return &DelayMsgRelaySubscriber{delayMessageRelaySub: sub}, nil
 }
 
 func (s *DelayMsgRelaySubscriber) SubscribeDelayMessage(ctx context.Context, handler func(orderID int64) error) error {
 	topics := []string{biz.KafkaTopicOrderCancelledDelay}
-	consumer := s.data.GetDelayMsgRelay2Order()
+	consumer := s.delayMessageRelaySub
 	consumerHandler := NewDelayConsumerHandler(consumer, func(orderID int64) error {
 		return handler(orderID)
 	})
 	for {
-		err := s.data.GetDelayMsgRelay2Order().Consume(ctx, topics, consumerHandler)
+		err := s.delayMessageRelaySub.Consume(ctx, topics, consumerHandler)
 		if err != nil {
 			return err
 		}

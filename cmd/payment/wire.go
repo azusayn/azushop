@@ -18,8 +18,8 @@ import (
 func wirePaymentApp(*conf.Server, *conf.Data, log.Logger) (*kratos.App, func(), error) {
 	panic(wire.Build(
 		server.NewPaymentGRPCServer,
-		data.NewPaymentPublisher,
-		data.ProviderSet,
+		server.NewPaymentHTTPServer,
+		data.PaymentDataProviderSet,
 		biz.NewPaymentUsecase,
 		service.NewPaymentService,
 		newApp,

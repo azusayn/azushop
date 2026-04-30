@@ -17,21 +17,37 @@ import (
 	"github.com/go-kratos/kratos/v2/log"
 )
 
+import (
+	_ "go.uber.org/automaxprocs"
+)
+
+// Injectors from wire.go:
+
 func wireOrderApp(confServer *conf.Server, confData *conf.Data, logger log.Logger) (*kratos.App, func(), error) {
-	dataData, cleanup, err := data.NewData(confData)
+	postgres, err := data.NewPostgres(confData)
 	if err != nil {
 		return nil, nil, err
 	}
-	orderRepo := data.NewOrderRepo(dataData)
-	orderSubscriber := data.NewOrderSubscriber(dataData)
-	orderPublisher := data.NewOrderPublisher(dataData)
-	transaction := data.NewTransaction(dataData)
+	orderRepo := data.NewOrderRepo(postgres)
+	orderSubscriber, err := data.NewOrderSubscriber(confData)
+	if err != nil {
+		return nil, nil, err
+	}
+	kafkaProducer, err := data.NewKafkaProducer(confData)
+	if err != nil {
+		return nil, nil, err
+	}
+	orderPublisher := data.NewOrderPublisher(kafkaProducer)
+	transaction := data.NewTransaction(postgres)
 	orderUsecase := biz.NewOrderUsecase(orderRepo, orderSubscriber, orderPublisher, transaction)
-	orderService := service.NewOrderService(orderUsecase, dataData)
-	grpcServer := server.NewOrderGRPCServer(confServer, orderService, dataData, logger)
+	orderServiceClient, err := service.NewOrderServiceClient(confData)
+	if err != nil {
+		return nil, nil, err
+	}
+	orderService := service.NewOrderService(orderUsecase, orderServiceClient)
+	grpcServer := server.NewOrderGRPCServer(confServer, orderService, logger)
 	orderRunner := runner.NewOrderRunner(orderUsecase)
 	app := newApp(logger, grpcServer, orderRunner)
 	return app, func() {
-		cleanup()
 	}, nil
 }

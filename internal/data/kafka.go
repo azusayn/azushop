@@ -10,23 +10,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-type KafkaProducer struct {
-	syncProducer sarama.SyncProducer
-}
-
-// TODO: async producer.
-func NewKafkaProducer(config *conf.Data) (*KafkaProducer, error) {
-	brokerAddrs := config.GetKafka().GetBrokerAddrs()
-	if len(brokerAddrs) == 0 {
-		panic("broker address list is empty")
-	}
-	syncProducer, err := NewSyncProducer(brokerAddrs)
-	if err != nil {
-		return nil, err
-	}
-	return &KafkaProducer{syncProducer: syncProducer}, nil
-}
-
 type PaymentStatus string
 
 const (
@@ -58,6 +41,30 @@ type OrderCancelledMessage struct {
 	ExpiredTime time.Time
 }
 
+type KafkaProducer struct {
+	syncProducer sarama.SyncProducer
+}
+
+// TODO: async producer.
+func NewKafkaProducer(config *conf.Data) (*KafkaProducer, error) {
+	brokerAddrs := config.GetKafka().GetBrokerAddrs()
+	if len(brokerAddrs) == 0 {
+		panic("broker address list is empty")
+	}
+	syncProducer, err := NewSyncProducer(brokerAddrs)
+	if err != nil {
+		return nil, err
+	}
+	return &KafkaProducer{syncProducer: syncProducer}, nil
+}
+
+func NewSyncProducer(brokerAddrs []string) (sarama.SyncProducer, error) {
+	kafkaConfig := sarama.NewConfig()
+	kafkaConfig.Producer.RequiredAcks = sarama.WaitForAll
+	kafkaConfig.Producer.Return.Successes = true
+	return sarama.NewSyncProducer(brokerAddrs, kafkaConfig)
+}
+
 func NewConsumerGroup(brokerAddrs []string, groupID string) (sarama.ConsumerGroup, error) {
 	consumerConfig := sarama.NewConfig()
 	// consumes messages at least once, make sure all the APIs are idempotent.
@@ -70,13 +77,6 @@ func NewConsumerGroup(brokerAddrs []string, groupID string) (sarama.ConsumerGrou
 		return nil, errors.Wrapf(err, "failed to create consumer group %q", groupID)
 	}
 	return consumerGroup, nil
-}
-
-func NewSyncProducer(brokerAddrs []string) (sarama.SyncProducer, error) {
-	kafkaConfig := sarama.NewConfig()
-	kafkaConfig.Producer.RequiredAcks = sarama.WaitForAll
-	kafkaConfig.Producer.Return.Successes = true
-	return sarama.NewSyncProducer(brokerAddrs, kafkaConfig)
 }
 
 type ConsumerHandler struct {

@@ -7,15 +7,23 @@ import (
 	"fmt"
 
 	"github.com/IBM/sarama"
+	"github.com/google/wire"
 	"github.com/shopspring/decimal"
 )
 
+var PaymentDataProviderSet = wire.NewSet(
+	NewPostgres,
+	NewPaymentRepo,
+	NewKafkaProducer,
+	NewPaymentPublisher,
+)
+
 type PaymentRepo struct {
-	data *Data
+	postgres *Postgres
 }
 
-func NewPaymentRepo(data *Data) biz.PaymentRepo {
-	return &PaymentRepo{data: data}
+func NewPaymentRepo(postgres *Postgres) biz.PaymentRepo {
+	return &PaymentRepo{postgres: postgres}
 }
 
 func (repo *PaymentRepo) CreatePayment(
@@ -29,7 +37,7 @@ func (repo *PaymentRepo) CreatePayment(
 ) (*biz.Payment, error) {
 	client := GetTransaction(ctx)
 	if client == nil {
-		client = repo.data.gormClient.WithContext(ctx)
+		client = repo.postgres.GormClient.WithContext(ctx)
 	}
 	payment := &biz.Payment{
 		ExternalID:  externalID,
@@ -48,7 +56,7 @@ func (repo *PaymentRepo) CreatePayment(
 func (repo *PaymentRepo) UpdatePaymentStatusByOrderID(ctx context.Context, orderID int64, status biz.PaymentStatus) error {
 	client := GetTransaction(ctx)
 	if client == nil {
-		client = repo.data.gormClient.WithContext(ctx)
+		client = repo.postgres.GormClient.WithContext(ctx)
 	}
 	return client.Where("order_id = ?", orderID).Where("status = ?", biz.PaymentStatusPending).Update("status", status).Error
 }
@@ -56,7 +64,7 @@ func (repo *PaymentRepo) UpdatePaymentStatusByOrderID(ctx context.Context, order
 func (repo *PaymentRepo) UpdatePaymentByID(ctx context.Context, payment *biz.Payment, paths []string) error {
 	client := GetTransaction(ctx)
 	if client == nil {
-		client = repo.data.gormClient.WithContext(ctx)
+		client = repo.postgres.GormClient.WithContext(ctx)
 	}
 	m := make(map[string]any, len(paths))
 	for _, path := range paths {
@@ -71,15 +79,15 @@ func (repo *PaymentRepo) UpdatePaymentByID(ctx context.Context, payment *biz.Pay
 }
 
 type PaymentPublisher struct {
-	data *Data
+	kafkaProducer *KafkaProducer
 }
 
-func NewPaymentPublisher(data *Data) biz.PaymentPublisher {
-	return &PaymentPublisher{data: data}
+func NewPaymentPublisher(producer *KafkaProducer) biz.PaymentPublisher {
+	return &PaymentPublisher{kafkaProducer: producer}
 }
 
 func (p *PaymentPublisher) PublishPaymentStatus(ctx context.Context, orderID int64, status biz.PaymentStatus) error {
-	producer := p.data.GetKafkaProducer()
+	producer := p.kafkaProducer.syncProducer
 	bytes, err := json.Marshal(PaymentStatusMessage{
 		OrderID: orderID,
 		Status:  PaymentStatus(string(status)),

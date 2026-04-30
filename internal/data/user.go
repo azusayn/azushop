@@ -9,7 +9,7 @@ import (
 
 var AuthDataProviderSet = wire.NewSet(
 	NewPostgres,
-	NewTransactionV2,
+	NewTransaction,
 	NewUserRepo,
 )
 

@@ -16,7 +16,7 @@ import (
 
 var InventoryDataProviderSet = wire.NewSet(
 	NewPostgres,
-	NewTransactionV2,
+	NewTransaction,
 	NewInventoryRepo,
 	NewInventorySubscriber,
 )

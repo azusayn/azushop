@@ -1,4 +1,3 @@
-// TODO: replace this file with V2 implementation.
 package data
 
 import (
@@ -9,14 +8,6 @@ import (
 	"gorm.io/gorm"
 )
 
-type Transaction struct {
-	data *Data
-}
-
-func NewTransaction(data *Data) biz.Transaction {
-	return &Transaction{data: data}
-}
-
 type ContextKey int
 
 // TODO(2): context key value.
@@ -25,15 +16,23 @@ const (
 	TransactionCtxKey = 101
 )
 
+type Transaction struct {
+	postgres *Postgres
+}
+
+func NewTransaction(postgres *Postgres) biz.Transaction {
+	return &Transaction{postgres: postgres}
+}
+
 func (tx *Transaction) Transaction(ctx context.Context, fn func(ctx context.Context) error) error {
-	if tx.data == nil {
-		return errors.New("nil data")
+	if tx.postgres == nil {
+		return errors.New("database client is nil")
 	}
 	// NOTES: this can be replaced with gorm.Transaction() API,
 	// but deeply nested closures hurt readability.
-	gormClient := tx.data.gormClient
+	gormClient := tx.postgres.GormClient
 	if gormClient == nil {
-		return errors.New("nil gorm client")
+		return errors.New("orm client is nil")
 	}
 	gormClient = gormClient.WithContext(ctx).Begin()
 	defer gormClient.Rollback()
