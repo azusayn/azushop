@@ -2,7 +2,7 @@ package data
 
 import (
 	"azushop/internal/biz"
-	"azushop/internal/common"
+	"azushop/internal/pkg/str"
 	"context"
 	"encoding/json"
 	"errors"
@@ -157,7 +157,7 @@ func delProductCaches(ctx context.Context, r *Redis, setKeys []string) {
 func (repo *ProductRepo) BatchCreateProducts(ctx context.Context, products []*biz.Product) ([]*biz.Product, error) {
 	client := repo.postgres.Conn
 
-	ss := common.NewStringSet()
+	ss := str.NewStringSet()
 	productsColNames := []string{"id", "product_name", "seller_id", "status"}
 	productsRowValues := make([][]any, 0, len(products))
 	skusColNames := []string{"id", "product_id", "attrs", "unit_price"}
@@ -207,7 +207,7 @@ func (repo *ProductRepo) BatchUpdateProducts(ctx context.Context, products []*bi
 	}
 
 	client := repo.postgres.Conn
-	ss := common.NewStringSet()
+	ss := str.NewStringSet()
 
 	lenPaths := len(paths)
 	productIds := make([]any, 0, len(products))

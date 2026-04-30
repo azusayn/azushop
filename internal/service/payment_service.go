@@ -5,7 +5,7 @@ import (
 	pb "azushop/api/payment/v1"
 	"azushop/internal/biz"
 	"azushop/internal/conf"
-	"azushop/internal/pkg/middleware"
+	actx "azushop/internal/pkg/context"
 	"context"
 	"errors"
 	"fmt"
@@ -36,7 +36,7 @@ func NewPaymentService(uc *biz.PaymentUsecase, config *conf.Data) (*PaymentServi
 }
 
 func (s *PaymentService) CreatePayment(ctx context.Context, req *pb.CreatePaymentRequest) (*pb.CreatePaymentResponse, error) {
-	userID, _, err := middleware.ExtractUserInfo(&ctx)
+	userID, _, err := actx.ExtractUserInfo(&ctx)
 	if err != nil {
 		return nil, status.Error(codes.Unauthenticated, err.Error())
 	}

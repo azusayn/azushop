@@ -2,8 +2,8 @@
 package service
 
 import (
-	"azushop/internal/common"
 	"azushop/internal/conf"
+	"azushop/internal/pkg/str"
 
 	authpb "azushop/api/auth/v1"
 	inventorypb "azushop/api/inventory/v1"
@@ -19,7 +19,7 @@ import (
 // ProviderSet is service providers.
 
 func convertToUniquePaths(updateMask *fieldmaskpb.FieldMask) []string {
-	ss := common.NewStringSet(common.WithValues(updateMask.GetPaths()))
+	ss := str.NewStringSet(str.WithValues(updateMask.GetPaths()))
 	return ss.ToSlice()
 }
 

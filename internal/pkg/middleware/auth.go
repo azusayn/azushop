@@ -2,6 +2,7 @@ package middleware
 
 import (
 	v1 "azushop/api/auth/v1"
+	actx "azushop/internal/pkg/context"
 	"context"
 	"crypto/rsa"
 	"strings"
@@ -39,7 +40,7 @@ func AuthInterceptor(publicKey *rsa.PublicKey, issuer string) middleware.Middlew
 				if err != nil {
 					return nil, status.Error(codes.Unauthenticated, err.Error())
 				}
-				WithUserInfo(&ctx, userID, role)
+				actx.WithUserInfo(&ctx, userID, role)
 			}
 			return handler(ctx, req)
 		}
