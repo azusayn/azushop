@@ -3,6 +3,7 @@ package server
 import (
 	orderpb "azushop/api/order/v1"
 	"azushop/internal/conf"
+	"azushop/internal/pkg/middleware"
 	"azushop/internal/service"
 
 	"github.com/go-kratos/kratos/v2/log"
@@ -15,6 +16,7 @@ func NewOrderGRPCServer(c *conf.Server,
 	logger log.Logger) *grpc.Server {
 	var opts = []grpc.ServerOption{
 		grpc.Middleware(
+			middleware.MetricsInterceptor(),
 			recovery.Recovery(),
 		),
 	}

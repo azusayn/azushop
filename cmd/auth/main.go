@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"azushop/internal/conf"
+	"azushop/internal/runner"
 
 	"github.com/go-kratos/kratos/v2"
 	"github.com/go-kratos/kratos/v2/config"
@@ -32,6 +33,7 @@ func newApp(
 	logger log.Logger,
 	grpcServer *grpc.Server,
 	httpServer *http.Server,
+	metricsRunner *runner.MetricsRunner,
 ) *kratos.App {
 	return kratos.New(
 		kratos.ID(id),
@@ -42,6 +44,7 @@ func newApp(
 		kratos.Server(
 			grpcServer,
 			httpServer,
+			metricsRunner,
 		),
 	)
 }

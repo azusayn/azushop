@@ -7,6 +7,7 @@ import (
 	"azushop/internal/biz"
 	"azushop/internal/conf"
 	"azushop/internal/data"
+	"azushop/internal/runner"
 	"azushop/internal/server"
 	"azushop/internal/service"
 
@@ -22,6 +23,7 @@ func wireAuthApp(*conf.Server, *conf.Data, log.Logger) (*kratos.App, func(), err
 		data.AuthDataProviderSet,
 		biz.NewUserUsecase,
 		service.NewAuthService,
+		runner.NewMetricsRunner,
 		newApp,
 	))
 }
