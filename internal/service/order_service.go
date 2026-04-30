@@ -1,11 +1,12 @@
 package service
 
 import (
-	v1 "azushop/api/inventory/v1"
+	inventorypb "azushop/api/inventory/v1"
 	pb "azushop/api/order/v1"
 	productpb "azushop/api/product/v1"
+
 	"azushop/internal/biz"
-	"azushop/internal/data"
+	"azushop/internal/conf"
 	"azushop/internal/pkg/middleware"
 	"context"
 	"encoding/json"
@@ -20,16 +21,36 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-type OrderService struct {
-	pb.UnimplementedOrderServiceServer
-	uc   *biz.OrderUsecase
-	data *data.Data
+type OrderServiceClient struct {
+	inventory inventorypb.InventoryServiceClient
+	product   productpb.ProductServiceClient
 }
 
-func NewOrderService(uc *biz.OrderUsecase, data *data.Data) *OrderService {
+func NewOrderServiceClient(config *conf.Data) (*OrderServiceClient, error) {
+	inventory, err := NewInventoryClient(config)
+	if err != nil {
+		return nil, err
+	}
+	product, err := NewProductClient(config)
+	if err != nil {
+		return nil, err
+	}
+	return &OrderServiceClient{
+		inventory: inventory,
+		product:   product,
+	}, nil
+}
+
+type OrderService struct {
+	pb.UnimplementedOrderServiceServer
+	uc            *biz.OrderUsecase
+	serviceClient *OrderServiceClient
+}
+
+func NewOrderService(uc *biz.OrderUsecase, c *OrderServiceClient) *OrderService {
 	return &OrderService{
-		uc:   uc,
-		data: data,
+		uc:            uc,
+		serviceClient: c,
 	}
 }
 
@@ -48,7 +69,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, req *pb.CreateOrderReque
 	}
 
 	// fetch unit price.
-	productService := s.data.GetProductService()
+	productService := s.serviceClient.product
 	m, err := fetchAllSkuDetails(ctx, productService, skuIDs)
 	if err != nil {
 		return nil, err
@@ -75,9 +96,9 @@ func (s *OrderService) CancelOrder(ctx context.Context, req *pb.CancelOrderReque
 	if err := s.uc.CancelOrder(ctx, req.GetOrderId()); err != nil {
 		return nil, err
 	}
-	inventoryService := s.data.GetIventoryService()
+	inventoryService := s.serviceClient.inventory
 	// TODO(0): retrying & outbox
-	_, err := inventoryService.ReleaseStock(ctx, &v1.ReleaseStockRequest{OrderId: req.OrderId})
+	_, err := inventoryService.ReleaseStock(ctx, &inventorypb.ReleaseStockRequest{OrderId: req.OrderId})
 	if err != nil {
 		return nil, err
 	}

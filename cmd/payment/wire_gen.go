@@ -16,18 +16,31 @@ import (
 	"github.com/go-kratos/kratos/v2/log"
 )
 
+import (
+	_ "go.uber.org/automaxprocs"
+)
+
+// Injectors from wire.go:
+
 func wirePaymentApp(confServer *conf.Server, confData *conf.Data, logger log.Logger) (*kratos.App, func(), error) {
-	dataData, cleanup, err := data.NewData(confData)
+	postgres, err := data.NewPostgres(confData)
 	if err != nil {
 		return nil, nil, err
 	}
-	paymentRepo := data.NewPaymentRepo(dataData)
-	paymentPublisher := data.NewPaymentPublisher(dataData)
+	paymentRepo := data.NewPaymentRepo(postgres)
+	kafkaProducer, err := data.NewKafkaProducer(confData)
+	if err != nil {
+		return nil, nil, err
+	}
+	paymentPublisher := data.NewPaymentPublisher(kafkaProducer)
 	paymentUsecase := biz.NewPaymentUsecase(paymentRepo, paymentPublisher)
-	paymentService := service.NewPaymentService(paymentUsecase, dataData)
-	grpcServer := server.NewPaymentGRPCServer(confServer, paymentService, dataData, logger)
-	app := newApp(logger, grpcServer, nil)
+	paymentService, err := service.NewPaymentService(paymentUsecase, confData)
+	if err != nil {
+		return nil, nil, err
+	}
+	grpcServer := server.NewPaymentGRPCServer(confServer, paymentService, logger)
+	httpServer := server.NewPaymentHTTPServer(confServer, paymentService)
+	app := newApp(logger, grpcServer, httpServer)
 	return app, func() {
-		cleanup()
 	}, nil
 }

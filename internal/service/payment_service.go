@@ -4,7 +4,7 @@ import (
 	orderpb "azushop/api/order/v1"
 	pb "azushop/api/payment/v1"
 	"azushop/internal/biz"
-	"azushop/internal/data"
+	"azushop/internal/conf"
 	"azushop/internal/pkg/middleware"
 	"context"
 	"errors"
@@ -18,15 +18,21 @@ import (
 
 type PaymentService struct {
 	pb.UnimplementedPaymentServiceServer
-	uc   *biz.PaymentUsecase
-	data *data.Data
+	uc               *biz.PaymentUsecase
+	stripeSuccessUrl string
+	order            orderpb.OrderServiceClient
 }
 
-func NewPaymentService(uc *biz.PaymentUsecase, data *data.Data) *PaymentService {
-	return &PaymentService{
-		uc:   uc,
-		data: data,
+func NewPaymentService(uc *biz.PaymentUsecase, config *conf.Data) (*PaymentService, error) {
+	orderClient, err := NewOrderClient(config)
+	if err != nil {
+		return nil, err
 	}
+	return &PaymentService{
+		uc:               uc,
+		stripeSuccessUrl: config.GetPayment().GetStripeSuccessUrl(),
+		order:            orderClient,
+	}, nil
 }
 
 func (s *PaymentService) CreatePayment(ctx context.Context, req *pb.CreatePaymentRequest) (*pb.CreatePaymentResponse, error) {
@@ -38,7 +44,7 @@ func (s *PaymentService) CreatePayment(ctx context.Context, req *pb.CreatePaymen
 	if err != nil {
 		return nil, err
 	}
-	orderService := s.data.GetOrderService()
+	orderService := s.order
 	resp, err := orderService.GetOrder(ctx, &orderpb.GetOrderRequest{OrderId: req.OrderId})
 	if err != nil {
 		return nil, err
@@ -57,7 +63,7 @@ func (s *PaymentService) CreatePayment(ctx context.Context, req *pb.CreatePaymen
 	if err != nil {
 		return nil, err
 	}
-	url, err := s.uc.CreatePayment(ctx, req.OrderId, userID, method, paymentItems, s.data.GetStripeSuccessUrl())
+	url, err := s.uc.CreatePayment(ctx, req.OrderId, userID, method, paymentItems, s.stripeSuccessUrl)
 	if err != nil {
 		return nil, err
 	}

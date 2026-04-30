@@ -29,7 +29,7 @@ func wireInventoryApp(confServer *conf.Server, confData *conf.Data, logger log.L
 		return nil, nil, err
 	}
 	inventoryRepo := data.NewInventoryRepo(postgres)
-	transaction := data.NewTransactionV2(postgres)
+	transaction := data.NewTransaction(postgres)
 	inventorySubscriber, err := data.NewInventorySubscriber(confData)
 	if err != nil {
 		return nil, nil, err

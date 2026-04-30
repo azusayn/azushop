@@ -1,10 +1,8 @@
 package server
 
 import (
-	paymentpb "azushop/api/payment/v1"
+	orderpb "azushop/api/order/v1"
 	"azushop/internal/conf"
-	"azushop/internal/data"
-	"azushop/internal/pkg/middleware"
 	"azushop/internal/service"
 
 	"github.com/go-kratos/kratos/v2/log"
@@ -12,14 +10,12 @@ import (
 	"github.com/go-kratos/kratos/v2/transport/grpc"
 )
 
-func NewPaymentGRPCServer(c *conf.Server,
-	paymentService *service.PaymentService,
-	config *data.Data,
+func NewOrderGRPCServer(c *conf.Server,
+	orderService *service.OrderService,
 	logger log.Logger) *grpc.Server {
 	var opts = []grpc.ServerOption{
 		grpc.Middleware(
 			recovery.Recovery(),
-			middleware.AuthInterceptor(&config.GetPrivateKey().PublicKey, config.GetAppName()),
 		),
 	}
 	if c.Grpc.Network != "" {
@@ -32,6 +28,6 @@ func NewPaymentGRPCServer(c *conf.Server,
 		opts = append(opts, grpc.Timeout(c.Grpc.Timeout.AsDuration()))
 	}
 	srv := grpc.NewServer(opts...)
-	paymentpb.RegisterPaymentServiceServer(srv, paymentService)
+	orderpb.RegisterOrderServiceServer(srv, orderService)
 	return srv
 }
