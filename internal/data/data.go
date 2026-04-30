@@ -259,18 +259,6 @@ func (d *Data) GetOrder2OrderConsumer() sarama.ConsumerGroup {
 	return d.kafkaConsumers["order2order"]
 }
 
-func (d *Data) GetInventory2ProductConsumer() sarama.ConsumerGroup {
-	return d.kafkaConsumers["inventory2product"]
-}
-
-func (d *Data) GetInventory2PaymentConsumer() sarama.ConsumerGroup {
-	return d.kafkaConsumers["inventory2payment"]
-}
-
-func (d *Data) GetInventory2OrderConsumer() sarama.ConsumerGroup {
-	return d.kafkaConsumers["inventory2order"]
-}
-
 func (d *Data) GetDelayMsgRelay2Order() sarama.ConsumerGroup {
 	return d.kafkaConsumers["delayMsgRelay2Order"]
 }
