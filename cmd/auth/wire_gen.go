@@ -10,6 +10,7 @@ import (
 	"azushop/internal/biz"
 	"azushop/internal/conf"
 	"azushop/internal/data"
+	"azushop/internal/runner"
 	"azushop/internal/server"
 	"azushop/internal/service"
 	"github.com/go-kratos/kratos/v2"
@@ -32,7 +33,8 @@ func wireAuthApp(confServer *conf.Server, confData *conf.Data, logger log.Logger
 	authService := service.NewAuthService(userUsecase, confData)
 	grpcServer := server.NewAuthGRPCServer(confServer, authService, logger)
 	httpServer := server.NewAuthHTTPServer(confServer, authService, logger)
-	app := newApp(logger, grpcServer, httpServer)
+	metricsRunner := runner.NewMetricsRunner()
+	app := newApp(logger, grpcServer, httpServer, metricsRunner)
 	return app, func() {
 	}, nil
 }

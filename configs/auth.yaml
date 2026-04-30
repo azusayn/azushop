@@ -9,9 +9,9 @@ data:
   app_name: "azushop.auth"
   database:
     driver: pgx
-    source: postgres://postgres:270153@192.168.68.153:5432/postgres?sslmode=disable
+    source: postgres://postgres:270153@192.168.68.154:5432/postgres?sslmode=disable
   redis:
-    addr: 192.168.68.153:6379
+    addr: 192.168.68.154:6379
     read_timeout: 0.2s
     write_timeout: 0.2s
   service_addr:
@@ -24,4 +24,4 @@ data:
     stripe_success_url:
   kafka:
     broker_addrs:
-      - "192.168.68.153:9092"
+      - "192.168.68.154:9092"

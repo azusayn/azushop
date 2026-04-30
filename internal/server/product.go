@@ -4,6 +4,7 @@ import (
 	product "azushop/api/product/v1"
 	productpb "azushop/api/product/v1"
 	"azushop/internal/conf"
+	"azushop/internal/pkg/middleware"
 	"azushop/internal/service"
 
 	"github.com/go-kratos/kratos/v2/log"
@@ -17,6 +18,7 @@ func NewProductGRPCServer(c *conf.Server,
 	logger log.Logger) *grpc.Server {
 	var opts = []grpc.ServerOption{
 		grpc.Middleware(
+			middleware.MetricsInterceptor(),
 			recovery.Recovery(),
 		),
 	}

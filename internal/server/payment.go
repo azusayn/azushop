@@ -3,6 +3,7 @@ package server
 import (
 	paymentpb "azushop/api/payment/v1"
 	"azushop/internal/conf"
+	"azushop/internal/pkg/middleware"
 	"azushop/internal/service"
 
 	"github.com/go-kratos/kratos/v2/log"
@@ -16,6 +17,7 @@ func NewPaymentGRPCServer(c *conf.Server,
 	logger log.Logger) *grpc.Server {
 	var opts = []grpc.ServerOption{
 		grpc.Middleware(
+			middleware.MetricsInterceptor(),
 			recovery.Recovery(),
 		),
 	}
