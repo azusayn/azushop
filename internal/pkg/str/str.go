@@ -1,16 +1,16 @@
-package common
+package str
 
 import "github.com/google/uuid"
 
 type StringSet struct {
-	seen map[string]bool
+	seen map[string]struct{}
 }
 
 type StringSetOption func(*StringSet)
 
 func WithValues(values []string) StringSetOption {
 	return func(s *StringSet) {
-		s.seen = make(map[string]bool, len(values))
+		s.seen = make(map[string]struct{}, len(values))
 		for _, v := range values {
 			s.Insert(v)
 		}
@@ -23,7 +23,7 @@ func NewStringSet(opts ...StringSetOption) *StringSet {
 		opt(s)
 	}
 	if s.seen == nil {
-		s.seen = make(map[string]bool)
+		s.seen = make(map[string]struct{})
 	}
 	return s
 }
@@ -41,7 +41,7 @@ func (s *StringSet) Insert(value string) {
 	if _, ok := s.seen[value]; ok {
 		return
 	}
-	s.seen[value] = true
+	s.seen[value] = struct{}{}
 }
 
 // TODO(3): move it to a proper place.
@@ -53,8 +53,9 @@ func ParseUUID(s string) (uuid.UUID, error) {
 }
 
 func Truncate(s string, n int) string {
-	if len(s) > n {
-		return s[:n] + "..."
+	r := []rune(s)
+	if len(r) > n {
+		return string(s[:n]) + "..."
 	}
 	return s
 }

@@ -7,11 +7,12 @@ import (
 
 	"azushop/internal/biz"
 	"azushop/internal/conf"
-	"azushop/internal/pkg/middleware"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+
+	actx "azushop/internal/pkg/context"
 
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
@@ -58,7 +59,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, req *pb.CreateOrderReque
 	if len(req.OrderItems) == 0 {
 		return nil, errors.New("empty order_items")
 	}
-	userID, _, err := middleware.ExtractUserInfo(&ctx)
+	userID, _, err := actx.ExtractUserInfo(&ctx)
 	if err != nil {
 		return nil, status.Error(codes.Unauthenticated, err.Error())
 	}
@@ -121,7 +122,7 @@ func (s *OrderService) ListOrders(ctx context.Context, req *pb.ListOrdersRequest
 	if req.PageSize < 1 || req.PageSize > maxPageSize {
 		return nil, status.Error(codes.OutOfRange, fmt.Sprintf("invalid page size %d", req.PageSize))
 	}
-	userID, _, err := middleware.ExtractUserInfo(&ctx)
+	userID, _, err := actx.ExtractUserInfo(&ctx)
 	if err != nil {
 		return nil, err
 	}

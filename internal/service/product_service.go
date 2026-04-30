@@ -3,8 +3,8 @@ package service
 import (
 	pb "azushop/api/product/v1"
 	"azushop/internal/biz"
-	"azushop/internal/common"
-	"azushop/internal/pkg/middleware"
+	actx "azushop/internal/pkg/context"
+	"azushop/internal/pkg/str"
 	"context"
 	"errors"
 
@@ -32,11 +32,11 @@ func (s *ProductService) ListSellerProducts(ctx context.Context, req *pb.ListSel
 	if req.PageSize > maxPageSize {
 		return nil, status.Error(codes.OutOfRange, codes.OutOfRange.String())
 	}
-	userID, role, err := middleware.ExtractUserInfo(&ctx)
+	userID, role, err := actx.ExtractUserInfo(&ctx)
 	if err != nil {
 		return nil, err
 	}
-	uuid, err := common.ParseUUID(req.PageToken)
+	uuid, err := str.ParseUUID(req.PageToken)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +62,7 @@ func (s *ProductService) ListSellerProducts(ctx context.Context, req *pb.ListSel
 }
 
 func (s *ProductService) BatchCreateProduct(ctx context.Context, req *pb.BatchCreateProductRequest) (*pb.BatchCreateProductResponse, error) {
-	userID, role, err := middleware.ExtractUserInfo(&ctx)
+	userID, role, err := actx.ExtractUserInfo(&ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +81,7 @@ func (s *ProductService) BatchCreateProduct(ctx context.Context, req *pb.BatchCr
 }
 
 func (s *ProductService) BatchUpdateProduct(ctx context.Context, req *pb.BatchUpdateProductRequest) (*pb.BatchUpdateProductResponse, error) {
-	userID, role, err := middleware.ExtractUserInfo(&ctx)
+	userID, role, err := actx.ExtractUserInfo(&ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -114,7 +114,7 @@ func (s *ProductService) BatchGetSkus(ctx context.Context, req *pb.BatchGetSkusR
 		}
 		uuids = append(uuids, u)
 	}
-	pageToken, err := common.ParseUUID(req.PageToken)
+	pageToken, err := str.ParseUUID(req.PageToken)
 	if err != nil {
 		return nil, err
 	}
@@ -178,7 +178,7 @@ func convertToBizSkus(pbSkus []*pb.Sku) ([]*biz.Sku, error) {
 		if err != nil {
 			return nil, err
 		}
-		bytesUuid, err := common.ParseUUID(pbSku.GetId())
+		bytesUuid, err := str.ParseUUID(pbSku.GetId())
 		if err != nil {
 			return nil, err
 		}
@@ -256,7 +256,7 @@ func convertToBizProducts(pbProducts []*pb.Product) ([]*biz.Product, error) {
 		if err != nil {
 			return nil, err
 		}
-		bytesUuid, err := common.ParseUUID(p.Id)
+		bytesUuid, err := str.ParseUUID(p.Id)
 		if err != nil {
 			return nil, err
 		}
