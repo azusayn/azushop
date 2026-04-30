@@ -3,7 +3,8 @@ package service
 import (
 	pb "azushop/api/product/v1"
 	"azushop/internal/biz"
-	actx "azushop/internal/pkg/context"
+	"azushop/internal/common"
+
 	"azushop/internal/pkg/str"
 	"context"
 	"errors"
@@ -32,7 +33,7 @@ func (s *ProductService) ListSellerProducts(ctx context.Context, req *pb.ListSel
 	if req.PageSize > maxPageSize {
 		return nil, status.Error(codes.OutOfRange, codes.OutOfRange.String())
 	}
-	userID, role, err := actx.ExtractUserInfo(&ctx)
+	userID, role, err := common.ExtractUserInfo(&ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +63,7 @@ func (s *ProductService) ListSellerProducts(ctx context.Context, req *pb.ListSel
 }
 
 func (s *ProductService) BatchCreateProduct(ctx context.Context, req *pb.BatchCreateProductRequest) (*pb.BatchCreateProductResponse, error) {
-	userID, role, err := actx.ExtractUserInfo(&ctx)
+	userID, role, err := common.ExtractUserInfo(&ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +82,7 @@ func (s *ProductService) BatchCreateProduct(ctx context.Context, req *pb.BatchCr
 }
 
 func (s *ProductService) BatchUpdateProduct(ctx context.Context, req *pb.BatchUpdateProductRequest) (*pb.BatchUpdateProductResponse, error) {
-	userID, role, err := actx.ExtractUserInfo(&ctx)
+	userID, role, err := common.ExtractUserInfo(&ctx)
 	if err != nil {
 		return nil, err
 	}

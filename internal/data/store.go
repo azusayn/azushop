@@ -2,6 +2,7 @@ package data
 
 import (
 	"azushop/internal/biz"
+	"azushop/internal/common"
 	"azushop/internal/conf"
 	"context"
 	"database/sql"
@@ -41,14 +42,6 @@ func NewPostgres(config *conf.Data) (*Postgres, error) {
 	}, nil
 }
 
-type ContextKey int
-
-// TODO(2): context key value.
-// 101 ~ 200
-const (
-	TransactionCtxKey = 101
-)
-
 type Transaction struct {
 	postgres *Postgres
 }
@@ -69,7 +62,7 @@ func (tx *Transaction) Transaction(ctx context.Context, fn func(ctx context.Cont
 	}
 	gormClient = gormClient.WithContext(ctx).Begin()
 	defer gormClient.Rollback()
-	ctx = context.WithValue(ctx, TransactionCtxKey, gormClient)
+	ctx = context.WithValue(ctx, common.TransactionCtxKey, gormClient)
 	if err := fn(ctx); err != nil {
 		return err
 	}
@@ -77,7 +70,7 @@ func (tx *Transaction) Transaction(ctx context.Context, fn func(ctx context.Cont
 }
 
 func GetTransaction(ctx context.Context) *gorm.DB {
-	tx, ok := ctx.Value(TransactionCtxKey).(*gorm.DB)
+	tx, ok := ctx.Value(common.TransactionCtxKey).(*gorm.DB)
 	if !ok || tx == nil {
 		return tx
 	}
