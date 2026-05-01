@@ -36,7 +36,7 @@ func AuthInterceptor(publicKey *rsa.PublicKey, issuer string) middleware.Middlew
 				if len(tokens) != 2 || strings.ToLower(tokens[0]) != auth.HttpHeaderBearer {
 					return nil, status.Error(codes.Unauthenticated, "invalid access token format")
 				}
-				userID, role, err := auth.ValidateAccessToken(tokens[1], publicKey, issuer)
+				userID, role, err := auth.ValidateAccessToken(publicKey, tokens[1], issuer)
 				if err != nil {
 					return nil, status.Error(codes.Unauthenticated, err.Error())
 				}

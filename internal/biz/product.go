@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/azusayn/azutils/auth"
+	"github.com/azusayn/azutils/validate"
 	"github.com/google/uuid"
 )
 
@@ -89,10 +89,10 @@ func productStatusFilter(productStatus ProductStatus, sellerID, userID int32, ro
 
 // TODO(3): product quantity limits.
 func (uc *ProductUsecase) BatchCheckProducts(products []*Product) error {
-	nc := auth.NewNameChecker(
-		auth.WithLengthLimit(1, 50),
-		auth.WithAllowSpace(),
-		auth.WithAllowPunct(),
+	nc := validate.NewNameChecker(
+		validate.WithLengthLimit(1, 50),
+		validate.WithAllowSpace(),
+		validate.WithAllowPunct(),
 	)
 	if len(products) == 0 {
 		return errors.New("empty products")
