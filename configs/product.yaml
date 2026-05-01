@@ -27,5 +27,5 @@ data:
       - "192.168.68.154:9092"
 auth:
   issuer: azushop
-  private_key_file:
-  public_key_file:
+  private_key_path:
+  public_key_path:

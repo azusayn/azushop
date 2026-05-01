@@ -25,3 +25,7 @@ data:
   kafka:
     broker_addrs:
       - "192.168.68.154:9092"
+  auth:
+    issuer: azushop
+    private_key_path: "./misc/secret/dev.private.pem"
+    public_key_path: "./misc/secret/dev.public.pem"

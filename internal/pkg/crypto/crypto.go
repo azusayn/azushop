@@ -45,7 +45,7 @@ func LoadEd25519PublicKey(path string) (ed25519.PublicKey, error) {
 func loadPEMBlock(path string) ([]byte, error) {
 	bytes, err := os.ReadFile(path)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to read key file %q", path)
+		return nil, errors.Wrapf(err, "failed to read key file from %q", path)
 	}
 	block, _ := pem.Decode(bytes)
 	if block == nil {
