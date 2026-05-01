@@ -24,7 +24,10 @@ func (r *MetricsRunner) Start(_ context.Context) error {
 		Addr:    ":9090",
 		Handler: mux,
 	}
-	return r.httpServer.ListenAndServe()
+	if err := r.httpServer.ListenAndServe(); err != http.ErrServerClosed {
+		return err
+	}
+	return nil
 }
 
 func (r *MetricsRunner) Stop(ctx context.Context) error {
