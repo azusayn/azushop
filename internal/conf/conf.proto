@@ -56,4 +56,12 @@ message Data {
   Payment payment = 4;
   Kafka kafka = 5;
   string app_name = 6;
+  Auth auth = 7;
+}
+
+message Auth {
+  string issuer = 1;
+  string key_version = 2;
+  string private_key_path = 3;
+  string public_key_path = 4;
 }

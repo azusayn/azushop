@@ -13,11 +13,10 @@ import (
 	"azushop/internal/runner"
 	"azushop/internal/server"
 	"azushop/internal/service"
+
 	"github.com/go-kratos/kratos/v2"
 	"github.com/go-kratos/kratos/v2/log"
-)
 
-import (
 	_ "go.uber.org/automaxprocs"
 )
 
@@ -30,7 +29,10 @@ func wireAuthApp(confServer *conf.Server, confData *conf.Data, logger log.Logger
 	}
 	userRepo := data.NewUserRepo(postgres)
 	userUsecase := biz.NewUserUsecase(userRepo)
-	authService := service.NewAuthService(userUsecase, confData)
+	authService, err := service.NewAuthService(userUsecase, confData)
+	if err != nil {
+		return nil, nil, err
+	}
 	grpcServer := server.NewAuthGRPCServer(confServer, authService, logger)
 	httpServer := server.NewAuthHTTPServer(confServer, authService, logger)
 	metricsRunner := runner.NewMetricsRunner()

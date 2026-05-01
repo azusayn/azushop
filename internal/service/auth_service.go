@@ -4,33 +4,35 @@ import (
 	pb "azushop/api/auth/v1"
 	"azushop/internal/biz"
 	"azushop/internal/conf"
+	"azushop/internal/pkg/crypto"
 	"context"
-	"crypto/rsa"
-
-	"github.com/azusayn/azutils/auth"
+	"crypto/ed25519"
 )
 
 type AuthService struct {
 	pb.UnimplementedAuthServiceServer
 	uc         *biz.UserUsecase
-	privateKey *rsa.PrivateKey
+	privateKey ed25519.PrivateKey
 	appName    string
+	keyVersion string
 }
 
-func NewAuthService(uc *biz.UserUsecase, config *conf.Data) *AuthService {
-	privateKey, err := auth.GeneratePrivateKey()
+func NewAuthService(uc *biz.UserUsecase, config *conf.Data) (*AuthService, error) {
+	path := config.GetAuth().GetPrivateKeyPath()
+	privateKey, err := crypto.LoadEd25519PrivateKey(path)
 	if err != nil {
-		panic("failed to init server secret")
+		return nil, err
 	}
 	return &AuthService{
 		uc:         uc,
 		privateKey: privateKey,
-		appName:    config.AppName,
-	}
+		appName:    config.GetAppName(),
+		keyVersion: config.GetAuth().GetKeyVersion(),
+	}, nil
 }
 
 func (s *AuthService) Login(ctx context.Context, req *pb.LoginRequest) (*pb.LoginResponse, error) {
-	token, err := s.uc.Login(ctx, s.privateKey, s.appName, req.Name, req.Password)
+	token, err := s.uc.Login(ctx, s.privateKey, s.appName, req.Name, req.Password, s.keyVersion)
 	if err != nil {
 		return nil, err
 	}

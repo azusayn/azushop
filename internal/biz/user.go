@@ -2,10 +2,13 @@ package biz
 
 import (
 	"context"
-	"crypto/rsa"
+	"crypto/ed25519"
 	"errors"
 	"fmt"
 	"time"
+
+	"github.com/azusayn/azutils/validate"
+	"github.com/golang-jwt/jwt/v5"
 
 	"github.com/azusayn/azutils/auth"
 	"github.com/azusayn/azutils/crypto"
@@ -42,15 +45,15 @@ func NewUserUsecase(repo UserRepo) *UserUsecase {
 
 // TODO: error code design
 func (uc *UserUsecase) Register(ctx context.Context, name, password string) error {
-	if err := auth.CheckUsername(name); err != nil {
+	if err := validate.CheckUsername(name); err != nil {
 		return err
 	}
 	if _, err := uc.repo.FindByName(ctx, name); err == nil {
 		return fmt.Errorf("username %q exists", name)
 	}
 
-	salt := crypto.GenerateRandomBytes(16)
-	passwordHash := crypto.Sha256(password, salt)
+	salt := crypto.GenerateRandomHexString(16)
+	passwordHash := crypto.Sha256(salt, password)
 
 	return uc.repo.Save(ctx, &User{
 		Name:         name,
@@ -63,12 +66,13 @@ func (uc *UserUsecase) Register(ctx context.Context, name, password string) erro
 
 func (uc *UserUsecase) Login(
 	ctx context.Context,
-	privateKey *rsa.PrivateKey,
+	privateKey ed25519.PrivateKey,
 	issuer string,
 	name string,
 	password string,
+	version string,
 ) (string, error) {
-	if err := auth.CheckUsername(name); err != nil {
+	if err := validate.CheckUsername(name); err != nil {
 		return "", err
 	}
 	user, err := uc.repo.FindByName(ctx, name)
@@ -79,5 +83,13 @@ func (uc *UserUsecase) Login(
 	if passwordHash != user.PasswordHash {
 		return "", errors.New("invalid username or password")
 	}
-	return auth.GenerateAccessToken(user.ID, privateKey, issuer, string(user.Role), time.Minute*15)
+	return auth.GenerateAccessToken(
+		jwt.SigningMethodEdDSA,
+		privateKey,
+		issuer,
+		time.Minute*15,
+		version,
+		user.ID,
+		string(user.Role),
+	)
 }
