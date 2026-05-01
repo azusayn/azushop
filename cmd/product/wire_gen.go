@@ -39,7 +39,10 @@ func wireProductApp(confServer *conf.Server, confData *conf.Data, logger log.Log
 	productPublisher := data.NewProductPublisher(kafkaProducer)
 	productUsecase := biz.NewProductUsecase(productRepo, productPublisher)
 	productService := service.NewProductService(productUsecase)
-	grpcServer := server.NewProductGRPCServer(confServer, productService, logger)
+	grpcServer, err := server.NewProductGRPCServer(confServer, confData, productService, logger)
+	if err != nil {
+		return nil, nil, err
+	}
 	httpServer := server.NewProductHTTPServer(confServer, productService, logger)
 	app := newApp(logger, grpcServer, httpServer)
 	return app, func() {

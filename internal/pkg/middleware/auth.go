@@ -4,7 +4,6 @@ import (
 	v1 "azushop/api/auth/v1"
 	"azushop/internal/common"
 	"context"
-	"crypto/rsa"
 	"strings"
 
 	"github.com/azusayn/azutils/auth"
@@ -15,7 +14,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func AuthInterceptor(publicKey *rsa.PublicKey, issuer string) middleware.Middleware {
+func AuthInterceptor(publicKey any, issuer string) middleware.Middleware {
 	return func(handler middleware.Handler) middleware.Handler {
 		return func(ctx context.Context, req any) (any, error) {
 			tr, ok := transport.FromServerContext(ctx)
