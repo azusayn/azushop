@@ -79,7 +79,7 @@ func (uc *UserUsecase) Login(
 	if err != nil {
 		return "", err
 	}
-	passwordHash := crypto.Sha256(password, user.Salt)
+	passwordHash := crypto.Sha256(user.Salt, password)
 	if passwordHash != user.PasswordHash {
 		return "", errors.New("invalid username or password")
 	}
