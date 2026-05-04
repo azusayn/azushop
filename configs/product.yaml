@@ -3,7 +3,7 @@ server:
     addr: 0.0.0.0:8001
     timeout: 1s
   grpc:
-    addr: 0.0.0.0:9000
+    addr: 0.0.0.0:9002
     timeout: 1s
 data:
   app_name: "azushop.product"
@@ -15,7 +15,7 @@ data:
     read_timeout: 0.2s
     write_timeout: 0.2s
   service_addr:
-    product: 127.0.0.1:9000
+    product: 127.0.0.1:9002
     inventory: 127.0.0.1:9002
     order: 127.0.0.1:9003
     auth: 127.0.0.1:9001
