@@ -3,28 +3,13 @@ server:
     addr: 0.0.0.0:8000
     timeout: 1s
   grpc:
-    addr: 0.0.0.0:9001
+    addr: 0.0.0.0:9000
     timeout: 1s
 data:
   app_name: "azushop.auth"
   database:
     driver: pgx
-    source: postgres://postgres:270153@192.168.68.154:5432/postgres?sslmode=disable
-  redis:
-    addr: 192.168.68.154:6379
-    read_timeout: 0.2s
-    write_timeout: 0.2s
-  service_addr:
-    product: 127.0.0.1:9000
-    inventory: 127.0.0.1:9002
-    order: 127.0.0.1:9003
-    auth: 127.0.0.1:9001
-  payment:
-    stripe_secret_key:
-    stripe_success_url:
-  kafka:
-    broker_addrs:
-      - "192.168.68.154:9092"
+    source: postgres://postgres:270153@192.168.68.159:5432/postgres?sslmode=disable
   auth:
     issuer: azushop
     private_key_path: "./misc/secret/dev.private.pem"

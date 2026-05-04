@@ -44,5 +44,14 @@ services:
     depends_on:
       - kafka
 
+  envoy:
+    image: envoyproxy/envoy:v1.38.0
+    command: -c /dev.envoy.yaml
+    ports:
+      - "9901:9901"
+      - "10000:10000"
+    volumes:
+      - ./dev.envoy.yaml:/dev.envoy.yaml
+
 volumes:
   pgdata:
