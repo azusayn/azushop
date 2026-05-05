@@ -9,8 +9,7 @@ data:
   app_name: "azushop.auth"
   database:
     driver: pgx
-    source: postgres://postgres:270153@192.168.68.159:5432/postgres?sslmode=disable
+    source: postgres://postgres:270153@192.168.68.163:5432/postgres?sslmode=disable
   auth:
     issuer: azushop
     private_key_path: "./misc/secret/dev.private.pem"
-    public_key_path: "./misc/secret/dev.public.pem"

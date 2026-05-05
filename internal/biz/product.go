@@ -113,6 +113,7 @@ func (uc *ProductUsecase) ListSellerProducts(
 	ctx context.Context,
 	sellerID int32,
 	pageToken uuid.UUID,
+	// TODO(0): implement a paginator. refer to openai-go SDK.
 	pageSize int32,
 	productStatus ProductStatus,
 	userID int32,
@@ -136,11 +137,10 @@ func productsFilter(products []*Product, userID int32, role UserRole) ([]*Produc
 			p.SellerID = userID
 			p.ProductStatus = ProductStatusOffline
 		}
-
 		return products, nil
 	default:
 	}
-	return nil, fmt.Errorf("role %q doesn't have the permission to upsert products", role)
+	return nil, fmt.Errorf("role %q doesn't have the permissions to operate products", role)
 }
 
 func (uc *ProductUsecase) BatchCreateProducts(

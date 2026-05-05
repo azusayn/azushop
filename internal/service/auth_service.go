@@ -13,7 +13,7 @@ type AuthService struct {
 	pb.UnimplementedAuthServiceServer
 	uc         *biz.UserUsecase
 	privateKey ed25519.PrivateKey
-	appName    string
+	issuer     string
 	keyVersion string
 }
 
@@ -26,13 +26,13 @@ func NewAuthService(uc *biz.UserUsecase, config *conf.Data) (*AuthService, error
 	return &AuthService{
 		uc:         uc,
 		privateKey: privateKey,
-		appName:    config.GetAppName(),
+		issuer:     config.GetAuth().GetIssuer(),
 		keyVersion: config.GetAuth().GetKeyVersion(),
 	}, nil
 }
 
 func (s *AuthService) Login(ctx context.Context, req *pb.LoginRequest) (*pb.LoginResponse, error) {
-	token, err := s.uc.Login(ctx, s.privateKey, s.appName, req.Name, req.Password, s.keyVersion)
+	token, err := s.uc.Login(ctx, s.privateKey, s.issuer, req.Name, req.Password, s.keyVersion)
 	if err != nil {
 		return nil, err
 	}
