@@ -81,7 +81,6 @@ func (repo *ProductRepo) ListProductsBySellerId(
 	} else {
 		stmt = fmt.Sprintf(stmt, "")
 	}
-
 	rows, err := client.QueryContext(ctx, stmt, args...)
 	if err != nil {
 		return nil, err
