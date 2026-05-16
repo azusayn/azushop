@@ -1,8 +1,10 @@
 package biz
 
 import (
+	azuerr "azushop/internal/common/errors"
 	"context"
 	"crypto/ed25519"
+	"database/sql"
 	"errors"
 	"fmt"
 	"time"
@@ -49,7 +51,7 @@ func (uc *UserUsecase) Register(ctx context.Context, name, password string) erro
 		return err
 	}
 	if _, err := uc.repo.FindByName(ctx, name); err == nil {
-		return fmt.Errorf("username %q exists", name)
+		return fmt.Errorf(string(azuerr.MsgUsernameAlreadyExist), name)
 	}
 
 	salt := crypto.GenerateRandomHexString(16)
@@ -77,11 +79,14 @@ func (uc *UserUsecase) Login(
 	}
 	user, err := uc.repo.FindByName(ctx, name)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", errors.New(string(azuerr.MsgUserNotExist))
+		}
 		return "", err
 	}
 	passwordHash := crypto.Sha256(user.Salt, password)
 	if passwordHash != user.PasswordHash {
-		return "", errors.New("invalid username or password")
+		return "", errors.New(string(azuerr.MsgInvalidUsernameOrPassword))
 	}
 	return auth.GenerateAccessToken(
 		jwt.SigningMethodEdDSA,

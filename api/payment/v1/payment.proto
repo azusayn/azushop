@@ -10,7 +10,12 @@ option go_package = "azushop/api/payment/v1;v1";
 // PaymentService.
 service PaymentService {
   // pays order for given order_id. 
-  rpc CreatePayment(CreatePaymentRequest) returns (CreatePaymentResponse);
+  rpc CreatePayment(CreatePaymentRequest) returns (CreatePaymentResponse) {
+    option (google.api.http) = {
+      post: "/v1/payment/create"
+      body: "*"
+    };
+  };
 
   // callback API for external payment providers.
   // currently only support stripe as the provider.
