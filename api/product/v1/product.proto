@@ -38,7 +38,7 @@ service ProductService {
   // retrieves sku information for given skuIds.
   rpc BatchGetSkus(BatchGetSkusRequest) returns (BatchGetSkusResponse) {
     option (google.api.http) = {
-      get: "/v1/skus/batch"
+      post: "/v1/skus/batch"
       body: "*"
     };
   };

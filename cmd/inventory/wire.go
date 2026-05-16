@@ -19,6 +19,7 @@ import (
 func wireInventoryApp(*conf.Server, *conf.Data, log.Logger) (*kratos.App, func(), error) {
 	panic(wire.Build(
 		server.NewInventoryGRPCServer,
+		server.NewInventoryHTTPServer,
 		data.InventoryDataProviderSet,
 		biz.NewInventoryUsecase,
 		service.NewInventoryService,

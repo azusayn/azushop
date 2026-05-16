@@ -80,10 +80,11 @@ func (ProductStatus) EnumDescriptor() ([]byte, []int) {
 }
 
 type Sku struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Attrs         *structpb.Struct       `protobuf:"bytes,2,opt,name=attrs,proto3" json:"attrs,omitempty"`
-	UnitPrice     string                 `protobuf:"bytes,3,opt,name=unit_price,json=unitPrice,proto3" json:"unit_price,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// TODO(3): optional when used as input
+	Id            string           `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Attrs         *structpb.Struct `protobuf:"bytes,2,opt,name=attrs,proto3" json:"attrs,omitempty"`
+	UnitPrice     string           `protobuf:"bytes,3,opt,name=unit_price,json=unitPrice,proto3" json:"unit_price,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -140,12 +141,14 @@ func (x *Sku) GetUnitPrice() string {
 }
 
 type Product struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	ProductName   string                 `protobuf:"bytes,2,opt,name=product_name,json=productName,proto3" json:"product_name,omitempty"`
-	SellerId      int32                  `protobuf:"varint,3,opt,name=seller_id,json=sellerId,proto3" json:"seller_id,omitempty"`
-	Skus          []*Sku                 `protobuf:"bytes,4,rep,name=skus,proto3" json:"skus,omitempty"`
-	ProductStatus ProductStatus          `protobuf:"varint,5,opt,name=product_status,json=productStatus,proto3,enum=product.v1.ProductStatus" json:"product_status,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// TODO(3): optional when used as input
+	Id          string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	ProductName string `protobuf:"bytes,2,opt,name=product_name,json=productName,proto3" json:"product_name,omitempty"`
+	// TODO(3): optional when used as input
+	SellerId      int32         `protobuf:"varint,3,opt,name=seller_id,json=sellerId,proto3" json:"seller_id,omitempty"`
+	Skus          []*Sku        `protobuf:"bytes,4,rep,name=skus,proto3" json:"skus,omitempty"`
+	ProductStatus ProductStatus `protobuf:"varint,5,opt,name=product_status,json=productStatus,proto3,enum=product.v1.ProductStatus" json:"product_status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -716,12 +719,12 @@ const file_api_product_v1_product_proto_rawDesc = "" +
 	"\x14PRODUCT_STATUS_DRAFT\x10\x01\x12\x1a\n" +
 	"\x16PRODUCT_STATUS_PENDING\x10\x02\x12\x19\n" +
 	"\x15PRODUCT_STATUS_ACTIVE\x10\x03\x12\x1a\n" +
-	"\x16PRODUCT_STATUS_OFFLINE\x10\x042\xef\x03\n" +
+	"\x16PRODUCT_STATUS_OFFLINE\x10\x042\x8a\x04\n" +
 	"\x0eProductService\x12\x8d\x01\n" +
 	"\x12ListSellerProducts\x12%.product.v1.ListSellerProductsRequest\x1a&.product.v1.ListSellerProductsResponse\"(\x82\xd3\xe4\x93\x02\"\x12 /v1/sellers/{seller_id}/products\x12|\n" +
 	"\x12BatchCreateProduct\x12%.product.v1.BatchCreateProductRequest\x1a&.product.v1.BatchCreateProductResponse\"\x17\x82\xd3\xe4\x93\x02\x11:\x01*\"\f/v1/products\x12|\n" +
-	"\x12BatchUpdateProduct\x12%.product.v1.BatchUpdateProductRequest\x1a&.product.v1.BatchUpdateProductResponse\"\x17\x82\xd3\xe4\x93\x02\x11:\x01*2\f/v1/products\x12Q\n" +
-	"\fBatchGetSkus\x12\x1f.product.v1.BatchGetSkusRequest\x1a .product.v1.BatchGetSkusResponseB\x1bZ\x19azushop/api/product/v1;v1b\x06proto3"
+	"\x12BatchUpdateProduct\x12%.product.v1.BatchUpdateProductRequest\x1a&.product.v1.BatchUpdateProductResponse\"\x17\x82\xd3\xe4\x93\x02\x11:\x01*2\f/v1/products\x12l\n" +
+	"\fBatchGetSkus\x12\x1f.product.v1.BatchGetSkusRequest\x1a .product.v1.BatchGetSkusResponse\"\x19\x82\xd3\xe4\x93\x02\x13:\x01*\"\x0e/v1/skus/batchB\x1bZ\x19azushop/api/product/v1;v1b\x06proto3"
 
 var (
 	file_api_product_v1_product_proto_rawDescOnce sync.Once

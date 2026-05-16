@@ -278,9 +278,9 @@ const file_api_payment_v1_payment_proto_rawDesc = "" +
 	"\x1aPAYMENT_METHOD_UNSPECIFIED\x10\x00\x12\x19\n" +
 	"\x15PAYMENT_METHOD_STRIPE\x10\x01\x12\x19\n" +
 	"\x15PAYMENT_METHOD_ALIPAY\x10\x02\x12\x19\n" +
-	"\x15PAYMENT_METHOD_WECHAT\x10\x032\xdb\x01\n" +
-	"\x0ePaymentService\x12T\n" +
-	"\rCreatePayment\x12 .payment.v1.CreatePaymentRequest\x1a!.payment.v1.CreatePaymentResponse\x12s\n" +
+	"\x15PAYMENT_METHOD_WECHAT\x10\x032\xfa\x01\n" +
+	"\x0ePaymentService\x12s\n" +
+	"\rCreatePayment\x12 .payment.v1.CreatePaymentRequest\x1a!.payment.v1.CreatePaymentResponse\"\x1d\x82\xd3\xe4\x93\x02\x17:\x01*\"\x12/v1/payment/create\x12s\n" +
 	"\bCallback\x12\x1b.payment.v1.CallbackRequest\x1a\x1c.payment.v1.CallbackResponse\",\x82\xd3\xe4\x93\x02&:\x03raw\"\x1f/v1/payment/callback/{provider}B\x1bZ\x19azushop/api/payment/v1;v1b\x06proto3"
 
 var (

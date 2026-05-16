@@ -20,12 +20,15 @@ var _ = binding.EncodeURL
 const _ = http.SupportPackageIsVersion1
 
 const OperationProductServiceBatchCreateProduct = "/product.v1.ProductService/BatchCreateProduct"
+const OperationProductServiceBatchGetSkus = "/product.v1.ProductService/BatchGetSkus"
 const OperationProductServiceBatchUpdateProduct = "/product.v1.ProductService/BatchUpdateProduct"
 const OperationProductServiceListSellerProducts = "/product.v1.ProductService/ListSellerProducts"
 
 type ProductServiceHTTPServer interface {
 	// BatchCreateProduct creates new products for given information.
 	BatchCreateProduct(context.Context, *BatchCreateProductRequest) (*BatchCreateProductResponse, error)
+	// BatchGetSkus retrieves sku information for given skuIds.
+	BatchGetSkus(context.Context, *BatchGetSkusRequest) (*BatchGetSkusResponse, error)
 	// BatchUpdateProduct updates products' fields specified by the given update masks.
 	BatchUpdateProduct(context.Context, *BatchUpdateProductRequest) (*BatchUpdateProductResponse, error)
 	// ListSellerProducts retrieves product information for given seller_id and product status.
@@ -37,6 +40,7 @@ func RegisterProductServiceHTTPServer(s *http.Server, srv ProductServiceHTTPServ
 	r.GET("/v1/sellers/{seller_id}/products", _ProductService_ListSellerProducts0_HTTP_Handler(srv))
 	r.POST("/v1/products", _ProductService_BatchCreateProduct0_HTTP_Handler(srv))
 	r.PATCH("/v1/products", _ProductService_BatchUpdateProduct0_HTTP_Handler(srv))
+	r.POST("/v1/skus/batch", _ProductService_BatchGetSkus0_HTTP_Handler(srv))
 }
 
 func _ProductService_ListSellerProducts0_HTTP_Handler(srv ProductServiceHTTPServer) func(ctx http.Context) error {
@@ -105,9 +109,33 @@ func _ProductService_BatchUpdateProduct0_HTTP_Handler(srv ProductServiceHTTPServ
 	}
 }
 
+func _ProductService_BatchGetSkus0_HTTP_Handler(srv ProductServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in BatchGetSkusRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationProductServiceBatchGetSkus)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.BatchGetSkus(ctx, req.(*BatchGetSkusRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*BatchGetSkusResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
 type ProductServiceHTTPClient interface {
 	// BatchCreateProduct creates new products for given information.
 	BatchCreateProduct(ctx context.Context, req *BatchCreateProductRequest, opts ...http.CallOption) (rsp *BatchCreateProductResponse, err error)
+	// BatchGetSkus retrieves sku information for given skuIds.
+	BatchGetSkus(ctx context.Context, req *BatchGetSkusRequest, opts ...http.CallOption) (rsp *BatchGetSkusResponse, err error)
 	// BatchUpdateProduct updates products' fields specified by the given update masks.
 	BatchUpdateProduct(ctx context.Context, req *BatchUpdateProductRequest, opts ...http.CallOption) (rsp *BatchUpdateProductResponse, err error)
 	// ListSellerProducts retrieves product information for given seller_id and product status.
@@ -128,6 +156,20 @@ func (c *ProductServiceHTTPClientImpl) BatchCreateProduct(ctx context.Context, i
 	pattern := "/v1/products"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationProductServiceBatchCreateProduct))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// BatchGetSkus retrieves sku information for given skuIds.
+func (c *ProductServiceHTTPClientImpl) BatchGetSkus(ctx context.Context, in *BatchGetSkusRequest, opts ...http.CallOption) (*BatchGetSkusResponse, error) {
+	var out BatchGetSkusResponse
+	pattern := "/v1/skus/batch"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationProductServiceBatchGetSkus))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
 	if err != nil {

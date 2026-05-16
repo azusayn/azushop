@@ -20,7 +20,7 @@ service InventoryService {
   // retrieves SKU information for given SKU IDs.
   rpc BatchGetStock(BatchGetStockRequest) returns (BatchGetStockResponse) {
     option (google.api.http) = {
-      get: "/v1/inventory/stock/batch"
+      post: "/v1/inventory/stock/batch"
       body: "*"
     };
   };
