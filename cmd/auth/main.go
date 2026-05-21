@@ -57,6 +57,7 @@ func main() {
 			file.NewSource(flagconf),
 		),
 	)
+	//nolint:errcheck
 	defer c.Close()
 
 	if err := c.Load(); err != nil {

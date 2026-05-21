@@ -85,6 +85,7 @@ func (repo *ProductRepo) ListProductsBySellerId(
 	if err != nil {
 		return nil, err
 	}
+	//nolint:errcheck
 	defer rows.Close()
 
 	// mapping frop product ID to its SKUs.
@@ -183,6 +184,7 @@ func (repo *ProductRepo) BatchCreateProducts(ctx context.Context, products []*bi
 	if err != nil {
 		return nil, err
 	}
+	//nolint:errcheck
 	defer tx.Rollback()
 	stmtP, valuesP := sql.BuildBatchInsertSQL("products", productsColNames, productsRowValues)
 	if _, err := tx.ExecContext(ctx, stmtP, valuesP...); err != nil {
@@ -239,6 +241,7 @@ func (repo *ProductRepo) BatchUpdateProducts(ctx context.Context, products []*bi
 	if err != nil {
 		return err
 	}
+	//nolint:errcheck
 	defer tx.Rollback()
 
 	// table 'products'
