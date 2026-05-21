@@ -10,8 +10,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
-        with:
-          token: ${{ secrets.AZUSHOP_PAT }}
       
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v4
