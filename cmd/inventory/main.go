@@ -11,8 +11,8 @@ import (
 	"github.com/go-kratos/kratos/v2/config"
 	"github.com/go-kratos/kratos/v2/config/file"
 	"github.com/go-kratos/kratos/v2/log"
-	"github.com/go-kratos/kratos/v2/middleware/tracing"
 	"github.com/go-kratos/kratos/v2/transport/grpc"
+	"github.com/go-kratos/kratos/v2/transport/http"
 
 	_ "go.uber.org/automaxprocs"
 )
@@ -32,6 +32,7 @@ func init() {
 func newApp(
 	logger log.Logger,
 	grpcServer *grpc.Server,
+	httpServer *http.Server,
 	inventoryRunner *runner.InventoryRunner,
 ) *kratos.App {
 	return kratos.New(
@@ -42,6 +43,7 @@ func newApp(
 		kratos.Logger(logger),
 		kratos.Server(
 			grpcServer,
+			httpServer,
 			inventoryRunner,
 		),
 	)
@@ -53,10 +55,6 @@ func main() {
 		"ts", log.DefaultTimestamp,
 		"caller", log.DefaultCaller,
 		"service.id", id,
-		"service.name", Name,
-		"service.version", Version,
-		"trace.id", tracing.TraceID(),
-		"span.id", tracing.SpanID(),
 	)
 	c := config.New(
 		config.WithSource(

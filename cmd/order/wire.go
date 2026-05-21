@@ -19,6 +19,7 @@ import (
 func wireOrderApp(*conf.Server, *conf.Data, log.Logger) (*kratos.App, func(), error) {
 	panic(wire.Build(
 		server.NewOrderGRPCServer,
+		server.NewOrderHTTPServer,
 		data.OrderDataProviderSet,
 		biz.NewOrderUsecase,
 		service.NewOrderServiceClient,

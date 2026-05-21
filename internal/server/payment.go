@@ -51,5 +51,5 @@ func NewPaymentHTTPServer(
 	}
 	srv := http.NewServer(opts...)
 	paymentpb.RegisterPaymentServiceHTTPServer(srv, paymentService)
-	return nil
+	return srv
 }

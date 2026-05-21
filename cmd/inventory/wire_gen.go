@@ -37,8 +37,9 @@ func wireInventoryApp(confServer *conf.Server, confData *conf.Data, logger log.L
 	inventoryUsecase := biz.NewInventoryUsecase(inventoryRepo, transaction, inventorySubscriber)
 	inventoryService := service.NewInventoryService(inventoryUsecase)
 	grpcServer := server.NewInventoryGRPCServer(confServer, inventoryService, logger)
+	httpServer := server.NewInventoryHTTPServer(confServer, inventoryService, logger)
 	inventoryRunner := runner.NewInventoryRunner(inventoryUsecase)
-	app := newApp(logger, grpcServer, inventoryRunner)
+	app := newApp(logger, grpcServer, httpServer, inventoryRunner)
 	return app, func() {
 	}, nil
 }

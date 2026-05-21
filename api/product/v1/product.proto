@@ -36,7 +36,12 @@ service ProductService {
   // TODO(3): search API using Postgres GIN.
 
   // retrieves sku information for given skuIds.
-  rpc BatchGetSkus(BatchGetSkusRequest) returns (BatchGetSkusResponse);
+  rpc BatchGetSkus(BatchGetSkusRequest) returns (BatchGetSkusResponse) {
+    option (google.api.http) = {
+      post: "/v1/skus/batch"
+      body: "*"
+    };
+  };
 } 
 
 enum ProductStatus {

@@ -20,16 +20,42 @@ var _ = binding.EncodeURL
 const _ = http.SupportPackageIsVersion1
 
 const OperationPaymentServiceCallback = "/payment.v1.PaymentService/Callback"
+const OperationPaymentServiceCreatePayment = "/payment.v1.PaymentService/CreatePayment"
 
 type PaymentServiceHTTPServer interface {
 	// Callback callback API for external payment providers.
 	// currently only support stripe as the provider.
 	Callback(context.Context, *CallbackRequest) (*CallbackResponse, error)
+	// CreatePayment pays order for given order_id.
+	CreatePayment(context.Context, *CreatePaymentRequest) (*CreatePaymentResponse, error)
 }
 
 func RegisterPaymentServiceHTTPServer(s *http.Server, srv PaymentServiceHTTPServer) {
 	r := s.Route("/")
+	r.POST("/v1/payment/create", _PaymentService_CreatePayment0_HTTP_Handler(srv))
 	r.POST("/v1/payment/callback/{provider}", _PaymentService_Callback0_HTTP_Handler(srv))
+}
+
+func _PaymentService_CreatePayment0_HTTP_Handler(srv PaymentServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in CreatePaymentRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationPaymentServiceCreatePayment)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.CreatePayment(ctx, req.(*CreatePaymentRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*CreatePaymentResponse)
+		return ctx.Result(200, reply)
+	}
 }
 
 func _PaymentService_Callback0_HTTP_Handler(srv PaymentServiceHTTPServer) func(ctx http.Context) error {
@@ -61,6 +87,8 @@ type PaymentServiceHTTPClient interface {
 	// Callback callback API for external payment providers.
 	// currently only support stripe as the provider.
 	Callback(ctx context.Context, req *CallbackRequest, opts ...http.CallOption) (rsp *CallbackResponse, err error)
+	// CreatePayment pays order for given order_id.
+	CreatePayment(ctx context.Context, req *CreatePaymentRequest, opts ...http.CallOption) (rsp *CreatePaymentResponse, err error)
 }
 
 type PaymentServiceHTTPClientImpl struct {
@@ -80,6 +108,20 @@ func (c *PaymentServiceHTTPClientImpl) Callback(ctx context.Context, in *Callbac
 	opts = append(opts, http.Operation(OperationPaymentServiceCallback))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "POST", path, in.Raw, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// CreatePayment pays order for given order_id.
+func (c *PaymentServiceHTTPClientImpl) CreatePayment(ctx context.Context, in *CreatePaymentRequest, opts ...http.CallOption) (*CreatePaymentResponse, error) {
+	var out CreatePaymentResponse
+	pattern := "/v1/payment/create"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationPaymentServiceCreatePayment))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
 	if err != nil {
 		return nil, err
 	}
