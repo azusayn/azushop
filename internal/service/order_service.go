@@ -15,6 +15,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/samber/lo"
 	"github.com/shopspring/decimal"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -64,10 +65,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, req *pb.CreateOrderReque
 		return nil, status.Error(codes.Unauthenticated, err.Error())
 	}
 
-	var skuIDs []string
-	for _, orderItem := range req.OrderItems {
-		skuIDs = append(skuIDs, orderItem.SkuId)
-	}
+	skuIDs := lo.Map(req.OrderItems, func(item *pb.OrderItem, index int) string { return item.SkuId })
 
 	// fetch unit price.
 	productService := s.serviceClient.product
