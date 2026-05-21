@@ -6,7 +6,6 @@ import (
 	"crypto/ed25519"
 	"database/sql"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/azusayn/azutils/validate"
@@ -51,7 +50,7 @@ func (uc *UserUsecase) Register(ctx context.Context, name, password string) erro
 		return err
 	}
 	if _, err := uc.repo.FindByName(ctx, name); err == nil {
-		return fmt.Errorf(string(azuerr.MsgUsernameAlreadyExist), name)
+		return errors.New(string(azuerr.MsgUsernameAlreadyExist))
 	}
 
 	salt := crypto.GenerateRandomHexString(16)

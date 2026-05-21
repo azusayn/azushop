@@ -13,7 +13,7 @@ const (
 	UserRoleCtxKey ContextKey = 1
 	// 101 ~ 200
 
-	TransactionCtxKey = 101
+	TransactionCtxKey ContextKey = 101
 )
 
 // append user id & user role to the ctx.

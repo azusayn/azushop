@@ -141,11 +141,11 @@ func (uc *OrderUsecase) CreateOrder(
 }
 
 func (uc *OrderUsecase) CancelOrder(ctx context.Context, orderID int64) error {
-	return uc.CancelOrder(ctx, orderID)
+	return uc.repo.CancelOrder(ctx, orderID)
 }
 
 func (uc *OrderUsecase) DeleteOrder(ctx context.Context, orderID int64) error {
-	return uc.DeleteOrder(ctx, orderID)
+	return uc.repo.DeleteOrder(ctx, orderID)
 }
 
 func (uc *OrderUsecase) GetOrder(ctx context.Context, orderID int64) (*Order, error) {

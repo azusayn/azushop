@@ -1,7 +1,6 @@
 package server
 
 import (
-	product "azushop/api/product/v1"
 	productpb "azushop/api/product/v1"
 	"azushop/internal/conf"
 	"azushop/internal/pkg/crypto"
@@ -60,6 +59,6 @@ func NewProductHTTPServer(c *conf.Server,
 		opts = append(opts, http.Timeout(c.Http.Timeout.AsDuration()))
 	}
 	srv := http.NewServer(opts...)
-	product.RegisterProductServiceHTTPServer(srv, productService)
+	productpb.RegisterProductServiceHTTPServer(srv, productService)
 	return srv
 }
