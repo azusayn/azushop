@@ -194,10 +194,6 @@ func NewOrderSubscriber(config *conf.Data) (biz.OrderSubscriber, error) {
 	}, nil
 }
 
-type orderConsumerHandler struct {
-	handler func(string) error
-}
-
 func (s *OrderSubscriber) SubscribePaymentStatus(ctx context.Context, handler func(int64, biz.PaymentStatus) error) error {
 	topics := []string{biz.KafkaTopicPaymentStatus}
 	consumerHandler := NewConsumerHandler(func(bytes []byte) error {
