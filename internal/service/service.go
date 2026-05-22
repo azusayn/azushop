@@ -3,6 +3,7 @@ package service
 
 import (
 	"azushop/internal/conf"
+	"azushop/internal/pkg/middleware"
 	"azushop/internal/pkg/str"
 
 	authpb "azushop/api/auth/v1"
@@ -36,6 +37,9 @@ func newServiceClient(target string) (*grpc.ClientConn, error) {
 	return grpc.NewClient(
 		target,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithChainUnaryInterceptor(
+			middleware.AuthClientInterceptor(),
+		),
 	)
 }
 

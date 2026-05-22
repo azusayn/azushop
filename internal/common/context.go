@@ -8,13 +8,31 @@ import (
 type ContextKey int
 
 const (
-	// 0 ~ 100
-	UserIDCtxKey   ContextKey = 0
-	UserRoleCtxKey ContextKey = 1
-	// 101 ~ 200
+	// 0 - 1000
+	ServiceInnerTokenKey ContextKey = 0
 
-	TransactionCtxKey ContextKey = 101
+	// 1000+
+	UserIDCtxKey   ContextKey = 1001
+	UserRoleCtxKey ContextKey = 1002
+
+	// 1100+
+	TransactionCtxKey ContextKey = 1101
 )
+
+func WithServiceInnerToken(ctx *context.Context, token string) {
+	*ctx = context.WithValue(*ctx, ServiceInnerTokenKey, token)
+}
+
+func ExtractServiceInnerToken(ctx context.Context) (string, error) {
+	if ctx == nil {
+		return "", errors.New("missing context")
+	}
+	token, ok := ctx.Value(ServiceInnerTokenKey).(string)
+	if !ok || token == "" {
+		return "", errors.New("missing inner token")
+	}
+	return token, nil
+}
 
 // append user id & user role to the ctx.
 func WithUserInfo(ctx *context.Context, ID int32, role string) {
