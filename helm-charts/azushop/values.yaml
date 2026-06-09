@@ -1,0 +1,19 @@
+ingress:
+  # TODO: replace it with real hostname in production.
+  host: dev.azushop.com
+  services:
+    - path: /v1/auth
+      name: auth-service
+      port: 8080
+    - path: /v1/product
+      name: product-service
+      port: 8080
+    - path: /v1/inventory
+      name: inventory-service
+      port: 8080
+    - path: /v1/order
+      name: order-service
+      port: 8080
+    - path: /v1/payment
+      name: payment-service
+      port: 8080

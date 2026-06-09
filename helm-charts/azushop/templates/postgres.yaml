@@ -2,9 +2,9 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: postgres
-spec: 
-  selector: 
-    matchLabels: 
+spec:
+  selector:
+    matchLabels:
       app: postgres
   serviceName: postgres
   template:
@@ -26,7 +26,7 @@ spec:
               name: postgres
           volumeMounts:
             - name: pg-data
-              mountPath: /var/lib/postgresql             
+              mountPath: /var/lib/postgresql
   volumeClaimTemplates:
     - metadata:
         name: pg-data
