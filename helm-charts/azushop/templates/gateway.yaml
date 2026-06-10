@@ -14,7 +14,7 @@ kind: HTTPRoute
 metadata:
   name: azushop-http-route
 spec:
-  prarentRefs:
+  parentRefs:
     - name: azushop-gateway
   hostnames:
     - {{ .Values.ingress.host }}

@@ -46,7 +46,7 @@ func (repo *OrderRepo) ListOrders(
 	client := repo.postgres.GormClient
 	var orders []*biz.Order
 	client = client.WithContext(ctx).Where("user_id = ?", userID).Where("id > ?", pageToken)
-	if status != biz.OrderStatusUnspcified {
+	if status != biz.OrderStatusUnspecified {
 		client = client.Where("status = ?", status)
 	}
 	if err := client.Limit(int(pageSize)).Find(&orders).Error; err != nil {

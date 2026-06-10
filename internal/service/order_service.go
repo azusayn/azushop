@@ -202,7 +202,7 @@ func convertToBizOrderStatus(status *pb.OrderStatus) biz.OrderStatus {
 		default:
 		}
 	}
-	return biz.OrderStatusUnspcified
+	return biz.OrderStatusUnspecified
 }
 
 // mapping: mapping from skuId to productpb.Sku

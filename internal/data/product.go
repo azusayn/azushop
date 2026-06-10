@@ -346,8 +346,8 @@ func NewProductPublisher(producer *KafkaProducer) biz.ProductPublisher {
 }
 
 func (p *ProductPublisher) PublishProductCreated(ctx context.Context, skuIDs []uuid.UUID) error {
-	prodcuer := p.kafkaProducer.syncProducer
-	if prodcuer == nil {
+	producer := p.kafkaProducer.syncProducer
+	if producer == nil {
 		return errors.New("nil producer")
 	}
 	msg := ProductCreatedMessage{
@@ -361,6 +361,6 @@ func (p *ProductPublisher) PublishProductCreated(ctx context.Context, skuIDs []u
 		Topic: biz.KafkaTopicProductCreated,
 		Value: sarama.ByteEncoder(bytes),
 	}
-	_, _, err = prodcuer.SendMessage(prodMsg)
+	_, _, err = producer.SendMessage(prodMsg)
 	return err
 }

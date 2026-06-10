@@ -13,7 +13,7 @@ import (
 type PaymentStatus string
 
 const (
-	PaymentStatusUnspcified PaymentStatus = "unspecified"
+	PaymentStatusUnspecified PaymentStatus = "unspecified"
 	PaymentStatusPending    PaymentStatus = "pending"
 	PaymentStatusCancelled  PaymentStatus = "cancelled"
 	PaymentStatusPaid       PaymentStatus = "paid"

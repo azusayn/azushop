@@ -39,7 +39,7 @@ func NewPaymentUsecase(repo PaymentRepo, publisher PaymentPublisher) *PaymentUse
 type PaymentStatus string
 
 const (
-	PaymentStatusUnspcified PaymentStatus = "unspecified"
+	PaymentStatusUnspecified PaymentStatus = "unspecified"
 	PaymentStatusPending    PaymentStatus = "pending"
 	PaymentStatusCancelled  PaymentStatus = "cancelled"
 	PaymentStatusPaid       PaymentStatus = "paid"
@@ -178,19 +178,19 @@ func createStripePayment(
 func handleStripeCallback(body []byte) (int64, PaymentStatus, error) {
 	var event stripe.Event
 	if err := json.Unmarshal(body, &event); err != nil {
-		return 0, PaymentStatusUnspcified, err
+		return 0, PaymentStatusUnspecified, err
 	}
 	var checkoutSession stripe.CheckoutSession
 	if err := json.Unmarshal(event.Data.Raw, &checkoutSession); err != nil {
-		return 0, PaymentStatusUnspcified, err
+		return 0, PaymentStatusUnspecified, err
 	}
 	orderIDStr, ok := checkoutSession.Metadata["order_id"]
 	if !ok {
-		return 0, PaymentStatusUnspcified, errors.New("failed to get order ID")
+		return 0, PaymentStatusUnspecified, errors.New("failed to get order ID")
 	}
 	orderID, err := strconv.ParseInt(orderIDStr, 10, 64)
 	if err != nil {
-		return 0, PaymentStatusUnspcified, err
+		return 0, PaymentStatusUnspecified, err
 	}
 	switch event.Type {
 	case stripe.EventTypeCheckoutSessionCompleted,
@@ -208,5 +208,5 @@ func handleStripeCallback(body []byte) (int64, PaymentStatus, error) {
 		return orderID, PaymentStatusCancelled, nil
 	default:
 	}
-	return orderID, PaymentStatusUnspcified, fmt.Errorf("unsupported stripe event type %q", event.Type)
+	return orderID, PaymentStatusUnspecified, fmt.Errorf("unsupported stripe event type %q", event.Type)
 }

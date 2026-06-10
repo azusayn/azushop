@@ -63,7 +63,7 @@ func NewOrderUsecase(
 type OrderStatus string
 
 const (
-	OrderStatusUnspcified OrderStatus = "unspecified"
+	OrderStatusUnspecified OrderStatus = "unspecified"
 	OrderStatusPending    OrderStatus = "pending"
 	OrderStatusCancelled  OrderStatus = "cancelled"
 	OrderStatusConfirmed  OrderStatus = "confirmed"
