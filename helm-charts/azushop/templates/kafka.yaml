@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: kafka
+spec:
+  selector:
+    matchLabels:
+      app: kafaka
+  serviceName: kafka-service
+  template:
+    metadata:
+      labels:
+        app: kafka
+    spec:
+      containers:
+        - name: kafka
+          image: "kafka:4.2.1"
+          env:
+            KAFKA_NODE_ID: {{ .Values.kafka.nodeID }}
+            KAFKA_PROCESS_ROLES: broker,controller
+            KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+            # TODO: registry (zookeeper / kRaft).
+            KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-service:9092
+            KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+            KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+            KAFKA_CONTROLLER_QUORUM_VOTERS: "{{ .Values.kafka.nodeID }}@kafka-service:9093"
+            KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: {{ .Values.kafka.offsetsTopicReplicationFactor }}
+            KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: {{ .Values.kafka.transactionStateLogReplicationFactor }}
+            KAFKA_LOG_DIRS: {{ .Values.kafka.logDirs }}
+            CLUSTER_ID: {{ .Values.kafka.clusterID }}
+          ports:
+            containerPort: 9092
+          volumeMounts:
+            name: kafka-data
+            mountPath: /var/lib/kafka/data
