@@ -17,3 +17,10 @@ ingress:
     - path: /v1/payment
       name: payment-service
       port: 8080
+redis:
+  replicas: 1
+  minCPU: "100m"
+  maxCPU: "1000m"    
+  minMem: "100Mi"
+  maxMem: "500Mi"
+  terminationGracePeriodSeconds: 60
