@@ -33,3 +33,11 @@ spec:
           volumeMounts:
             name: kafka-data
             mountPath: /var/lib/kafka/data
+  volumeClaimTemplates:
+    - matadata:
+        name: kafka-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: "1Gi"
