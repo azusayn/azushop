@@ -17,18 +17,28 @@ ingress:
     - path: /v1/payment
       name: payment-service
       port: 8080
-      
+
 redis:
   replicas: 1
   minCPU: "100m"
-  maxCPU: "1000m"    
+  maxCPU: "1000m"
   minMem: "100Mi"
   maxMem: "500Mi"
   terminationGracePeriodSeconds: 60
-  
+
 kafka:
   nodeID: 1
   logDirs: "/var/lib/kafka/data"
   clusterID: "MkU3OEVBNTcwNTJENDM2Qks"
   offsetsTopicReplicationFactor: 1
   transactionStateLogReplicationFactor: 1
+
+grafana:
+  replicas: 1
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
