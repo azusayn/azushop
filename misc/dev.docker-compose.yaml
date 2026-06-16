@@ -54,5 +54,49 @@ services:
     volumes:
       - ./dev.envoy.yaml:/dev.envoy.yaml
 
+  loki:
+    image: grafana/loki:latest
+    container_name: loki
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./loki-config.yml:/etc/loki/config.yml
+      - loki-data:/loki
+    command:
+      - -config.file=/etc/loki/config.yml
+      - -distributor.otlp.default_resource_attributes_as_index_labels=service.name
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - loki
+    restart: unless-stopped
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: otel-collector
+    command:
+      - --config=/etc/otelcol/config.yml
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+    volumes:
+      - ./otel-config.yml:/etc/otelcol/config.yml
+    depends_on:
+      - loki
+    restart: unless-stopped
+
+
 volumes:
   pgdata:
+  loki-data:
+  grafana-data:
