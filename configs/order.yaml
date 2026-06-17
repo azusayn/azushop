@@ -16,9 +16,9 @@ data:
     write_timeout: 0.2s
   service_addr:
     product: 127.0.0.1:9000
+    auth: 127.0.0.1:9001
     inventory: 127.0.0.1:9002
     order: 127.0.0.1:9003
-    auth: 127.0.0.1:9001
   payment:
     stripe_secret_key:
     stripe_success_url:

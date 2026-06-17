@@ -25,7 +25,7 @@ func NewProductGRPCServer(cs *conf.Server,
 		grpc.Middleware(
 			recovery.Recovery(),
 			middleware.MetricsInterceptor(),
-			middleware.AuthInterceptor(publicKey, cd.GetAuth().GetIssuer()),
+			middleware.AuthInterceptor(publicKey, cd.GetAuth().GetIssuer(), false),
 		),
 	}
 	if cs.Grpc.Network != "" {
