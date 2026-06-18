@@ -95,7 +95,7 @@ func (repo *OrderRepo) CancelOrder(ctx context.Context, orderID int64) error {
 	if client == nil {
 		client = repo.postgres.GormClient
 	}
-	return client.WithContext(ctx).Where("id = ?", orderID).Update("status", biz.OrderStatusCancelled).Error
+	return client.WithContext(ctx).Model(&biz.Order{}).Where("id = ?", orderID).Update("status", biz.OrderStatusCancelled).Error
 }
 
 func (repo *OrderRepo) GetOrder(ctx context.Context, orderID int64) (*biz.Order, error) {
@@ -112,7 +112,7 @@ func (repo *OrderRepo) UpdateOrderStatus(ctx context.Context, orderID int64, sta
 	if client == nil {
 		client = repo.postgres.GormClient
 	}
-	return client.WithContext(ctx).Where("id = ?", orderID).Update("status", status).Error
+	return client.WithContext(ctx).Model(&biz.Order{}).Where("id = ?", orderID).Update("status", status).Error
 }
 
 func (repo *OrderRepo) CreateOutboxMessage(ctx context.Context, topic string, payload json.RawMessage) error {
@@ -159,7 +159,7 @@ func (repo *OrderRepo) MarkOutboxMessagesSent(ctx context.Context, ids []uuid.UU
 	if client == nil {
 		client = repo.postgres.GormClient
 	}
-	return client.WithContext(ctx).Where("id IN ?", ids).Update("sent_at", time.Now()).Error
+	return client.WithContext(ctx).Model(&biz.OrderOutboxMessage{}).Where("id IN ?", ids).Update("sent_at", time.Now()).Error
 }
 
 // increments the retry count by 1 for the given messageIDs.
@@ -168,7 +168,7 @@ func (repo *OrderRepo) MarkOutboxMessagesFailed(ctx context.Context, ids []uuid.
 	if client == nil {
 		client = repo.postgres.GormClient
 	}
-	return client.WithContext(ctx).Where("id IN ?", ids).Update("retry_count", gorm.Expr("retry_count + 1")).Error
+	return client.WithContext(ctx).Model(&biz.OrderOutboxMessage{}).Where("id IN ?", ids).Update("retry_count", gorm.Expr("retry_count + 1")).Error
 }
 
 type OrderSubscriber struct {

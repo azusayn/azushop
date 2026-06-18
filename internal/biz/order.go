@@ -64,10 +64,10 @@ type OrderStatus string
 
 const (
 	OrderStatusUnspecified OrderStatus = "unspecified"
-	OrderStatusPending    OrderStatus = "pending"
-	OrderStatusCancelled  OrderStatus = "cancelled"
-	OrderStatusConfirmed  OrderStatus = "confirmed"
-	OrderStatusCompleted  OrderStatus = "completed"
+	OrderStatusPending     OrderStatus = "pending"
+	OrderStatusCancelled   OrderStatus = "cancelled"
+	OrderStatusConfirmed   OrderStatus = "confirmed"
+	OrderStatusCompleted   OrderStatus = "completed"
 )
 
 type OrderItem struct {
@@ -89,11 +89,12 @@ type Order struct {
 }
 
 type OrderOutboxMessage struct {
-	ID        uuid.UUID       `gorm:"column:id"`
-	Topic     string          `gorm:"column:topic"`
-	Payload   json.RawMessage `gorm:"column:payload"`
-	CreatedAt time.Time       `gorm:"column:created_at"`
-	SentAt    time.Time       `gorm:"column:sent_at"`
+	ID         uuid.UUID       `gorm:"column:id"`
+	Topic      string          `gorm:"column:topic"`
+	Payload    json.RawMessage `gorm:"column:payload"`
+	RetryCount int             `gorm:"retry_count"`
+	CreatedAt  time.Time       `gorm:"column:created_at"`
+	SentAt     time.Time       `gorm:"column:sent_at"`
 }
 
 // retrieves orders by user ID, filtered by order status.
