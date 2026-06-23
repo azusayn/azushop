@@ -83,6 +83,7 @@ func (uc *UserUsecase) Login(
 		}
 		return "", err
 	}
+	// TODO: Argon2
 	passwordHash := crypto.Sha256(user.Salt, password)
 	if passwordHash != user.PasswordHash {
 		return "", errors.New(string(azuerr.MsgInvalidUsernameOrPassword))
@@ -91,7 +92,8 @@ func (uc *UserUsecase) Login(
 		jwt.SigningMethodEdDSA,
 		privateKey,
 		issuer,
-		time.Minute*15,
+		// TODO: dev
+		time.Minute*1024*1024,
 		version,
 		user.ID,
 		string(user.Role),
