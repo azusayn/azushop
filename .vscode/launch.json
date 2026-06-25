@@ -1,0 +1,21 @@
+{
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"name": "Launch Auth Service",
+			"type": "go",
+			"request": "launch",
+			"mode": "auto",
+			"program": "${workspaceFolder}/cmd/auth",
+			"cwd": "${workspaceFolder}",
+		},
+    {
+			"name": "Launch Order Service",
+			"type": "go",
+			"request": "launch",
+			"mode": "auto",
+			"program": "${workspaceFolder}/cmd/order",
+			"cwd": "${workspaceFolder}",
+		}	
+	]
+}

@@ -13,7 +13,8 @@ import (
 	"github.com/go-kratos/kratos/v2/transport/http"
 )
 
-func NewProductGRPCServer(cs *conf.Server,
+func NewProductGRPCServer(
+	cs *conf.Server,
 	cd *conf.Data,
 	productService *service.ProductService,
 	logger log.Logger) (*grpc.Server, error) {

@@ -33,7 +33,6 @@ Thumbs.db
 bin/
 
 # Develop tools
-.vscode/
 .idea/
 *.swp
 

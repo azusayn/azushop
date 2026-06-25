@@ -45,7 +45,10 @@ func wireOrderApp(confServer *conf.Server, confData *conf.Data, logger log.Logge
 		return nil, nil, err
 	}
 	orderService := service.NewOrderService(orderUsecase, orderServiceClient)
-	grpcServer := server.NewOrderGRPCServer(confServer, orderService, logger)
+	grpcServer, err := server.NewOrderGRPCServer(confServer, confData, orderService, logger)
+	if err != nil {
+		return nil, nil, err
+	}
 	httpServer := server.NewOrderHTTPServer(confServer, orderService, logger)
 	orderRunner := runner.NewOrderRunner(orderUsecase)
 	app := newApp(logger, grpcServer, httpServer, orderRunner)
