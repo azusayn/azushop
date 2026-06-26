@@ -71,6 +71,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, req *pb.CreateOrderReque
 	productService := s.serviceClient.product
 	m, err := fetchAllSkuDetails(ctx, productService, skuIDs)
 	if err != nil {
+		// TODO: wrap the error from the internal service.
 		return nil, err
 	}
 

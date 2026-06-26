@@ -33,9 +33,9 @@ const (
 )
 
 // TODO(1): mtls.
-func newServiceClient(target string) (*grpc.ClientConn, error) {
+func newServiceClient(address string) (*grpc.ClientConn, error) {
 	return grpc.NewClient(
-		target,
+		address,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithChainUnaryInterceptor(
 			middleware.AuthClientInterceptor(),

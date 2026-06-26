@@ -75,6 +75,8 @@ func AuthInterceptor(publicKey any, issuer string, verify bool) middleware.Middl
 				}
 
 				common.WithUserInfo(&ctx, userID, role)
+				bearerToken := auth.HttpHeaderBearer + " " + jwToken
+				common.WithServiceInnerToken(&ctx, bearerToken)
 			}
 			return handler(ctx, req)
 		}
