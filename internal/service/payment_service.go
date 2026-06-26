@@ -6,12 +6,14 @@ import (
 	"azushop/internal/biz"
 	"azushop/internal/common"
 	"azushop/internal/conf"
+	"os"
 
 	"context"
 	"errors"
 	"fmt"
 
 	"github.com/shopspring/decimal"
+	"github.com/stripe/stripe-go/v84"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -29,9 +31,23 @@ func NewPaymentService(uc *biz.PaymentUsecase, config *conf.Data) (*PaymentServi
 	if err != nil {
 		return nil, err
 	}
+
+	if secret := os.Getenv("STRIPE_SECRET_KEY"); secret != "" {
+		stripe.Key = secret
+	} else if config.GetPayment().GetStripeSecretKey(); secret != "" {
+		stripe.Key = secret
+	} else {
+		return nil, errors.New("stripe secret key not configured")
+	}
+
+	successURL := config.GetPayment().GetStripeSuccessUrl()
+	if successURL == "" {
+		return nil, errors.New("stripe success URL not configured")
+	}
+
 	return &PaymentService{
 		uc:               uc,
-		stripeSuccessUrl: config.GetPayment().GetStripeSuccessUrl(),
+		stripeSuccessUrl: successURL,
 		order:            orderClient,
 	}, nil
 }

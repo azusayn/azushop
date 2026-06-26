@@ -15,13 +15,13 @@ data:
     read_timeout: 0.2s
     write_timeout: 0.2s
   service_addr:
-    product: 127.0.0.1:9000
-    inventory: 127.0.0.1:9002
     order: 127.0.0.1:9003
-    auth: 127.0.0.1:9001
   payment:
     stripe_secret_key:
-    stripe_success_url:
+    stripe_success_url: https://4c55-240e-3b5-caf-b6e0-58ab-d467-b363-d0a.ngrok-free.app/v1/payment/callback/stripe
   kafka:
     broker_addrs:
       - "localhost:9092"
+  auth:
+    issuer: azushop
+    public_key_path: "./misc/secret/dev.public.pem"

@@ -3,6 +3,7 @@ package server
 import (
 	paymentpb "azushop/api/payment/v1"
 	"azushop/internal/conf"
+	"azushop/internal/pkg/crypto"
 	"azushop/internal/pkg/middleware"
 	"azushop/internal/service"
 
@@ -12,27 +13,34 @@ import (
 	"github.com/go-kratos/kratos/v2/transport/http"
 )
 
-func NewPaymentGRPCServer(c *conf.Server,
+func NewPaymentGRPCServer(
+	cs *conf.Server,
+	cd *conf.Data,
 	paymentService *service.PaymentService,
-	logger log.Logger) *grpc.Server {
+	logger log.Logger) (*grpc.Server, error) {
+	publicKey, err := crypto.LoadEd25519PublicKey(cd.GetAuth().GetPublicKeyPath())
+	if err != nil {
+		return nil, err
+	}
 	var opts = []grpc.ServerOption{
 		grpc.Middleware(
-			middleware.MetricsInterceptor(),
 			recovery.Recovery(),
+			middleware.MetricsInterceptor(),
+			middleware.AuthInterceptor(publicKey, cd.Auth.GetIssuer(), false),
 		),
 	}
-	if c.Grpc.Network != "" {
-		opts = append(opts, grpc.Network(c.Grpc.Network))
+	if cs.Grpc.Network != "" {
+		opts = append(opts, grpc.Network(cs.Grpc.Network))
 	}
-	if c.Grpc.Addr != "" {
-		opts = append(opts, grpc.Address(c.Grpc.Addr))
+	if cs.Grpc.Addr != "" {
+		opts = append(opts, grpc.Address(cs.Grpc.Addr))
 	}
-	if c.Grpc.Timeout != nil {
-		opts = append(opts, grpc.Timeout(c.Grpc.Timeout.AsDuration()))
+	if cs.Grpc.Timeout != nil {
+		opts = append(opts, grpc.Timeout(cs.Grpc.Timeout.AsDuration()))
 	}
 	srv := grpc.NewServer(opts...)
 	paymentpb.RegisterPaymentServiceServer(srv, paymentService)
-	return srv
+	return srv, nil
 }
 
 func NewPaymentHTTPServer(

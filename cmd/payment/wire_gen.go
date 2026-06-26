@@ -38,7 +38,10 @@ func wirePaymentApp(confServer *conf.Server, confData *conf.Data, logger log.Log
 	if err != nil {
 		return nil, nil, err
 	}
-	grpcServer := server.NewPaymentGRPCServer(confServer, paymentService, logger)
+	grpcServer, err := server.NewPaymentGRPCServer(confServer, confData, paymentService, logger)
+	if err != nil {
+		return nil, nil, err
+	}
 	httpServer := server.NewPaymentHTTPServer(confServer, paymentService)
 	app := newApp(logger, grpcServer, httpServer)
 	return app, func() {
