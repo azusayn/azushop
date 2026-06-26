@@ -48,6 +48,7 @@ func NewOrderHTTPServer(c *conf.Server,
 	orderService *service.OrderService,
 	logger log.Logger) *http.Server {
 	var opts = []http.ServerOption{
+		http.Filter(middleware.CORSFilter(nil)),
 		http.Middleware(
 			recovery.Recovery(),
 		),

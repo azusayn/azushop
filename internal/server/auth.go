@@ -42,6 +42,7 @@ func NewAuthHTTPServer(c *conf.Server,
 	authService *service.AuthService,
 	logger log.Logger) *http.Server {
 	var opts = []http.ServerOption{
+		http.Filter(middleware.CORSFilter(nil)),
 		http.Middleware(
 			recovery.Recovery(),
 		),

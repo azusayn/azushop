@@ -47,7 +47,10 @@ func NewPaymentHTTPServer(
 	config *conf.Server,
 	paymentService *service.PaymentService,
 ) *http.Server {
-	opts := []http.ServerOption{http.Middleware(recovery.Recovery())}
+	opts := []http.ServerOption{
+		http.Filter(middleware.CORSFilter(nil)),
+		http.Middleware(recovery.Recovery()),
+	}
 	if config.Http.Network != "" {
 		opts = append(opts, http.Network(config.Http.Network))
 	}

@@ -46,6 +46,7 @@ func NewProductHTTPServer(c *conf.Server,
 	productService *service.ProductService,
 	logger log.Logger) *http.Server {
 	var opts = []http.ServerOption{
+		http.Filter(middleware.CORSFilter(nil)),
 		http.Middleware(
 			recovery.Recovery(),
 		),
