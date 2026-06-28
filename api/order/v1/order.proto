@@ -34,7 +34,11 @@ service OrderService {
   };
 
   // retrieves the order for given order ID.
-  rpc GetOrder(GetOrderRequest) returns (GetOrderResponse);
+  rpc GetOrder(GetOrderRequest) returns (GetOrderResponse) {
+    option (google.api.http) = {
+      get: "/v1/orders/{order_id}"
+    };
+  };
 }
 
 enum OrderStatus {
