@@ -57,6 +57,7 @@ message Data {
   Kafka kafka = 5;
   string app_name = 6;
   Auth auth = 7;
+  string otlp_grpc_address = 8;
 }
 
 message Auth {

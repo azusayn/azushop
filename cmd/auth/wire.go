@@ -24,6 +24,7 @@ func wireAuthApp(*conf.Server, *conf.Data, log.Logger) (*kratos.App, func(), err
 		biz.NewUserUsecase,
 		service.NewAuthService,
 		runner.NewMetricsRunner,
+		server.NewGlobalTraceProvider,
 		newApp,
 	))
 }

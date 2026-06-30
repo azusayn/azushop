@@ -34,10 +34,15 @@ func wireAuthApp(confServer *conf.Server, confData *conf.Data, logger log.Logger
 	if err != nil {
 		return nil, nil, err
 	}
-	grpcServer := server.NewAuthGRPCServer(confServer, authService, logger)
+	tracerProvider, cleanup, err := server.NewGlobalTraceProvider(confData)
+	if err != nil {
+		return nil, nil, err
+	}
+	grpcServer := server.NewAuthGRPCServer(confServer, authService, tracerProvider, logger)
 	httpServer := server.NewAuthHTTPServer(confServer, authService, logger)
 	metricsRunner := runner.NewMetricsRunner()
 	app := newApp(logger, grpcServer, httpServer, metricsRunner)
 	return app, func() {
+		cleanup()
 	}, nil
 }
