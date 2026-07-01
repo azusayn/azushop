@@ -9,6 +9,7 @@ import (
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/pkg/errors"
+	"github.com/uptrace/opentelemetry-go-extra/otelsql"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -22,7 +23,8 @@ func NewPostgres(config *conf.Data) (*Postgres, error) {
 	if config == nil {
 		return nil, errors.New("nil PostgresConfig")
 	}
-	postgresConn, err := sql.Open(
+
+	postgresConn, err := otelsql.Open(
 		config.GetDatabase().GetDriver(),
 		config.GetDatabase().GetSource(),
 	)

@@ -4,11 +4,13 @@ import (
 	"azushop/internal/conf"
 	"context"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"math/rand/v2"
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/redis/go-redis/extra/redisotel/v9"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -24,9 +26,15 @@ type Redis struct {
 
 func NewRedis(config *conf.Data) (*Redis, error) {
 	client := redis.NewClient(&redis.Options{Addr: config.GetRedis().GetAddr()})
+
 	if err := client.Ping(context.Background()).Err(); err != nil {
 		return nil, errors.Wrap(err, "failed to init redis client")
 	}
+
+	if err := redisotel.InstrumentTracing(client); err != nil {
+		return nil, fmt.Errorf("failed to instrument redis: %w", err)
+	}
+
 	return &Redis{Client: client}, nil
 }
 
