@@ -67,6 +67,18 @@ services:
       - -distributor.otlp.default_resource_attributes_as_index_labels=service.name
     restart: unless-stopped
 
+  tempo:
+    image: grafana/tempo:latest
+    container_name: tempo
+    command:
+      - -config.file=/etc/tempo/config.yml
+    ports:
+      - "3200:3200"    # tempo HTTP API (used by Grafana)
+    volumes:
+      - ./tempo-config.yml:/etc/tempo/config.yml
+      - tempo-data:/var/tempo
+    restart: unless-stopped
+
   grafana:
     image: grafana/grafana:latest
     container_name: grafana
@@ -75,10 +87,13 @@ services:
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_AUTH_ANONYMOUS_ENABLED=true
     volumes:
       - grafana-data:/var/lib/grafana
+      - ./grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
     depends_on:
       - loki
+      - tempo
     restart: unless-stopped
 
   otel-collector:
@@ -93,10 +108,12 @@ services:
       - ./otel-config.yml:/etc/otelcol/config.yml
     depends_on:
       - loki
+      - tempo
     restart: unless-stopped
 
 
 volumes:
   pgdata:
   loki-data:
+  tempo-data:
   grafana-data:
