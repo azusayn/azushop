@@ -12,6 +12,7 @@ import (
 	paymentpb "azushop/api/payment/v1"
 	productpb "azushop/api/product/v1"
 
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
@@ -37,6 +38,7 @@ func newServiceClient(address string) (*grpc.ClientConn, error) {
 	return grpc.NewClient(
 		address,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
 		grpc.WithChainUnaryInterceptor(
 			middleware.AuthClientInterceptor(),
 		),

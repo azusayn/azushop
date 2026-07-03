@@ -71,9 +71,9 @@ func (s *PaymentService) CreatePayment(ctx context.Context, req *pb.CreatePaymen
 	case orderpb.OrderStatus_ORDER_STATUS_PENDING:
 		break
 	case orderpb.OrderStatus_ORDER_STATUS_CANCELLED:
-		return nil, status.Error(codes.FailedPrecondition, fmt.Sprintf("order %q has been cancelled", req.OrderId))
+		return nil, status.Error(codes.FailedPrecondition, fmt.Sprintf("order %d has been cancelled", req.OrderId))
 	default:
-		return nil, status.Error(codes.AlreadyExists, fmt.Sprintf("order %q has been paid already", req.OrderId))
+		return nil, status.Error(codes.AlreadyExists, fmt.Sprintf("order %d has been paid already", req.OrderId))
 	}
 
 	paymentItems, err := convertToPaymentItems(resp.GetOrder().GetOrderItems())
