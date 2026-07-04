@@ -24,6 +24,7 @@ func wireInventoryApp(*conf.Server, *conf.Data, log.Logger) (*kratos.App, func()
 		biz.NewInventoryUsecase,
 		service.NewInventoryService,
 		runner.NewInventoryRunner,
+		server.NewGlobalTraceProvider,
 		newApp,
 	))
 }

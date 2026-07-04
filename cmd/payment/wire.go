@@ -22,6 +22,7 @@ func wirePaymentApp(*conf.Server, *conf.Data, log.Logger) (*kratos.App, func(), 
 		data.PaymentDataProviderSet,
 		biz.NewPaymentUsecase,
 		service.NewPaymentService,
+		server.NewGlobalTraceProvider,
 		newApp,
 	))
 }

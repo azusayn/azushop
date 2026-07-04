@@ -36,10 +36,15 @@ func wireInventoryApp(confServer *conf.Server, confData *conf.Data, logger log.L
 	}
 	inventoryUsecase := biz.NewInventoryUsecase(inventoryRepo, transaction, inventorySubscriber)
 	inventoryService := service.NewInventoryService(inventoryUsecase)
-	grpcServer := server.NewInventoryGRPCServer(confServer, inventoryService, logger)
+	tracerProvider, cleanup, err := server.NewGlobalTraceProvider(confData)
+	if err != nil {
+		return nil, nil, err
+	}
+	grpcServer := server.NewInventoryGRPCServer(confServer, inventoryService, tracerProvider, logger)
 	httpServer := server.NewInventoryHTTPServer(confServer, inventoryService, logger)
 	inventoryRunner := runner.NewInventoryRunner(inventoryUsecase)
 	app := newApp(logger, grpcServer, httpServer, inventoryRunner)
 	return app, func() {
+		cleanup()
 	}, nil
 }

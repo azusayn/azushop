@@ -25,6 +25,7 @@ func wireOrderApp(*conf.Server, *conf.Data, log.Logger) (*kratos.App, func(), er
 		service.NewOrderServiceClient,
 		service.NewOrderService,
 		runner.NewOrderRunner,
+		server.NewGlobalTraceProvider,
 		newApp,
 	))
 }

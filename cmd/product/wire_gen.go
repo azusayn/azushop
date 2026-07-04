@@ -39,12 +39,18 @@ func wireProductApp(confServer *conf.Server, confData *conf.Data, logger log.Log
 	productPublisher := data.NewProductPublisher(kafkaProducer)
 	productUsecase := biz.NewProductUsecase(productRepo, productPublisher)
 	productService := service.NewProductService(productUsecase)
-	grpcServer, err := server.NewProductGRPCServer(confServer, confData, productService, logger)
+	tracerProvider, cleanup, err := server.NewGlobalTraceProvider(confData)
 	if err != nil {
+		return nil, nil, err
+	}
+	grpcServer, err := server.NewProductGRPCServer(confServer, confData, productService, tracerProvider, logger)
+	if err != nil {
+		cleanup()
 		return nil, nil, err
 	}
 	httpServer := server.NewProductHTTPServer(confServer, productService, logger)
 	app := newApp(logger, grpcServer, httpServer)
 	return app, func() {
+		cleanup()
 	}, nil
 }

@@ -22,6 +22,7 @@ func wireProductApp(*conf.Server, *conf.Data, log.Logger) (*kratos.App, func(), 
 		data.ProductDataProviderSet,
 		biz.NewProductUsecase,
 		service.NewProductService,
+		server.NewGlobalTraceProvider,
 		newApp,
 	))
 }
