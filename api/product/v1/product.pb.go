@@ -79,6 +79,134 @@ func (ProductStatus) EnumDescriptor() ([]byte, []int) {
 	return file_product_v1_product_proto_rawDescGZIP(), []int{0}
 }
 
+type SearchProductsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	PageToken     string                 `protobuf:"bytes,1,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	PageSize      int32                  `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	Keyword       string                 `protobuf:"bytes,3,opt,name=keyword,proto3" json:"keyword,omitempty"`
+	Fuzzy         bool                   `protobuf:"varint,4,opt,name=fuzzy,proto3" json:"fuzzy,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SearchProductsRequest) Reset() {
+	*x = SearchProductsRequest{}
+	mi := &file_product_v1_product_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SearchProductsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SearchProductsRequest) ProtoMessage() {}
+
+func (x *SearchProductsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_product_v1_product_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SearchProductsRequest.ProtoReflect.Descriptor instead.
+func (*SearchProductsRequest) Descriptor() ([]byte, []int) {
+	return file_product_v1_product_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *SearchProductsRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
+func (x *SearchProductsRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *SearchProductsRequest) GetKeyword() string {
+	if x != nil {
+		return x.Keyword
+	}
+	return ""
+}
+
+func (x *SearchProductsRequest) GetFuzzy() bool {
+	if x != nil {
+		return x.Fuzzy
+	}
+	return false
+}
+
+type SearchProductsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	PageToken     string                 `protobuf:"bytes,1,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	PageSize      int32                  `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	Products      []*Product             `protobuf:"bytes,3,rep,name=products,proto3" json:"products,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SearchProductsResponse) Reset() {
+	*x = SearchProductsResponse{}
+	mi := &file_product_v1_product_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SearchProductsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SearchProductsResponse) ProtoMessage() {}
+
+func (x *SearchProductsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_product_v1_product_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SearchProductsResponse.ProtoReflect.Descriptor instead.
+func (*SearchProductsResponse) Descriptor() ([]byte, []int) {
+	return file_product_v1_product_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *SearchProductsResponse) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
+func (x *SearchProductsResponse) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *SearchProductsResponse) GetProducts() []*Product {
+	if x != nil {
+		return x.Products
+	}
+	return nil
+}
+
 type Sku struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// TODO(3): optional when used as input
@@ -91,7 +219,7 @@ type Sku struct {
 
 func (x *Sku) Reset() {
 	*x = Sku{}
-	mi := &file_product_v1_product_proto_msgTypes[0]
+	mi := &file_product_v1_product_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -103,7 +231,7 @@ func (x *Sku) String() string {
 func (*Sku) ProtoMessage() {}
 
 func (x *Sku) ProtoReflect() protoreflect.Message {
-	mi := &file_product_v1_product_proto_msgTypes[0]
+	mi := &file_product_v1_product_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -116,7 +244,7 @@ func (x *Sku) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Sku.ProtoReflect.Descriptor instead.
 func (*Sku) Descriptor() ([]byte, []int) {
-	return file_product_v1_product_proto_rawDescGZIP(), []int{0}
+	return file_product_v1_product_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *Sku) GetId() string {
@@ -155,7 +283,7 @@ type Product struct {
 
 func (x *Product) Reset() {
 	*x = Product{}
-	mi := &file_product_v1_product_proto_msgTypes[1]
+	mi := &file_product_v1_product_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -167,7 +295,7 @@ func (x *Product) String() string {
 func (*Product) ProtoMessage() {}
 
 func (x *Product) ProtoReflect() protoreflect.Message {
-	mi := &file_product_v1_product_proto_msgTypes[1]
+	mi := &file_product_v1_product_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -180,7 +308,7 @@ func (x *Product) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Product.ProtoReflect.Descriptor instead.
 func (*Product) Descriptor() ([]byte, []int) {
-	return file_product_v1_product_proto_rawDescGZIP(), []int{1}
+	return file_product_v1_product_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *Product) GetId() string {
@@ -233,7 +361,7 @@ type ListSellerProductsRequest struct {
 
 func (x *ListSellerProductsRequest) Reset() {
 	*x = ListSellerProductsRequest{}
-	mi := &file_product_v1_product_proto_msgTypes[2]
+	mi := &file_product_v1_product_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -245,7 +373,7 @@ func (x *ListSellerProductsRequest) String() string {
 func (*ListSellerProductsRequest) ProtoMessage() {}
 
 func (x *ListSellerProductsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_product_v1_product_proto_msgTypes[2]
+	mi := &file_product_v1_product_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -258,7 +386,7 @@ func (x *ListSellerProductsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListSellerProductsRequest.ProtoReflect.Descriptor instead.
 func (*ListSellerProductsRequest) Descriptor() ([]byte, []int) {
-	return file_product_v1_product_proto_rawDescGZIP(), []int{2}
+	return file_product_v1_product_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *ListSellerProductsRequest) GetPageToken() string {
@@ -298,7 +426,7 @@ type ListSellerProductsResponse struct {
 
 func (x *ListSellerProductsResponse) Reset() {
 	*x = ListSellerProductsResponse{}
-	mi := &file_product_v1_product_proto_msgTypes[3]
+	mi := &file_product_v1_product_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -310,7 +438,7 @@ func (x *ListSellerProductsResponse) String() string {
 func (*ListSellerProductsResponse) ProtoMessage() {}
 
 func (x *ListSellerProductsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_product_v1_product_proto_msgTypes[3]
+	mi := &file_product_v1_product_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -323,7 +451,7 @@ func (x *ListSellerProductsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListSellerProductsResponse.ProtoReflect.Descriptor instead.
 func (*ListSellerProductsResponse) Descriptor() ([]byte, []int) {
-	return file_product_v1_product_proto_rawDescGZIP(), []int{3}
+	return file_product_v1_product_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *ListSellerProductsResponse) GetProducts() []*Product {
@@ -342,7 +470,7 @@ type BatchCreateProductRequest struct {
 
 func (x *BatchCreateProductRequest) Reset() {
 	*x = BatchCreateProductRequest{}
-	mi := &file_product_v1_product_proto_msgTypes[4]
+	mi := &file_product_v1_product_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -354,7 +482,7 @@ func (x *BatchCreateProductRequest) String() string {
 func (*BatchCreateProductRequest) ProtoMessage() {}
 
 func (x *BatchCreateProductRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_product_v1_product_proto_msgTypes[4]
+	mi := &file_product_v1_product_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -367,7 +495,7 @@ func (x *BatchCreateProductRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BatchCreateProductRequest.ProtoReflect.Descriptor instead.
 func (*BatchCreateProductRequest) Descriptor() ([]byte, []int) {
-	return file_product_v1_product_proto_rawDescGZIP(), []int{4}
+	return file_product_v1_product_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *BatchCreateProductRequest) GetProducts() []*Product {
@@ -385,7 +513,7 @@ type BatchCreateProductResponse struct {
 
 func (x *BatchCreateProductResponse) Reset() {
 	*x = BatchCreateProductResponse{}
-	mi := &file_product_v1_product_proto_msgTypes[5]
+	mi := &file_product_v1_product_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -397,7 +525,7 @@ func (x *BatchCreateProductResponse) String() string {
 func (*BatchCreateProductResponse) ProtoMessage() {}
 
 func (x *BatchCreateProductResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_product_v1_product_proto_msgTypes[5]
+	mi := &file_product_v1_product_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -410,7 +538,7 @@ func (x *BatchCreateProductResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BatchCreateProductResponse.ProtoReflect.Descriptor instead.
 func (*BatchCreateProductResponse) Descriptor() ([]byte, []int) {
-	return file_product_v1_product_proto_rawDescGZIP(), []int{5}
+	return file_product_v1_product_proto_rawDescGZIP(), []int{7}
 }
 
 type BatchUpdateProductRequest struct {
@@ -423,7 +551,7 @@ type BatchUpdateProductRequest struct {
 
 func (x *BatchUpdateProductRequest) Reset() {
 	*x = BatchUpdateProductRequest{}
-	mi := &file_product_v1_product_proto_msgTypes[6]
+	mi := &file_product_v1_product_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -435,7 +563,7 @@ func (x *BatchUpdateProductRequest) String() string {
 func (*BatchUpdateProductRequest) ProtoMessage() {}
 
 func (x *BatchUpdateProductRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_product_v1_product_proto_msgTypes[6]
+	mi := &file_product_v1_product_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -448,7 +576,7 @@ func (x *BatchUpdateProductRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BatchUpdateProductRequest.ProtoReflect.Descriptor instead.
 func (*BatchUpdateProductRequest) Descriptor() ([]byte, []int) {
-	return file_product_v1_product_proto_rawDescGZIP(), []int{6}
+	return file_product_v1_product_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *BatchUpdateProductRequest) GetProducts() []*Product {
@@ -474,7 +602,7 @@ type BatchUpdateProductResponse struct {
 
 func (x *BatchUpdateProductResponse) Reset() {
 	*x = BatchUpdateProductResponse{}
-	mi := &file_product_v1_product_proto_msgTypes[7]
+	mi := &file_product_v1_product_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -486,7 +614,7 @@ func (x *BatchUpdateProductResponse) String() string {
 func (*BatchUpdateProductResponse) ProtoMessage() {}
 
 func (x *BatchUpdateProductResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_product_v1_product_proto_msgTypes[7]
+	mi := &file_product_v1_product_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -499,7 +627,7 @@ func (x *BatchUpdateProductResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BatchUpdateProductResponse.ProtoReflect.Descriptor instead.
 func (*BatchUpdateProductResponse) Descriptor() ([]byte, []int) {
-	return file_product_v1_product_proto_rawDescGZIP(), []int{7}
+	return file_product_v1_product_proto_rawDescGZIP(), []int{9}
 }
 
 type BatchGetSkusRequest struct {
@@ -515,7 +643,7 @@ type BatchGetSkusRequest struct {
 
 func (x *BatchGetSkusRequest) Reset() {
 	*x = BatchGetSkusRequest{}
-	mi := &file_product_v1_product_proto_msgTypes[8]
+	mi := &file_product_v1_product_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -527,7 +655,7 @@ func (x *BatchGetSkusRequest) String() string {
 func (*BatchGetSkusRequest) ProtoMessage() {}
 
 func (x *BatchGetSkusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_product_v1_product_proto_msgTypes[8]
+	mi := &file_product_v1_product_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -540,7 +668,7 @@ func (x *BatchGetSkusRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BatchGetSkusRequest.ProtoReflect.Descriptor instead.
 func (*BatchGetSkusRequest) Descriptor() ([]byte, []int) {
-	return file_product_v1_product_proto_rawDescGZIP(), []int{8}
+	return file_product_v1_product_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *BatchGetSkusRequest) GetPageToken() string {
@@ -574,7 +702,7 @@ type SkuDetail struct {
 
 func (x *SkuDetail) Reset() {
 	*x = SkuDetail{}
-	mi := &file_product_v1_product_proto_msgTypes[9]
+	mi := &file_product_v1_product_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -586,7 +714,7 @@ func (x *SkuDetail) String() string {
 func (*SkuDetail) ProtoMessage() {}
 
 func (x *SkuDetail) ProtoReflect() protoreflect.Message {
-	mi := &file_product_v1_product_proto_msgTypes[9]
+	mi := &file_product_v1_product_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -599,7 +727,7 @@ func (x *SkuDetail) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SkuDetail.ProtoReflect.Descriptor instead.
 func (*SkuDetail) Descriptor() ([]byte, []int) {
-	return file_product_v1_product_proto_rawDescGZIP(), []int{9}
+	return file_product_v1_product_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *SkuDetail) GetSku() *Sku {
@@ -626,7 +754,7 @@ type BatchGetSkusResponse struct {
 
 func (x *BatchGetSkusResponse) Reset() {
 	*x = BatchGetSkusResponse{}
-	mi := &file_product_v1_product_proto_msgTypes[10]
+	mi := &file_product_v1_product_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -638,7 +766,7 @@ func (x *BatchGetSkusResponse) String() string {
 func (*BatchGetSkusResponse) ProtoMessage() {}
 
 func (x *BatchGetSkusResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_product_v1_product_proto_msgTypes[10]
+	mi := &file_product_v1_product_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -651,7 +779,7 @@ func (x *BatchGetSkusResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BatchGetSkusResponse.ProtoReflect.Descriptor instead.
 func (*BatchGetSkusResponse) Descriptor() ([]byte, []int) {
-	return file_product_v1_product_proto_rawDescGZIP(), []int{10}
+	return file_product_v1_product_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *BatchGetSkusResponse) GetSkuDetails() []*SkuDetail {
@@ -673,7 +801,18 @@ var File_product_v1_product_proto protoreflect.FileDescriptor
 const file_product_v1_product_proto_rawDesc = "" +
 	"\n" +
 	"\x18product/v1/product.proto\x12\n" +
-	"product.v1\x1a\x1cgoogle/api/annotations.proto\x1a google/protobuf/field_mask.proto\x1a\x1cgoogle/protobuf/struct.proto\"c\n" +
+	"product.v1\x1a\x1cgoogle/api/annotations.proto\x1a google/protobuf/field_mask.proto\x1a\x1cgoogle/protobuf/struct.proto\"\x83\x01\n" +
+	"\x15SearchProductsRequest\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\x01 \x01(\tR\tpageToken\x12\x1b\n" +
+	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\x12\x18\n" +
+	"\akeyword\x18\x03 \x01(\tR\akeyword\x12\x14\n" +
+	"\x05fuzzy\x18\x04 \x01(\bR\x05fuzzy\"\x85\x01\n" +
+	"\x16SearchProductsResponse\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\x01 \x01(\tR\tpageToken\x12\x1b\n" +
+	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\x12/\n" +
+	"\bproducts\x18\x03 \x03(\v2\x13.product.v1.ProductR\bproducts\"c\n" +
 	"\x03Sku\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12-\n" +
 	"\x05attrs\x18\x02 \x01(\v2\x17.google.protobuf.StructR\x05attrs\x12\x1d\n" +
@@ -719,8 +858,9 @@ const file_product_v1_product_proto_rawDesc = "" +
 	"\x14PRODUCT_STATUS_DRAFT\x10\x01\x12\x1a\n" +
 	"\x16PRODUCT_STATUS_PENDING\x10\x02\x12\x19\n" +
 	"\x15PRODUCT_STATUS_ACTIVE\x10\x03\x12\x1a\n" +
-	"\x16PRODUCT_STATUS_OFFLINE\x10\x042\x8a\x04\n" +
-	"\x0eProductService\x12\x8d\x01\n" +
+	"\x16PRODUCT_STATUS_OFFLINE\x10\x042\xf9\x04\n" +
+	"\x0eProductService\x12m\n" +
+	"\x0eSearchProducts\x12!.product.v1.SearchProductsRequest\x1a\".product.v1.SearchProductsResponse\"\x14\x82\xd3\xe4\x93\x02\x0e\x12\f/v1/products\x12\x8d\x01\n" +
 	"\x12ListSellerProducts\x12%.product.v1.ListSellerProductsRequest\x1a&.product.v1.ListSellerProductsResponse\"(\x82\xd3\xe4\x93\x02\"\x12 /v1/sellers/{seller_id}/products\x12|\n" +
 	"\x12BatchCreateProduct\x12%.product.v1.BatchCreateProductRequest\x1a&.product.v1.BatchCreateProductResponse\"\x17\x82\xd3\xe4\x93\x02\x11:\x01*\"\f/v1/products\x12|\n" +
 	"\x12BatchUpdateProduct\x12%.product.v1.BatchUpdateProductRequest\x1a&.product.v1.BatchUpdateProductResponse\"\x17\x82\xd3\xe4\x93\x02\x11:\x01*2\f/v1/products\x12l\n" +
@@ -739,47 +879,52 @@ func file_product_v1_product_proto_rawDescGZIP() []byte {
 }
 
 var file_product_v1_product_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_product_v1_product_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+var file_product_v1_product_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_product_v1_product_proto_goTypes = []any{
 	(ProductStatus)(0),                 // 0: product.v1.ProductStatus
-	(*Sku)(nil),                        // 1: product.v1.Sku
-	(*Product)(nil),                    // 2: product.v1.Product
-	(*ListSellerProductsRequest)(nil),  // 3: product.v1.ListSellerProductsRequest
-	(*ListSellerProductsResponse)(nil), // 4: product.v1.ListSellerProductsResponse
-	(*BatchCreateProductRequest)(nil),  // 5: product.v1.BatchCreateProductRequest
-	(*BatchCreateProductResponse)(nil), // 6: product.v1.BatchCreateProductResponse
-	(*BatchUpdateProductRequest)(nil),  // 7: product.v1.BatchUpdateProductRequest
-	(*BatchUpdateProductResponse)(nil), // 8: product.v1.BatchUpdateProductResponse
-	(*BatchGetSkusRequest)(nil),        // 9: product.v1.BatchGetSkusRequest
-	(*SkuDetail)(nil),                  // 10: product.v1.SkuDetail
-	(*BatchGetSkusResponse)(nil),       // 11: product.v1.BatchGetSkusResponse
-	(*structpb.Struct)(nil),            // 12: google.protobuf.Struct
-	(*fieldmaskpb.FieldMask)(nil),      // 13: google.protobuf.FieldMask
+	(*SearchProductsRequest)(nil),      // 1: product.v1.SearchProductsRequest
+	(*SearchProductsResponse)(nil),     // 2: product.v1.SearchProductsResponse
+	(*Sku)(nil),                        // 3: product.v1.Sku
+	(*Product)(nil),                    // 4: product.v1.Product
+	(*ListSellerProductsRequest)(nil),  // 5: product.v1.ListSellerProductsRequest
+	(*ListSellerProductsResponse)(nil), // 6: product.v1.ListSellerProductsResponse
+	(*BatchCreateProductRequest)(nil),  // 7: product.v1.BatchCreateProductRequest
+	(*BatchCreateProductResponse)(nil), // 8: product.v1.BatchCreateProductResponse
+	(*BatchUpdateProductRequest)(nil),  // 9: product.v1.BatchUpdateProductRequest
+	(*BatchUpdateProductResponse)(nil), // 10: product.v1.BatchUpdateProductResponse
+	(*BatchGetSkusRequest)(nil),        // 11: product.v1.BatchGetSkusRequest
+	(*SkuDetail)(nil),                  // 12: product.v1.SkuDetail
+	(*BatchGetSkusResponse)(nil),       // 13: product.v1.BatchGetSkusResponse
+	(*structpb.Struct)(nil),            // 14: google.protobuf.Struct
+	(*fieldmaskpb.FieldMask)(nil),      // 15: google.protobuf.FieldMask
 }
 var file_product_v1_product_proto_depIdxs = []int32{
-	12, // 0: product.v1.Sku.attrs:type_name -> google.protobuf.Struct
-	1,  // 1: product.v1.Product.skus:type_name -> product.v1.Sku
-	0,  // 2: product.v1.Product.product_status:type_name -> product.v1.ProductStatus
-	0,  // 3: product.v1.ListSellerProductsRequest.product_status:type_name -> product.v1.ProductStatus
-	2,  // 4: product.v1.ListSellerProductsResponse.products:type_name -> product.v1.Product
-	2,  // 5: product.v1.BatchCreateProductRequest.products:type_name -> product.v1.Product
-	2,  // 6: product.v1.BatchUpdateProductRequest.products:type_name -> product.v1.Product
-	13, // 7: product.v1.BatchUpdateProductRequest.update_mask:type_name -> google.protobuf.FieldMask
-	1,  // 8: product.v1.SkuDetail.sku:type_name -> product.v1.Sku
-	10, // 9: product.v1.BatchGetSkusResponse.sku_details:type_name -> product.v1.SkuDetail
-	3,  // 10: product.v1.ProductService.ListSellerProducts:input_type -> product.v1.ListSellerProductsRequest
-	5,  // 11: product.v1.ProductService.BatchCreateProduct:input_type -> product.v1.BatchCreateProductRequest
-	7,  // 12: product.v1.ProductService.BatchUpdateProduct:input_type -> product.v1.BatchUpdateProductRequest
-	9,  // 13: product.v1.ProductService.BatchGetSkus:input_type -> product.v1.BatchGetSkusRequest
-	4,  // 14: product.v1.ProductService.ListSellerProducts:output_type -> product.v1.ListSellerProductsResponse
-	6,  // 15: product.v1.ProductService.BatchCreateProduct:output_type -> product.v1.BatchCreateProductResponse
-	8,  // 16: product.v1.ProductService.BatchUpdateProduct:output_type -> product.v1.BatchUpdateProductResponse
-	11, // 17: product.v1.ProductService.BatchGetSkus:output_type -> product.v1.BatchGetSkusResponse
-	14, // [14:18] is the sub-list for method output_type
-	10, // [10:14] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	4,  // 0: product.v1.SearchProductsResponse.products:type_name -> product.v1.Product
+	14, // 1: product.v1.Sku.attrs:type_name -> google.protobuf.Struct
+	3,  // 2: product.v1.Product.skus:type_name -> product.v1.Sku
+	0,  // 3: product.v1.Product.product_status:type_name -> product.v1.ProductStatus
+	0,  // 4: product.v1.ListSellerProductsRequest.product_status:type_name -> product.v1.ProductStatus
+	4,  // 5: product.v1.ListSellerProductsResponse.products:type_name -> product.v1.Product
+	4,  // 6: product.v1.BatchCreateProductRequest.products:type_name -> product.v1.Product
+	4,  // 7: product.v1.BatchUpdateProductRequest.products:type_name -> product.v1.Product
+	15, // 8: product.v1.BatchUpdateProductRequest.update_mask:type_name -> google.protobuf.FieldMask
+	3,  // 9: product.v1.SkuDetail.sku:type_name -> product.v1.Sku
+	12, // 10: product.v1.BatchGetSkusResponse.sku_details:type_name -> product.v1.SkuDetail
+	1,  // 11: product.v1.ProductService.SearchProducts:input_type -> product.v1.SearchProductsRequest
+	5,  // 12: product.v1.ProductService.ListSellerProducts:input_type -> product.v1.ListSellerProductsRequest
+	7,  // 13: product.v1.ProductService.BatchCreateProduct:input_type -> product.v1.BatchCreateProductRequest
+	9,  // 14: product.v1.ProductService.BatchUpdateProduct:input_type -> product.v1.BatchUpdateProductRequest
+	11, // 15: product.v1.ProductService.BatchGetSkus:input_type -> product.v1.BatchGetSkusRequest
+	2,  // 16: product.v1.ProductService.SearchProducts:output_type -> product.v1.SearchProductsResponse
+	6,  // 17: product.v1.ProductService.ListSellerProducts:output_type -> product.v1.ListSellerProductsResponse
+	8,  // 18: product.v1.ProductService.BatchCreateProduct:output_type -> product.v1.BatchCreateProductResponse
+	10, // 19: product.v1.ProductService.BatchUpdateProduct:output_type -> product.v1.BatchUpdateProductResponse
+	13, // 20: product.v1.ProductService.BatchGetSkus:output_type -> product.v1.BatchGetSkusResponse
+	16, // [16:21] is the sub-list for method output_type
+	11, // [11:16] is the sub-list for method input_type
+	11, // [11:11] is the sub-list for extension type_name
+	11, // [11:11] is the sub-list for extension extendee
+	0,  // [0:11] is the sub-list for field type_name
 }
 
 func init() { file_product_v1_product_proto_init() }
@@ -787,14 +932,14 @@ func file_product_v1_product_proto_init() {
 	if File_product_v1_product_proto != nil {
 		return
 	}
-	file_product_v1_product_proto_msgTypes[2].OneofWrappers = []any{}
+	file_product_v1_product_proto_msgTypes[4].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_product_v1_product_proto_rawDesc), len(file_product_v1_product_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   11,
+			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

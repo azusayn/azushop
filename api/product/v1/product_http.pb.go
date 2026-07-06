@@ -23,6 +23,7 @@ const OperationProductServiceBatchCreateProduct = "/product.v1.ProductService/Ba
 const OperationProductServiceBatchGetSkus = "/product.v1.ProductService/BatchGetSkus"
 const OperationProductServiceBatchUpdateProduct = "/product.v1.ProductService/BatchUpdateProduct"
 const OperationProductServiceListSellerProducts = "/product.v1.ProductService/ListSellerProducts"
+const OperationProductServiceSearchProducts = "/product.v1.ProductService/SearchProducts"
 
 type ProductServiceHTTPServer interface {
 	// BatchCreateProduct creates new products for given information.
@@ -33,14 +34,36 @@ type ProductServiceHTTPServer interface {
 	BatchUpdateProduct(context.Context, *BatchUpdateProductRequest) (*BatchUpdateProductResponse, error)
 	// ListSellerProducts retrieves product information for given seller_id and product status.
 	ListSellerProducts(context.Context, *ListSellerProductsRequest) (*ListSellerProductsResponse, error)
+	// SearchProducts SearchProducts searches for products by keyword.
+	SearchProducts(context.Context, *SearchProductsRequest) (*SearchProductsResponse, error)
 }
 
 func RegisterProductServiceHTTPServer(s *http.Server, srv ProductServiceHTTPServer) {
 	r := s.Route("/")
+	r.GET("/v1/products", _ProductService_SearchProducts0_HTTP_Handler(srv))
 	r.GET("/v1/sellers/{seller_id}/products", _ProductService_ListSellerProducts0_HTTP_Handler(srv))
 	r.POST("/v1/products", _ProductService_BatchCreateProduct0_HTTP_Handler(srv))
 	r.PATCH("/v1/products", _ProductService_BatchUpdateProduct0_HTTP_Handler(srv))
 	r.POST("/v1/skus/batch", _ProductService_BatchGetSkus0_HTTP_Handler(srv))
+}
+
+func _ProductService_SearchProducts0_HTTP_Handler(srv ProductServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in SearchProductsRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationProductServiceSearchProducts)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.SearchProducts(ctx, req.(*SearchProductsRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*SearchProductsResponse)
+		return ctx.Result(200, reply)
+	}
 }
 
 func _ProductService_ListSellerProducts0_HTTP_Handler(srv ProductServiceHTTPServer) func(ctx http.Context) error {
@@ -140,6 +163,8 @@ type ProductServiceHTTPClient interface {
 	BatchUpdateProduct(ctx context.Context, req *BatchUpdateProductRequest, opts ...http.CallOption) (rsp *BatchUpdateProductResponse, err error)
 	// ListSellerProducts retrieves product information for given seller_id and product status.
 	ListSellerProducts(ctx context.Context, req *ListSellerProductsRequest, opts ...http.CallOption) (rsp *ListSellerProductsResponse, err error)
+	// SearchProducts SearchProducts searches for products by keyword.
+	SearchProducts(ctx context.Context, req *SearchProductsRequest, opts ...http.CallOption) (rsp *SearchProductsResponse, err error)
 }
 
 type ProductServiceHTTPClientImpl struct {
@@ -198,6 +223,20 @@ func (c *ProductServiceHTTPClientImpl) ListSellerProducts(ctx context.Context, i
 	pattern := "/v1/sellers/{seller_id}/products"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationProductServiceListSellerProducts))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// SearchProducts SearchProducts searches for products by keyword.
+func (c *ProductServiceHTTPClientImpl) SearchProducts(ctx context.Context, in *SearchProductsRequest, opts ...http.CallOption) (*SearchProductsResponse, error) {
+	var out SearchProductsResponse
+	pattern := "/v1/products"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationProductServiceSearchProducts))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {

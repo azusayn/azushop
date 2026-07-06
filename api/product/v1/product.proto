@@ -10,6 +10,13 @@ option go_package = "azushop/api/product/v1;v1";
 
 // api for both merchants and customers.
 service ProductService {
+  // SearchProducts searches for products by keyword.
+  rpc SearchProducts(SearchProductsRequest) returns (SearchProductsResponse) {
+    option (google.api.http) = {
+      get: "/v1/products"
+    };
+  };
+  
   // retrieves product information for given seller_id and product status.
   rpc ListSellerProducts(ListSellerProductsRequest) returns (ListSellerProductsResponse) {
     option (google.api.http) = {
@@ -33,7 +40,6 @@ service ProductService {
     };
   };
   // TODO(3): publish & unpublish products.
-  // TODO(3): search API using Postgres GIN.
 
   // retrieves sku information for given skuIds.
   rpc BatchGetSkus(BatchGetSkusRequest) returns (BatchGetSkusResponse) {
@@ -42,7 +48,21 @@ service ProductService {
       body: "*"
     };
   };
-} 
+}   
+
+message SearchProductsRequest {
+    string page_token = 1;
+    int32 page_size = 2;
+    string keyword = 3;
+    bool fuzzy = 4;
+}
+
+message SearchProductsResponse {
+    string page_token = 1;
+    int32 page_size = 2;
+    repeated Product products = 3; 
+}
+
 
 enum ProductStatus {
   PRODUCT_STATUS_UNSPECIFIED = 0;
