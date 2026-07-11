@@ -1,9 +1,9 @@
 package middleware
 
 import (
-	"azushop/internal/common"
 	"context"
 
+	"github.com/azusayn/azushop/internal/common"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 )

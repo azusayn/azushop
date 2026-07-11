@@ -1,10 +1,10 @@
 package server
 
 import (
-	inventorypb "azushop/api/inventory/v1"
-	"azushop/internal/conf"
-	"azushop/internal/pkg/middleware"
-	"azushop/internal/service"
+	"github.com/azusayn/azushop/internal/pkg/middleware"
+	"github.com/azusayn/azushop/internal/service"
+	inventorypb "github.com/azusayn/azushop/proto/api/inventory/v1"
+	"github.com/azusayn/azushop/proto/conf"
 
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/go-kratos/kratos/v2/middleware/recovery"

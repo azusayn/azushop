@@ -1,7 +1,6 @@
 package data
 
 import (
-	"azushop/internal/conf"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -9,6 +8,7 @@ import (
 	"math/rand/v2"
 	"time"
 
+	"github.com/azusayn/azushop/proto/conf"
 	"github.com/pkg/errors"
 	"github.com/redis/go-redis/extra/redisotel/v9"
 	"github.com/redis/go-redis/v9"

@@ -1,10 +1,10 @@
 package server
 
 import (
-	"azushop/internal/conf"
 	"context"
 	"time"
 
+	"github.com/azusayn/azushop/proto/conf"
 	"github.com/pkg/errors"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"

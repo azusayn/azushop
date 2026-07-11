@@ -1,0 +1,103 @@
+syntax = "proto3";
+
+package order.v1;
+
+import "google/api/annotations.proto";
+import "google/protobuf/struct.proto";
+
+option go_package = "github.com/azusayn/azushop/proto/api/order/v1;v1";
+
+// order service.
+service OrderService {
+  // create order 
+  rpc CreateOrder(CreateOrderRequest) returns (CreateOrderResponse){
+    option (google.api.http) = {
+      post: "/v1/orders"
+      body: "*"
+    };
+  }
+
+  // cancels order for given order ID.
+  rpc CancelOrder(CancelOrderRequest) returns (CancelOrderResponse){
+    option (google.api.http) = {
+      post: "/v1/orders/{order_id}/cancel"
+      body: "*"
+    };
+  };
+
+  // lists all orders owned by the customer.
+  // TODO(1): filter options in query parameters?
+  rpc ListOrders(ListOrdersRequest) returns (ListOrdersResponse) {
+    option (google.api.http) = {
+      get: "/v1/orders"
+    };
+  };
+
+  // retrieves the order for given order ID.
+  rpc GetOrder(GetOrderRequest) returns (GetOrderResponse) {
+    option (google.api.http) = {
+      get: "/v1/orders/{order_id}"
+    };
+  };
+}
+
+enum OrderStatus {
+  ORDER_STATUS_UNSPECIFIED = 0;
+  ORDER_STATUS_PENDING = 1;
+  ORDER_STATUS_CANCELLED = 2;
+  ORDER_STATUS_CONFIRMED = 3;
+  ORDER_STATUS_COMPLETED = 4;
+}
+
+message Order {
+  string total = 1;
+  int64 order_id = 2;
+  OrderStatus order_status = 3;
+  // order snapshot.
+  repeated OrderItem order_items = 4;
+}
+
+message OrderItem {
+  string sku_id = 1;
+  int64 quantity = 2;
+  // TODO(3): currency type.
+  // only present in responses, not required in CreateOrderRequest.
+  optional string unit_price = 3;
+  optional google.protobuf.Struct attrs = 4;
+  optional string product_name = 5; 
+}
+
+message ListOrdersRequest {
+  // use 0 for the first request.
+  int64 page_token = 1;
+  // max 100
+  int32 page_size = 2;
+  optional OrderStatus order_status = 3;
+}
+
+message ListOrdersResponse {
+  repeated Order orders = 1;
+  int64 next_page_token = 2;
+}
+
+message CreateOrderRequest {
+  repeated OrderItem order_items = 1;
+}
+
+message CreateOrderResponse {
+  Order order = 1;
+}
+
+message CancelOrderRequest {
+  int64 order_id = 1;
+}
+
+message CancelOrderResponse {}
+
+message GetOrderRequest {
+  int64 order_id = 1;
+}
+
+message GetOrderResponse {
+    Order order = 1;
+}

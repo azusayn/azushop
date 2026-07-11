@@ -1,8 +1,6 @@
 package data
 
 import (
-	"azushop/internal/biz"
-	"azushop/internal/pkg/str"
 	"context"
 	"encoding/json"
 	"errors"
@@ -11,6 +9,8 @@ import (
 	"time"
 
 	"github.com/IBM/sarama"
+	"github.com/azusayn/azushop/internal/biz"
+	"github.com/azusayn/azushop/internal/pkg/str"
 	"github.com/azusayn/azutils/sql"
 	"github.com/google/uuid"
 	"github.com/google/wire"

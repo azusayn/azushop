@@ -1,8 +1,9 @@
 package runner
 
 import (
-	"azushop/internal/biz"
 	"context"
+
+	"github.com/azusayn/azushop/internal/biz"
 )
 
 type DelayMsgRelayRunner struct {

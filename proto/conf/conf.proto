@@ -1,0 +1,67 @@
+syntax = "proto3";
+
+import "google/protobuf/duration.proto";
+
+option go_package = "github.com/azusayn/azushop/proto/conf;conf";
+
+message Bootstrap {
+  Server server = 1;
+  Data data = 2;
+}
+
+message Server {
+  message HTTP {
+    string network = 1;
+    string addr = 2;
+    google.protobuf.Duration timeout = 3;
+  }
+  message GRPC {
+    string network = 1;
+    string addr = 2;
+    google.protobuf.Duration timeout = 3;
+  }
+  HTTP http = 1;
+  GRPC grpc = 2;
+}
+
+message Data {
+  message Database {
+    string driver = 1;
+    string source = 2;
+  }
+  message Redis {
+    string network = 1;
+    string addr = 2;
+    google.protobuf.Duration read_timeout = 3;
+    google.protobuf.Duration write_timeout = 4;
+  }
+  message ServiceAddr {
+    string product = 1;
+    string inventory = 2;
+    string order = 3;
+    string auth = 4;
+    string payment = 5;
+  }
+  message Payment {
+    string stripe_secret_key = 1;
+    string stripe_success_url = 2;
+  }
+  message Kafka {
+    repeated string broker_addrs = 1;
+  }
+  Database database = 1;
+  Redis redis = 2;
+  ServiceAddr service_addr = 3;
+  Payment payment = 4;
+  Kafka kafka = 5;
+  string app_name = 6;
+  Auth auth = 7;
+  string otlp_grpc_address = 8;
+}
+
+message Auth {
+  string issuer = 1;
+  string key_version = 2;
+  string private_key_path = 3;
+  string public_key_path = 4;
+}

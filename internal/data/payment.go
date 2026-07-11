@@ -1,12 +1,12 @@
 package data
 
 import (
-	"azushop/internal/biz"
 	"context"
 	"encoding/json"
 	"fmt"
 
 	"github.com/IBM/sarama"
+	"github.com/azusayn/azushop/internal/biz"
 	"github.com/google/wire"
 	"github.com/shopspring/decimal"
 )

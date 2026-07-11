@@ -1,12 +1,12 @@
 package data
 
 import (
-	"azushop/internal/biz"
-	"azushop/internal/common"
-	"azushop/internal/conf"
 	"context"
 	"database/sql"
 
+	"github.com/azusayn/azushop/internal/biz"
+	"github.com/azusayn/azushop/internal/common"
+	"github.com/azusayn/azushop/proto/conf"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/pkg/errors"
 	"github.com/uptrace/opentelemetry-go-extra/otelsql"

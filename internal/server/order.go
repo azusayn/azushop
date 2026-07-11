@@ -1,11 +1,12 @@
 package server
 
 import (
-	orderpb "azushop/api/order/v1"
-	"azushop/internal/conf"
-	"azushop/internal/pkg/crypto"
-	"azushop/internal/pkg/middleware"
-	"azushop/internal/service"
+	"github.com/azusayn/azushop/internal/pkg/crypto"
+	"github.com/azusayn/azushop/internal/pkg/middleware"
+	"github.com/azusayn/azushop/internal/service"
+	"github.com/azusayn/azushop/proto/conf"
+
+	orderpb "github.com/azusayn/azushop/proto/api/order/v1"
 
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/go-kratos/kratos/v2/middleware/recovery"

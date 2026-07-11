@@ -1,13 +1,13 @@
 package service
 
 import (
-	inventorypb "azushop/api/inventory/v1"
-	pb "azushop/api/order/v1"
-	productpb "azushop/api/product/v1"
+	inventorypb "github.com/azusayn/azushop/proto/api/inventory/v1"
+	pb "github.com/azusayn/azushop/proto/api/order/v1"
+	productpb "github.com/azusayn/azushop/proto/api/product/v1"
+	"github.com/azusayn/azushop/proto/conf"
 
-	"azushop/internal/biz"
-	"azushop/internal/common"
-	"azushop/internal/conf"
+	"github.com/azusayn/azushop/internal/biz"
+	"github.com/azusayn/azushop/internal/common"
 
 	"context"
 	"encoding/json"

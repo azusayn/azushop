@@ -1,0 +1,136 @@
+syntax = "proto3";
+
+package product.v1;
+
+import "google/api/annotations.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/struct.proto";
+
+option go_package = "github.com/azusayn/azushop/proto/api/product/v1;v1";
+
+// api for both merchants and customers.
+service ProductService {
+  // SearchProducts searches for products by keyword.
+  rpc SearchProducts(SearchProductsRequest) returns (SearchProductsResponse) {
+    option (google.api.http) = {
+      get: "/v1/products"
+    };
+  };
+  
+  // retrieves product information for given seller_id and product status.
+  rpc ListSellerProducts(ListSellerProductsRequest) returns (ListSellerProductsResponse) {
+    option (google.api.http) = {
+      get:"/v1/sellers/{seller_id}/products"
+    };
+  };
+  
+  // creates new products for given information.
+  rpc BatchCreateProduct(BatchCreateProductRequest) returns (BatchCreateProductResponse) {
+    option (google.api.http) = {
+      post: "/v1/products"
+      body: "*"
+    };
+  };
+
+  // updates products' fields specified by the given update masks.
+  rpc BatchUpdateProduct(BatchUpdateProductRequest) returns (BatchUpdateProductResponse) {
+    option (google.api.http) = {
+      patch: "/v1/products"
+      body: "*"
+    };
+  };
+  // TODO(3): publish & unpublish products.
+
+  // retrieves sku information for given skuIds.
+  rpc BatchGetSkus(BatchGetSkusRequest) returns (BatchGetSkusResponse) {
+    option (google.api.http) = {
+      post: "/v1/skus/batch"
+      body: "*"
+    };
+  };
+}   
+
+message SearchProductsRequest {
+    string page_token = 1;
+    int32 page_size = 2;
+    string keyword = 3;
+    bool fuzzy = 4;
+}
+
+message SearchProductsResponse {
+    string page_token = 1;
+    int32 page_size = 2;
+    repeated Product products = 3; 
+}
+
+
+enum ProductStatus {
+  PRODUCT_STATUS_UNSPECIFIED = 0;
+  PRODUCT_STATUS_DRAFT = 1;
+  PRODUCT_STATUS_PENDING = 2;
+  PRODUCT_STATUS_ACTIVE = 3;
+  PRODUCT_STATUS_OFFLINE = 4;
+}
+
+message Sku {
+  // TODO(3): optional when used as input
+  string id = 1;
+  google.protobuf.Struct attrs = 2;
+  string unit_price = 3;
+}
+
+message Product {
+  // TODO(3): optional when used as input
+  string id = 1;
+  string product_name = 2;
+  // TODO(3): optional when used as input
+  int32 seller_id = 3;
+  repeated Sku skus = 4;
+  ProductStatus product_status = 5;
+}
+
+message ListSellerProductsRequest {
+  // use 0 for the first request.
+  string page_token = 1;
+  // max 100
+  int32 page_size = 2;
+  int32 seller_id = 3;
+  // filter by product status.
+  optional ProductStatus product_status = 4;
+}
+
+message ListSellerProductsResponse {
+  repeated Product products = 1;
+}
+
+message BatchCreateProductRequest {
+  repeated Product products = 1;
+}
+
+message BatchCreateProductResponse {}
+
+message BatchUpdateProductRequest {
+  repeated Product products = 1;
+  google.protobuf.FieldMask update_mask = 2;
+}
+
+// TODO(2): update strategy and update results.
+message BatchUpdateProductResponse {}
+
+message BatchGetSkusRequest{
+  // use "" for the first request.
+  string page_token = 1;
+  // max 100
+  int32 page_size = 2;
+  repeated string sku_ids = 3;
+}
+
+message SkuDetail {
+  Sku sku = 1;
+  string product_name = 2;
+}
+
+message BatchGetSkusResponse{
+  repeated SkuDetail sku_details = 1;
+  string next_page_token = 2;
+}

@@ -1,12 +1,14 @@
 package service
 
 import (
-	pb "azushop/api/auth/v1"
-	"azushop/internal/biz"
-	"azushop/internal/conf"
-	"azushop/internal/pkg/crypto"
 	"context"
 	"crypto/ed25519"
+
+	pb "github.com/azusayn/azushop/proto/api/auth/v1"
+	"github.com/azusayn/azushop/proto/conf"
+
+	"github.com/azusayn/azushop/internal/biz"
+	"github.com/azusayn/azushop/internal/pkg/crypto"
 )
 
 type AuthService struct {

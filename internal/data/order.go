@@ -1,13 +1,13 @@
 package data
 
 import (
-	"azushop/internal/biz"
-	"azushop/internal/conf"
 	"context"
 	"encoding/json"
 	"time"
 
 	"github.com/IBM/sarama"
+	"github.com/azusayn/azushop/internal/biz"
+	"github.com/azusayn/azushop/proto/conf"
 	"github.com/google/uuid"
 	"github.com/google/wire"
 	"github.com/shopspring/decimal"

@@ -1,4 +1,4 @@
-module azushop
+module github.com/azusayn/azushop
 
 go 1.26.4
 

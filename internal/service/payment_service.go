@@ -1,17 +1,19 @@
 package service
 
 import (
-	orderpb "azushop/api/order/v1"
-	pb "azushop/api/payment/v1"
-	"azushop/internal/biz"
-	"azushop/internal/common"
-	"azushop/internal/conf"
+	"github.com/azusayn/azushop/internal/common"
+
+	orderpb "github.com/azusayn/azushop/proto/api/order/v1"
+	pb "github.com/azusayn/azushop/proto/api/payment/v1"
+	"github.com/azusayn/azushop/proto/conf"
+
 	"os"
 
 	"context"
 	"errors"
 	"fmt"
 
+	"github.com/azusayn/azushop/internal/biz"
 	"github.com/shopspring/decimal"
 	"github.com/stripe/stripe-go/v84"
 	"google.golang.org/grpc/codes"

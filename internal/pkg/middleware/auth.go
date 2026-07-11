@@ -1,12 +1,13 @@
 package middleware
 
 import (
-	v1 "azushop/api/auth/v1"
-	"azushop/internal/common"
 	"context"
 	"strconv"
 	"strings"
 
+	v1 "github.com/azusayn/azushop/proto/api/auth/v1"
+
+	"github.com/azusayn/azushop/internal/common"
 	"github.com/azusayn/azutils/auth"
 	"github.com/go-kratos/kratos/v2/middleware"
 	"github.com/go-kratos/kratos/v2/transport"

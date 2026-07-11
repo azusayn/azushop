@@ -2,16 +2,15 @@
 package service
 
 import (
-	"azushop/internal/conf"
-	"azushop/internal/pkg/middleware"
-	"azushop/internal/pkg/str"
+	authpb "github.com/azusayn/azushop/proto/api/auth/v1"
+	inventorypb "github.com/azusayn/azushop/proto/api/inventory/v1"
+	orderpb "github.com/azusayn/azushop/proto/api/order/v1"
+	paymentpb "github.com/azusayn/azushop/proto/api/payment/v1"
+	productpb "github.com/azusayn/azushop/proto/api/product/v1"
+	"github.com/azusayn/azushop/proto/conf"
 
-	authpb "azushop/api/auth/v1"
-	inventorypb "azushop/api/inventory/v1"
-	orderpb "azushop/api/order/v1"
-	paymentpb "azushop/api/payment/v1"
-	productpb "azushop/api/product/v1"
-
+	"github.com/azusayn/azushop/internal/pkg/middleware"
+	"github.com/azusayn/azushop/internal/pkg/str"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"

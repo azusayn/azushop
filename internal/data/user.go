@@ -1,9 +1,9 @@
 package data
 
 import (
-	"azushop/internal/biz"
 	"context"
 
+	"github.com/azusayn/azushop/internal/biz"
 	"github.com/google/wire"
 )
 

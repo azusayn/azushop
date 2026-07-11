@@ -1,11 +1,12 @@
 package data
 
 import (
-	"azushop/internal/biz"
-	"azushop/internal/conf"
 	"context"
 	"encoding/json"
 	"fmt"
+
+	"github.com/azusayn/azushop/internal/biz"
+	"github.com/azusayn/azushop/proto/conf"
 
 	"github.com/IBM/sarama"
 	"github.com/google/uuid"

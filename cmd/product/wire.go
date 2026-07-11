@@ -4,11 +4,11 @@
 package main
 
 import (
-	"azushop/internal/biz"
-	"azushop/internal/conf"
-	"azushop/internal/data"
-	"azushop/internal/server"
-	"azushop/internal/service"
+	"github.com/azusayn/azushop/internal/biz"
+	"github.com/azusayn/azushop/internal/data"
+	"github.com/azusayn/azushop/internal/server"
+	"github.com/azusayn/azushop/internal/service"
+	"github.com/azusayn/azushop/proto/conf"
 
 	"github.com/go-kratos/kratos/v2"
 	"github.com/go-kratos/kratos/v2/log"

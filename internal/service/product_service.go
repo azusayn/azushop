@@ -1,13 +1,15 @@
 package service
 
 import (
-	pb "azushop/api/product/v1"
-	"azushop/internal/biz"
-	"azushop/internal/common"
+	"github.com/azusayn/azushop/internal/biz"
+	"github.com/azusayn/azushop/internal/common"
 
-	"azushop/internal/pkg/str"
+	pb "github.com/azusayn/azushop/proto/api/product/v1"
+
 	"context"
 	"errors"
+
+	"github.com/azusayn/azushop/internal/pkg/str"
 
 	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"

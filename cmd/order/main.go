@@ -4,9 +4,8 @@ import (
 	"flag"
 	"os"
 
-	"azushop/internal/conf"
-	"azushop/internal/runner"
-
+	"github.com/azusayn/azushop/internal/runner"
+	"github.com/azusayn/azushop/proto/conf"
 	"github.com/go-kratos/kratos/v2"
 	"github.com/go-kratos/kratos/v2/config"
 	"github.com/go-kratos/kratos/v2/config/file"

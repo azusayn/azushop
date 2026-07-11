@@ -1,12 +1,13 @@
 package biz
 
 import (
-	azuerr "azushop/internal/common/errors"
 	"context"
 	"crypto/ed25519"
 	"database/sql"
 	"errors"
 	"time"
+
+	azuerr "github.com/azusayn/azushop/internal/common/errors"
 
 	"github.com/azusayn/azutils/validate"
 	"github.com/golang-jwt/jwt/v5"

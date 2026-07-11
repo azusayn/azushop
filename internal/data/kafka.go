@@ -1,11 +1,11 @@
 package data
 
 import (
-	"azushop/internal/conf"
 	"log/slog"
 	"time"
 
 	"github.com/IBM/sarama"
+	"github.com/azusayn/azushop/proto/conf"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 )
@@ -14,11 +14,11 @@ type PaymentStatus string
 
 const (
 	PaymentStatusUnspecified PaymentStatus = "unspecified"
-	PaymentStatusPending    PaymentStatus = "pending"
-	PaymentStatusCancelled  PaymentStatus = "cancelled"
-	PaymentStatusPaid       PaymentStatus = "paid"
-	PaymentStatusRefunding  PaymentStatus = "refunding"
-	PaymentStatusRefunded   PaymentStatus = "refunded"
+	PaymentStatusPending     PaymentStatus = "pending"
+	PaymentStatusCancelled   PaymentStatus = "cancelled"
+	PaymentStatusPaid        PaymentStatus = "paid"
+	PaymentStatusRefunding   PaymentStatus = "refunding"
+	PaymentStatusRefunded    PaymentStatus = "refunded"
 )
 
 type PaymentStatusMessage struct {

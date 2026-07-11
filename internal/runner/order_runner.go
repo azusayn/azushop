@@ -1,9 +1,9 @@
 package runner
 
 import (
-	"azushop/internal/biz"
 	"context"
 
+	"github.com/azusayn/azushop/internal/biz"
 	"golang.org/x/sync/errgroup"
 )
 

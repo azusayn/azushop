@@ -1,14 +1,15 @@
 package data
 
 import (
-	"azushop/internal/biz"
-	"azushop/internal/conf"
 	"context"
 	"encoding/json"
 	"log/slog"
 	"time"
 
 	"github.com/IBM/sarama"
+
+	"github.com/azusayn/azushop/internal/biz"
+	"github.com/azusayn/azushop/proto/conf"
 )
 
 type DelayMsgRelayPublisher struct {
