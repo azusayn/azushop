@@ -6,13 +6,14 @@ import (
 	"github.com/azusayn/azushop/internal/service"
 
 	productpb "github.com/azusayn/azushop/proto/api/product/v1"
+	productv1connect "github.com/azusayn/azushop/proto/api/product/v1/v1connect"
 	"github.com/azusayn/azushop/proto/conf"
 
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/go-kratos/kratos/v2/middleware/recovery"
 	"github.com/go-kratos/kratos/v2/middleware/tracing"
 	"github.com/go-kratos/kratos/v2/transport/grpc"
-	"github.com/go-kratos/kratos/v2/transport/http"
+	kratoshttp "github.com/go-kratos/kratos/v2/transport/http"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
 
@@ -47,25 +48,28 @@ func NewProductGRPCServer(
 	productpb.RegisterProductServiceServer(srv, productService)
 	return srv, nil
 }
+
 func NewProductHTTPServer(c *conf.Server,
 	productService *service.ProductService,
-	logger log.Logger) *http.Server {
-	var opts = []http.ServerOption{
-		http.Filter(middleware.CORSFilter(nil)),
-		http.Middleware(
+	logger log.Logger) *kratoshttp.Server {
+	var opts = []kratoshttp.ServerOption{
+		kratoshttp.Filter(middleware.CORSFilter(nil)),
+		kratoshttp.Middleware(
 			recovery.Recovery(),
 		),
 	}
 	if c.Http.Network != "" {
-		opts = append(opts, http.Network(c.Http.Network))
+		opts = append(opts, kratoshttp.Network(c.Http.Network))
 	}
 	if c.Http.Addr != "" {
-		opts = append(opts, http.Address(c.Http.Addr))
+		opts = append(opts, kratoshttp.Address(c.Http.Addr))
 	}
 	if c.Http.Timeout != nil {
-		opts = append(opts, http.Timeout(c.Http.Timeout.AsDuration()))
+		opts = append(opts, kratoshttp.Timeout(c.Http.Timeout.AsDuration()))
 	}
-	srv := http.NewServer(opts...)
-	productpb.RegisterProductServiceHTTPServer(srv, productService)
+	srv := kratoshttp.NewServer(opts...)
+	connectHandler := service.NewProductServiceConnectHandler(productService)
+	path, handler := productv1connect.NewProductServiceHandler(connectHandler)
+	srv.HandlePrefix(path, handler)
 	return srv
 }

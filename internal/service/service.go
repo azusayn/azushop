@@ -17,8 +17,6 @@ import (
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 )
 
-// ProviderSet is service providers.
-
 func convertToUniquePaths(updateMask *fieldmaskpb.FieldMask) []string {
 	ss := str.NewStringSet(str.WithValues(updateMask.GetPaths()))
 	return ss.ToSlice()

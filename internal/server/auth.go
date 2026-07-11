@@ -3,7 +3,8 @@ package server
 import (
 	"github.com/azusayn/azushop/internal/pkg/middleware"
 	"github.com/azusayn/azushop/internal/service"
-	auth "github.com/azusayn/azushop/proto/api/auth/v1"
+	authpb "github.com/azusayn/azushop/proto/api/auth/v1"
+	authv1connect "github.com/azusayn/azushop/proto/api/auth/v1/v1connect"
 	"github.com/azusayn/azushop/proto/conf"
 
 	"github.com/go-kratos/kratos/v2/log"
@@ -11,7 +12,7 @@ import (
 	"github.com/go-kratos/kratos/v2/middleware/recovery"
 	"github.com/go-kratos/kratos/v2/middleware/tracing"
 	"github.com/go-kratos/kratos/v2/transport/grpc"
-	"github.com/go-kratos/kratos/v2/transport/http"
+	kratoshttp "github.com/go-kratos/kratos/v2/transport/http"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
 
@@ -39,29 +40,31 @@ func NewAuthGRPCServer(
 		opts = append(opts, grpc.Timeout(serverConf.Grpc.Timeout.AsDuration()))
 	}
 	srv := grpc.NewServer(opts...)
-	auth.RegisterAuthServiceServer(srv, authService)
+	authpb.RegisterAuthServiceServer(srv, authService)
 	return srv
 }
 
 func NewAuthHTTPServer(c *conf.Server,
 	authService *service.AuthService,
-	logger log.Logger) *http.Server {
-	var opts = []http.ServerOption{
-		http.Filter(middleware.CORSFilter(nil)),
-		http.Middleware(
+	logger log.Logger) *kratoshttp.Server {
+	opts := []kratoshttp.ServerOption{
+		kratoshttp.Filter(middleware.CORSFilter(nil)),
+		kratoshttp.Middleware(
 			recovery.Recovery(),
 		),
 	}
 	if c.Http.Network != "" {
-		opts = append(opts, http.Network(c.Http.Network))
+		opts = append(opts, kratoshttp.Network(c.Http.Network))
 	}
 	if c.Http.Addr != "" {
-		opts = append(opts, http.Address(c.Http.Addr))
+		opts = append(opts, kratoshttp.Address(c.Http.Addr))
 	}
 	if c.Http.Timeout != nil {
-		opts = append(opts, http.Timeout(c.Http.Timeout.AsDuration()))
+		opts = append(opts, kratoshttp.Timeout(c.Http.Timeout.AsDuration()))
 	}
-	srv := http.NewServer(opts...)
-	auth.RegisterAuthServiceHTTPServer(srv, authService)
+	srv := kratoshttp.NewServer(opts...)
+	connectHandler := service.NewAuthServiceConnectHandler(authService)
+	path, handler := authv1connect.NewAuthServiceHandler(connectHandler)
+	srv.HandlePrefix(path, handler)
 	return srv
 }

@@ -7,7 +7,6 @@
 package v1
 
 import (
-	_ "google.golang.org/genproto/googleapis/api/annotations"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	structpb "google.golang.org/protobuf/types/known/structpb"
@@ -599,7 +598,7 @@ var File_api_order_v1_order_proto protoreflect.FileDescriptor
 
 const file_api_order_v1_order_proto_rawDesc = "" +
 	"\n" +
-	"\x18api/order/v1/order.proto\x12\border.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xa8\x01\n" +
+	"\x18api/order/v1/order.proto\x12\border.v1\x1a\x1cgoogle/protobuf/struct.proto\"\xa8\x01\n" +
 	"\x05Order\x12\x14\n" +
 	"\x05total\x18\x01 \x01(\tR\x05total\x12\x19\n" +
 	"\border_id\x18\x02 \x01(\x03R\aorderId\x128\n" +
@@ -642,15 +641,13 @@ const file_api_order_v1_order_proto_rawDesc = "" +
 	"\x14ORDER_STATUS_PENDING\x10\x01\x12\x1a\n" +
 	"\x16ORDER_STATUS_CANCELLED\x10\x02\x12\x1a\n" +
 	"\x16ORDER_STATUS_CONFIRMED\x10\x03\x12\x1a\n" +
-	"\x16ORDER_STATUS_COMPLETED\x10\x042\xa5\x03\n" +
-	"\fOrderService\x12a\n" +
-	"\vCreateOrder\x12\x1c.order.v1.CreateOrderRequest\x1a\x1d.order.v1.CreateOrderResponse\"\x15\x82\xd3\xe4\x93\x02\x0f:\x01*\"\n" +
-	"/v1/orders\x12s\n" +
-	"\vCancelOrder\x12\x1c.order.v1.CancelOrderRequest\x1a\x1d.order.v1.CancelOrderResponse\"'\x82\xd3\xe4\x93\x02!:\x01*\"\x1c/v1/orders/{order_id}/cancel\x12[\n" +
+	"\x16ORDER_STATUS_COMPLETED\x10\x042\xb2\x02\n" +
+	"\fOrderService\x12J\n" +
+	"\vCreateOrder\x12\x1c.order.v1.CreateOrderRequest\x1a\x1d.order.v1.CreateOrderResponse\x12J\n" +
+	"\vCancelOrder\x12\x1c.order.v1.CancelOrderRequest\x1a\x1d.order.v1.CancelOrderResponse\x12G\n" +
 	"\n" +
-	"ListOrders\x12\x1b.order.v1.ListOrdersRequest\x1a\x1c.order.v1.ListOrdersResponse\"\x12\x82\xd3\xe4\x93\x02\f\x12\n" +
-	"/v1/orders\x12`\n" +
-	"\bGetOrder\x12\x19.order.v1.GetOrderRequest\x1a\x1a.order.v1.GetOrderResponse\"\x1d\x82\xd3\xe4\x93\x02\x17\x12\x15/v1/orders/{order_id}B2Z0github.com/azusayn/azushop/proto/api/order/v1;v1b\x06proto3"
+	"ListOrders\x12\x1b.order.v1.ListOrdersRequest\x1a\x1c.order.v1.ListOrdersResponse\x12A\n" +
+	"\bGetOrder\x12\x19.order.v1.GetOrderRequest\x1a\x1a.order.v1.GetOrderResponseB2Z0github.com/azusayn/azushop/proto/api/order/v1;v1b\x06proto3"
 
 var (
 	file_api_order_v1_order_proto_rawDescOnce sync.Once

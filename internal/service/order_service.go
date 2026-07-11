@@ -21,6 +21,8 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
+
+	"connectrpc.com/connect"
 )
 
 type OrderServiceClient struct {
@@ -56,8 +58,18 @@ func NewOrderService(uc *biz.OrderUsecase, c *OrderServiceClient) *OrderService 
 	}
 }
 
-func (s *OrderService) CreateOrder(ctx context.Context, req *pb.CreateOrderRequest) (*pb.CreateOrderResponse, error) {
-	if len(req.OrderItems) == 0 {
+// OrderServiceConnectHandler implements the ConnectRPC handler for OrderService.
+type OrderServiceConnectHandler struct {
+	orderService *OrderService
+}
+
+func NewOrderServiceConnectHandler(orderService *OrderService) *OrderServiceConnectHandler {
+	return &OrderServiceConnectHandler{orderService: orderService}
+}
+
+func (h *OrderServiceConnectHandler) CreateOrder(ctx context.Context, req *connect.Request[pb.CreateOrderRequest]) (*connect.Response[pb.CreateOrderResponse], error) {
+	r := req.Msg
+	if len(r.OrderItems) == 0 {
 		return nil, errors.New("empty order_items")
 	}
 	userID, _, err := common.ExtractUserInfo(&ctx)
@@ -65,22 +77,19 @@ func (s *OrderService) CreateOrder(ctx context.Context, req *pb.CreateOrderReque
 		return nil, status.Error(codes.Unauthenticated, err.Error())
 	}
 
-	skuIDs := lo.Map(req.OrderItems, func(item *pb.OrderItem, index int) string { return item.SkuId })
+	skuIDs := lo.Map(r.OrderItems, func(item *pb.OrderItem, index int) string { return item.SkuId })
 
-	// fetch unit price.
-	productService := s.serviceClient.product
+	productService := h.orderService.serviceClient.product
 	m, err := fetchAllSkuDetails(ctx, productService, skuIDs)
 	if err != nil {
-		// TODO: wrap the error from the internal service.
 		return nil, err
 	}
 
-	// create order.
-	orderItems, err := convertToBizOrderItems(req.OrderItems, m)
+	orderItems, err := convertToBizOrderItems(r.OrderItems, m)
 	if err != nil {
 		return nil, err
 	}
-	order, err := s.uc.CreateOrder(ctx, orderItems, userID)
+	order, err := h.orderService.uc.CreateOrder(ctx, orderItems, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -89,24 +98,25 @@ func (s *OrderService) CreateOrder(ctx context.Context, req *pb.CreateOrderReque
 		return nil, err
 	}
 
-	return &pb.CreateOrderResponse{Order: pbOrder}, nil
+	return connect.NewResponse(&pb.CreateOrderResponse{Order: pbOrder}), nil
 }
 
-func (s *OrderService) CancelOrder(ctx context.Context, req *pb.CancelOrderRequest) (*pb.CancelOrderResponse, error) {
-	if err := s.uc.CancelOrder(ctx, req.GetOrderId()); err != nil {
+func (h *OrderServiceConnectHandler) CancelOrder(ctx context.Context, req *connect.Request[pb.CancelOrderRequest]) (*connect.Response[pb.CancelOrderResponse], error) {
+	r := req.Msg
+	if err := h.orderService.uc.CancelOrder(ctx, r.GetOrderId()); err != nil {
 		return nil, err
 	}
-	inventoryService := s.serviceClient.inventory
-	// TODO(0): retrying & outbox
-	_, err := inventoryService.ReleaseStock(ctx, &inventorypb.ReleaseStockRequest{OrderId: req.OrderId})
+	inventoryService := h.orderService.serviceClient.inventory
+	_, err := inventoryService.ReleaseStock(ctx, &inventorypb.ReleaseStockRequest{OrderId: r.OrderId})
 	if err != nil {
 		return nil, err
 	}
-	return &pb.CancelOrderResponse{}, nil
+	return connect.NewResponse(&pb.CancelOrderResponse{}), nil
 }
 
-func (s *OrderService) GetOrder(ctx context.Context, req *pb.GetOrderRequest) (*pb.GetOrderResponse, error) {
-	order, err := s.uc.GetOrder(ctx, req.OrderId)
+func (h *OrderServiceConnectHandler) GetOrder(ctx context.Context, req *connect.Request[pb.GetOrderRequest]) (*connect.Response[pb.GetOrderResponse], error) {
+	r := req.Msg
+	order, err := h.orderService.uc.GetOrder(ctx, r.OrderId)
 	if err != nil {
 		return nil, err
 	}
@@ -114,18 +124,19 @@ func (s *OrderService) GetOrder(ctx context.Context, req *pb.GetOrderRequest) (*
 	if err != nil {
 		return nil, err
 	}
-	return &pb.GetOrderResponse{Order: pbOrder}, nil
+	return connect.NewResponse(&pb.GetOrderResponse{Order: pbOrder}), nil
 }
 
-func (s *OrderService) ListOrders(ctx context.Context, req *pb.ListOrdersRequest) (*pb.ListOrdersResponse, error) {
-	if req.PageSize < 1 || req.PageSize > maxPageSize {
-		return nil, status.Error(codes.OutOfRange, fmt.Sprintf("invalid page size %d", req.PageSize))
+func (h *OrderServiceConnectHandler) ListOrders(ctx context.Context, req *connect.Request[pb.ListOrdersRequest]) (*connect.Response[pb.ListOrdersResponse], error) {
+	r := req.Msg
+	if r.PageSize < 1 || r.PageSize > maxPageSize {
+		return nil, status.Error(codes.OutOfRange, fmt.Sprintf("invalid page size %d", r.PageSize))
 	}
 	userID, _, err := common.ExtractUserInfo(&ctx)
 	if err != nil {
 		return nil, err
 	}
-	orders, err := s.uc.ListOrders(ctx, userID, convertToBizOrderStatus(req.OrderStatus), req.PageToken, req.PageSize)
+	orders, err := h.orderService.uc.ListOrders(ctx, userID, convertToBizOrderStatus(r.OrderStatus), r.PageToken, r.PageSize)
 	if err != nil {
 		return nil, err
 	}
@@ -138,10 +149,10 @@ func (s *OrderService) ListOrders(ctx context.Context, req *pb.ListOrdersRequest
 	if lenPbOrders != 0 {
 		nextPageToken = pbOrders[lenPbOrders-1].OrderId
 	}
-	return &pb.ListOrdersResponse{
+	return connect.NewResponse(&pb.ListOrdersResponse{
 		Orders:        pbOrders,
 		NextPageToken: nextPageToken,
-	}, nil
+	}), nil
 }
 
 func fetchAllSkuDetails(
@@ -150,7 +161,6 @@ func fetchAllSkuDetails(
 	skuIDs []string,
 ) (map[string]*productpb.SkuDetail, error) {
 	var nextPageToken string
-	// mapping from uuid to SkuDetail.
 	m := make(map[string]*productpb.SkuDetail)
 	for {
 		resp, err := productService.BatchGetSkus(ctx, &productpb.BatchGetSkusRequest{
@@ -206,7 +216,6 @@ func convertToBizOrderStatus(status *pb.OrderStatus) biz.OrderStatus {
 	return biz.OrderStatusUnspecified
 }
 
-// mapping: mapping from skuId to productpb.Sku
 func convertToBizOrderItems(pbOrderItems []*pb.OrderItem, mapping map[string]*productpb.SkuDetail) ([]*biz.OrderItem, error) {
 	var orderItems []*biz.OrderItem
 	for _, pbOrderItem := range pbOrderItems {

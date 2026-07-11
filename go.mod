@@ -3,6 +3,7 @@ module github.com/azusayn/azushop
 go 1.26.4
 
 require (
+	connectrpc.com/connect v1.20.0
 	github.com/IBM/sarama v1.47.0
 	github.com/azusayn/azutils v0.0.3
 	github.com/go-kratos/kratos/v2 v2.9.2
@@ -82,3 +83,5 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260630182238-925bb5da69e7 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+tool connectrpc.com/connect/cmd/protoc-gen-connect-go

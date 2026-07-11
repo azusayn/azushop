@@ -7,7 +7,6 @@
 package v1
 
 import (
-	_ "google.golang.org/genproto/googleapis/api/annotations"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -396,7 +395,7 @@ var File_api_inventory_v1_inventory_proto protoreflect.FileDescriptor
 
 const file_api_inventory_v1_inventory_proto_rawDesc = "" +
 	"\n" +
-	" api/inventory/v1/inventory.proto\x12\finventory.v1\x1a\x1cgoogle/api/annotations.proto\"R\n" +
+	" api/inventory/v1/inventory.proto\x12\finventory.v1\"R\n" +
 	"\x12AdjustStockRequest\x12\x15\n" +
 	"\x06sku_id\x18\x01 \x01(\tR\x05skuId\x12%\n" +
 	"\x0estock_quantity\x18\x02 \x01(\x03R\rstockQuantity\"\x15\n" +
@@ -419,11 +418,11 @@ const file_api_inventory_v1_inventory_proto_rawDesc = "" +
 	"\bquantity\x18\x02 \x01(\x03R\bquantity\"0\n" +
 	"\x13ReleaseStockRequest\x12\x19\n" +
 	"\border_id\x18\x01 \x01(\x03R\aorderId\"\x16\n" +
-	"\x14ReleaseStockResponse2\x8c\x03\n" +
-	"\x10InventoryService\x12y\n" +
-	"\vAdjustStock\x12 .inventory.v1.AdjustStockRequest\x1a!.inventory.v1.AdjustStockResponse\"%\x82\xd3\xe4\x93\x02\x1f:\x01*\"\x1a/v1/inventory/stock/adjust\x12~\n" +
-	"\rBatchGetStock\x12\".inventory.v1.BatchGetStockRequest\x1a#.inventory.v1.BatchGetStockResponse\"$\x82\xd3\xe4\x93\x02\x1e:\x01*\"\x19/v1/inventory/stock/batch\x12}\n" +
-	"\fReleaseStock\x12!.inventory.v1.ReleaseStockRequest\x1a\".inventory.v1.ReleaseStockResponse\"&\x82\xd3\xe4\x93\x02 :\x01*\"\x1b/v1/inventory/stock/releaseB6Z4github.com/azusayn/azushop/proto/api/inventory/v1;v1b\x06proto3"
+	"\x14ReleaseStockResponse2\x97\x02\n" +
+	"\x10InventoryService\x12R\n" +
+	"\vAdjustStock\x12 .inventory.v1.AdjustStockRequest\x1a!.inventory.v1.AdjustStockResponse\x12X\n" +
+	"\rBatchGetStock\x12\".inventory.v1.BatchGetStockRequest\x1a#.inventory.v1.BatchGetStockResponse\x12U\n" +
+	"\fReleaseStock\x12!.inventory.v1.ReleaseStockRequest\x1a\".inventory.v1.ReleaseStockResponseB6Z4github.com/azusayn/azushop/proto/api/inventory/v1;v1b\x06proto3"
 
 var (
 	file_api_inventory_v1_inventory_proto_rawDescOnce sync.Once

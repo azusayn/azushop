@@ -7,12 +7,13 @@ import (
 	"github.com/azusayn/azushop/proto/conf"
 
 	paymentpb "github.com/azusayn/azushop/proto/api/payment/v1"
+	paymentv1connect "github.com/azusayn/azushop/proto/api/payment/v1/v1connect"
 
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/go-kratos/kratos/v2/middleware/recovery"
 	"github.com/go-kratos/kratos/v2/middleware/tracing"
 	"github.com/go-kratos/kratos/v2/transport/grpc"
-	"github.com/go-kratos/kratos/v2/transport/http"
+	kratoshttp "github.com/go-kratos/kratos/v2/transport/http"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
 
@@ -51,21 +52,23 @@ func NewPaymentGRPCServer(
 func NewPaymentHTTPServer(
 	config *conf.Server,
 	paymentService *service.PaymentService,
-) *http.Server {
-	opts := []http.ServerOption{
-		http.Filter(middleware.CORSFilter(nil)),
-		http.Middleware(recovery.Recovery()),
+) *kratoshttp.Server {
+	opts := []kratoshttp.ServerOption{
+		kratoshttp.Filter(middleware.CORSFilter(nil)),
+		kratoshttp.Middleware(recovery.Recovery()),
 	}
 	if config.Http.Network != "" {
-		opts = append(opts, http.Network(config.Http.Network))
+		opts = append(opts, kratoshttp.Network(config.Http.Network))
 	}
 	if config.Http.Addr != "" {
-		opts = append(opts, http.Address(config.Http.Addr))
+		opts = append(opts, kratoshttp.Address(config.Http.Addr))
 	}
 	if config.Http.Timeout != nil {
-		opts = append(opts, http.Timeout(config.Http.Timeout.AsDuration()))
+		opts = append(opts, kratoshttp.Timeout(config.Http.Timeout.AsDuration()))
 	}
-	srv := http.NewServer(opts...)
-	paymentpb.RegisterPaymentServiceHTTPServer(srv, paymentService)
+	srv := kratoshttp.NewServer(opts...)
+	connectHandler := service.NewPaymentServiceConnectHandler(paymentService)
+	path, handler := paymentv1connect.NewPaymentServiceHandler(connectHandler)
+	srv.HandlePrefix(path, handler)
 	return srv
 }

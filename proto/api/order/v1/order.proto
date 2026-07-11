@@ -2,43 +2,23 @@ syntax = "proto3";
 
 package order.v1;
 
-import "google/api/annotations.proto";
 import "google/protobuf/struct.proto";
 
 option go_package = "github.com/azusayn/azushop/proto/api/order/v1;v1";
 
 // order service.
 service OrderService {
-  // create order 
-  rpc CreateOrder(CreateOrderRequest) returns (CreateOrderResponse){
-    option (google.api.http) = {
-      post: "/v1/orders"
-      body: "*"
-    };
-  }
+  // create order
+  rpc CreateOrder(CreateOrderRequest) returns (CreateOrderResponse);
 
   // cancels order for given order ID.
-  rpc CancelOrder(CancelOrderRequest) returns (CancelOrderResponse){
-    option (google.api.http) = {
-      post: "/v1/orders/{order_id}/cancel"
-      body: "*"
-    };
-  };
+  rpc CancelOrder(CancelOrderRequest) returns (CancelOrderResponse);
 
   // lists all orders owned by the customer.
-  // TODO(1): filter options in query parameters?
-  rpc ListOrders(ListOrdersRequest) returns (ListOrdersResponse) {
-    option (google.api.http) = {
-      get: "/v1/orders"
-    };
-  };
+  rpc ListOrders(ListOrdersRequest) returns (ListOrdersResponse);
 
   // retrieves the order for given order ID.
-  rpc GetOrder(GetOrderRequest) returns (GetOrderResponse) {
-    option (google.api.http) = {
-      get: "/v1/orders/{order_id}"
-    };
-  };
+  rpc GetOrder(GetOrderRequest) returns (GetOrderResponse);
 }
 
 enum OrderStatus {
@@ -64,7 +44,7 @@ message OrderItem {
   // only present in responses, not required in CreateOrderRequest.
   optional string unit_price = 3;
   optional google.protobuf.Struct attrs = 4;
-  optional string product_name = 5; 
+  optional string product_name = 5;
 }
 
 message ListOrdersRequest {

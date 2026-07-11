@@ -37,7 +37,6 @@ type InventoryServiceClient interface {
 	BatchGetStock(ctx context.Context, in *BatchGetStockRequest, opts ...grpc.CallOption) (*BatchGetStockResponse, error)
 	// interfaces used by internal services.
 	// release reserved stock when a customer cancels an order.
-	// TODO(3): remove it and use message queue.
 	ReleaseStock(ctx context.Context, in *ReleaseStockRequest, opts ...grpc.CallOption) (*ReleaseStockResponse, error)
 }
 
@@ -92,7 +91,6 @@ type InventoryServiceServer interface {
 	BatchGetStock(context.Context, *BatchGetStockRequest) (*BatchGetStockResponse, error)
 	// interfaces used by internal services.
 	// release reserved stock when a customer cancels an order.
-	// TODO(3): remove it and use message queue.
 	ReleaseStock(context.Context, *ReleaseStockRequest) (*ReleaseStockResponse, error)
 	mustEmbedUnimplementedInventoryServiceServer()
 }

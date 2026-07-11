@@ -2,40 +2,20 @@ syntax = "proto3";
 
 package inventory.v1;
 
-import "google/api/annotations.proto";
-
 option go_package = "github.com/azusayn/azushop/proto/api/inventory/v1;v1";
-
 
 // service for managing stocks.
 service InventoryService {
-  // interfaces used by merchants and administrators. 
+  // interfaces used by merchants and administrators.
   // sets stock to a specific quantity.
-  rpc AdjustStock(AdjustStockRequest) returns (AdjustStockResponse) {
-    option (google.api.http) = {
-      post: "/v1/inventory/stock/adjust"
-      body: "*"
-    };
-  };
-  
+  rpc AdjustStock(AdjustStockRequest) returns (AdjustStockResponse);
+
   // retrieves SKU information for given SKU IDs.
-  rpc BatchGetStock(BatchGetStockRequest) returns (BatchGetStockResponse) {
-    option (google.api.http) = {
-      post: "/v1/inventory/stock/batch"
-      body: "*"
-    };
-  };
-  
+  rpc BatchGetStock(BatchGetStockRequest) returns (BatchGetStockResponse);
+
   // interfaces used by internal services.
   // release reserved stock when a customer cancels an order.
-  // TODO(3): remove it and use message queue.
-  rpc ReleaseStock(ReleaseStockRequest) returns (ReleaseStockResponse) {
-    option (google.api.http) = {
-      post: "/v1/inventory/stock/release"
-      body: "*"
-    };
-  };
-
+  rpc ReleaseStock(ReleaseStockRequest) returns (ReleaseStockResponse);
 }
 
 message AdjustStockRequest {
@@ -70,4 +50,3 @@ message ReleaseStockRequest {
 }
 
 message ReleaseStockResponse {}
-

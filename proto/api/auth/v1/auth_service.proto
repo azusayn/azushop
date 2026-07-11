@@ -2,26 +2,14 @@ syntax = "proto3";
 
 package auth.v1;
 
-import "google/api/annotations.proto";
-
 option go_package = "github.com/azusayn/azushop/proto/api/auth/v1;v1";
 
-// Authentication. 
+// Authentication.
 service AuthService {
   // Login with password.
-  rpc Login(LoginRequest) returns (LoginResponse){
-    option (google.api.http) = {
-      post: "/v1/auth/login"
-      body: "*"
-    };
-  };
+  rpc Login(LoginRequest) returns (LoginResponse);
   // Register creates a new user account with the provided information.
-  rpc Register(RegisterRequest) returns (RegisterResponse){
-    option (google.api.http) = {
-      post: "/v1/auth/register"
-      body: "*"
-    };
-  };
+  rpc Register(RegisterRequest) returns (RegisterResponse);
 }
 
 message RegisterRequest {

@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	v1 "github.com/azusayn/azushop/proto/api/auth/v1"
+	authv1connect "github.com/azusayn/azushop/proto/api/auth/v1/v1connect"
 
 	"github.com/azusayn/azushop/internal/common"
 	"github.com/azusayn/azutils/auth"
@@ -87,8 +87,8 @@ func AuthInterceptor(publicKey any, issuer string, verify bool) middleware.Middl
 // TODO: differ roles in different APIs.
 func requireAuth(methodName string) bool {
 	switch methodName {
-	case v1.OperationAuthServiceLogin,
-		v1.OperationAuthServiceRegister:
+	case authv1connect.AuthServiceLoginProcedure,
+		authv1connect.AuthServiceRegisterProcedure:
 		return false
 	default:
 	}

@@ -19,6 +19,8 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
+
+	"connectrpc.com/connect"
 )
 
 type PaymentService struct {
@@ -54,17 +56,27 @@ func NewPaymentService(uc *biz.PaymentUsecase, config *conf.Data) (*PaymentServi
 	}, nil
 }
 
-func (s *PaymentService) CreatePayment(ctx context.Context, req *pb.CreatePaymentRequest) (*pb.CreatePaymentResponse, error) {
+// PaymentServiceConnectHandler implements the ConnectRPC handler for PaymentService.
+type PaymentServiceConnectHandler struct {
+	paymentService *PaymentService
+}
+
+func NewPaymentServiceConnectHandler(paymentService *PaymentService) *PaymentServiceConnectHandler {
+	return &PaymentServiceConnectHandler{paymentService: paymentService}
+}
+
+func (h *PaymentServiceConnectHandler) CreatePayment(ctx context.Context, req *connect.Request[pb.CreatePaymentRequest]) (*connect.Response[pb.CreatePaymentResponse], error) {
+	r := req.Msg
 	userID, _, err := common.ExtractUserInfo(&ctx)
 	if err != nil {
 		return nil, status.Error(codes.Unauthenticated, err.Error())
 	}
-	method, err := convertToBizPaymentMethod(req.PaymentMethod)
+	method, err := convertToBizPaymentMethod(r.PaymentMethod)
 	if err != nil {
 		return nil, err
 	}
-	orderService := s.order
-	resp, err := orderService.GetOrder(ctx, &orderpb.GetOrderRequest{OrderId: req.OrderId})
+	orderService := h.paymentService.order
+	resp, err := orderService.GetOrder(ctx, &orderpb.GetOrderRequest{OrderId: r.OrderId})
 	if err != nil {
 		return nil, err
 	}
@@ -73,32 +85,32 @@ func (s *PaymentService) CreatePayment(ctx context.Context, req *pb.CreatePaymen
 	case orderpb.OrderStatus_ORDER_STATUS_PENDING:
 		break
 	case orderpb.OrderStatus_ORDER_STATUS_CANCELLED:
-		return nil, status.Error(codes.FailedPrecondition, fmt.Sprintf("order %d has been cancelled", req.OrderId))
+		return nil, status.Error(codes.FailedPrecondition, fmt.Sprintf("order %d has been cancelled", r.OrderId))
 	default:
-		return nil, status.Error(codes.AlreadyExists, fmt.Sprintf("order %d has been paid already", req.OrderId))
+		return nil, status.Error(codes.AlreadyExists, fmt.Sprintf("order %d has been paid already", r.OrderId))
 	}
 
 	paymentItems, err := convertToPaymentItems(resp.GetOrder().GetOrderItems())
 	if err != nil {
 		return nil, err
 	}
-	url, err := s.uc.CreatePayment(ctx, req.OrderId, userID, method, paymentItems, s.stripeSuccessUrl)
+	url, err := h.paymentService.uc.CreatePayment(ctx, r.OrderId, userID, method, paymentItems, h.paymentService.stripeSuccessUrl)
 	if err != nil {
 		return nil, err
 	}
-	return &pb.CreatePaymentResponse{Url: url}, nil
+	return connect.NewResponse(&pb.CreatePaymentResponse{Url: url}), nil
 }
 
-func (s *PaymentService) Callback(ctx context.Context, req *pb.CallbackRequest) (*pb.CallbackResponse, error) {
-	paymentMethod, err := convertProviderToBizPaymentMethod(req.Provider)
+func (h *PaymentServiceConnectHandler) Callback(ctx context.Context, req *connect.Request[pb.CallbackRequest]) (*connect.Response[pb.CallbackResponse], error) {
+	r := req.Msg
+	paymentMethod, err := convertProviderToBizPaymentMethod(r.Provider)
 	if err != nil {
 		return nil, err
 	}
-	// return an error to trigger a retry from the payment provider.
-	if err := s.uc.Callback(ctx, paymentMethod, req.GetRaw().GetData()); err != nil {
+	if err := h.paymentService.uc.Callback(ctx, paymentMethod, r.GetRaw().GetData()); err != nil {
 		return nil, status.Error(codes.Internal, codes.Internal.String())
 	}
-	return &pb.CallbackResponse{}, status.Error(codes.OK, codes.OK.String())
+	return connect.NewResponse(&pb.CallbackResponse{}), status.Error(codes.OK, codes.OK.String())
 }
 
 func convertToPaymentItems(orderItems []*orderpb.OrderItem) ([]*biz.PaymentItem, error) {

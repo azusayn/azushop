@@ -5,6 +5,7 @@ import (
 	"github.com/azusayn/azushop/internal/common"
 
 	pb "github.com/azusayn/azushop/proto/api/product/v1"
+	productv1connect "github.com/azusayn/azushop/proto/api/product/v1/v1connect"
 
 	"context"
 	"errors"
@@ -16,6 +17,8 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
+
+	"connectrpc.com/connect"
 )
 
 type ProductService struct {
@@ -31,24 +34,35 @@ const (
 	maxPageSize = 100
 )
 
-func (s *ProductService) ListSellerProducts(ctx context.Context, req *pb.ListSellerProductsRequest) (*pb.ListSellerProductsResponse, error) {
-	if req.PageSize > maxPageSize {
+// ProductServiceConnectHandler implements the ConnectRPC handler for ProductService.
+type ProductServiceConnectHandler struct {
+	productv1connect.UnimplementedProductServiceHandler
+	productService *ProductService
+}
+
+func NewProductServiceConnectHandler(productService *ProductService) *ProductServiceConnectHandler {
+	return &ProductServiceConnectHandler{productService: productService}
+}
+
+func (h *ProductServiceConnectHandler) ListSellerProducts(ctx context.Context, req *connect.Request[pb.ListSellerProductsRequest]) (*connect.Response[pb.ListSellerProductsResponse], error) {
+	r := req.Msg
+	if r.PageSize > maxPageSize {
 		return nil, status.Error(codes.OutOfRange, codes.OutOfRange.String())
 	}
 	userID, role, err := common.ExtractUserInfo(&ctx)
 	if err != nil {
 		return nil, err
 	}
-	uuid, err := str.ParseUUID(req.PageToken)
+	uuid, err := str.ParseUUID(r.PageToken)
 	if err != nil {
 		return nil, err
 	}
-	products, err := s.uc.ListSellerProducts(
+	products, err := h.productService.uc.ListSellerProducts(
 		ctx,
-		req.SellerId,
+		r.SellerId,
 		uuid,
-		req.PageSize,
-		convertToBizProductStatus(req.ProductStatus),
+		r.PageSize,
+		convertToBizProductStatus(r.ProductStatus),
 		userID,
 		biz.UserRole(role),
 	)
@@ -59,69 +73,72 @@ func (s *ProductService) ListSellerProducts(ctx context.Context, req *pb.ListSel
 	if err != nil {
 		return nil, err
 	}
-	return &pb.ListSellerProductsResponse{
+	return connect.NewResponse(&pb.ListSellerProductsResponse{
 		Products: pbProducts,
-	}, nil
+	}), nil
 }
 
-func (s *ProductService) BatchCreateProduct(ctx context.Context, req *pb.BatchCreateProductRequest) (*pb.BatchCreateProductResponse, error) {
+func (h *ProductServiceConnectHandler) BatchCreateProduct(ctx context.Context, req *connect.Request[pb.BatchCreateProductRequest]) (*connect.Response[pb.BatchCreateProductResponse], error) {
+	r := req.Msg
 	userID, role, err := common.ExtractUserInfo(&ctx)
 	if err != nil {
 		return nil, err
 	}
-	products, err := convertToBizProducts(req.Products)
+	products, err := convertToBizProducts(r.Products)
 	if err != nil {
 		return nil, err
 	}
-	if err := s.uc.BatchCheckProducts(products); err != nil {
+	if err := h.productService.uc.BatchCheckProducts(products); err != nil {
 		return nil, err
 	}
-	_, err = s.uc.BatchCreateProducts(ctx, products, userID, biz.UserRole(role))
+	_, err = h.productService.uc.BatchCreateProducts(ctx, products, userID, biz.UserRole(role))
 	if err != nil {
 		return nil, err
 	}
-	return &pb.BatchCreateProductResponse{}, nil
+	return connect.NewResponse(&pb.BatchCreateProductResponse{}), nil
 }
 
-func (s *ProductService) BatchUpdateProduct(ctx context.Context, req *pb.BatchUpdateProductRequest) (*pb.BatchUpdateProductResponse, error) {
+func (h *ProductServiceConnectHandler) BatchUpdateProduct(ctx context.Context, req *connect.Request[pb.BatchUpdateProductRequest]) (*connect.Response[pb.BatchUpdateProductResponse], error) {
+	r := req.Msg
 	userID, role, err := common.ExtractUserInfo(&ctx)
 	if err != nil {
 		return nil, err
 	}
-	if len(req.Products) == 0 {
+	if len(r.Products) == 0 {
 		return nil, errors.New("empty products")
 	}
-	products, err := convertToBizProducts(req.Products)
+	products, err := convertToBizProducts(r.Products)
 	if err != nil {
 		return nil, err
 	}
-	paths := convertToUniquePaths(req.UpdateMask)
-	if err := s.uc.BatchUpdateProducts(ctx, products, paths, userID, biz.UserRole(role)); err != nil {
+	paths := convertToUniquePaths(r.UpdateMask)
+	if err := h.productService.uc.BatchUpdateProducts(ctx, products, paths, userID, biz.UserRole(role)); err != nil {
 		return nil, err
 	}
-	return &pb.BatchUpdateProductResponse{}, nil
+	return connect.NewResponse(&pb.BatchUpdateProductResponse{}), nil
 }
 
-func (s *ProductService) BatchGetSkus(ctx context.Context, req *pb.BatchGetSkusRequest) (*pb.BatchGetSkusResponse, error) {
-	if req.PageSize < 1 || req.PageSize > maxPageSize {
+func (h *ProductServiceConnectHandler) BatchGetSkus(ctx context.Context, req *connect.Request[pb.BatchGetSkusRequest]) (*connect.Response[pb.BatchGetSkusResponse], error) {
+	r := req.Msg
+	if r.PageSize < 1 || r.PageSize > maxPageSize {
 		return nil, status.Error(codes.OutOfRange, codes.OutOfRange.String())
 	}
 	var uuids []uuid.UUID
-	if len(req.SkuIds) == 0 {
+	if len(r.SkuIds) == 0 {
 		return nil, errors.New("empty sku IDs")
 	}
-	for _, skuId := range req.SkuIds {
+	for _, skuId := range r.SkuIds {
 		u, err := uuid.Parse(skuId)
 		if err != nil {
 			return nil, err
 		}
 		uuids = append(uuids, u)
 	}
-	pageToken, err := str.ParseUUID(req.PageToken)
+	pageToken, err := str.ParseUUID(r.PageToken)
 	if err != nil {
 		return nil, err
 	}
-	skuDetails, err := s.uc.BatchGetSkuDetails(ctx, uuids, pageToken, req.PageSize)
+	skuDetails, err := h.productService.uc.BatchGetSkuDetails(ctx, uuids, pageToken, r.PageSize)
 	if err != nil {
 		return nil, err
 	}
@@ -131,13 +148,13 @@ func (s *ProductService) BatchGetSkus(ctx context.Context, req *pb.BatchGetSkusR
 	}
 	var nextPageToken string
 	lenPbSkuDetails := len(pbSkuDetails)
-	if lenPbSkuDetails == int(req.PageSize) {
+	if lenPbSkuDetails == int(r.PageSize) {
 		nextPageToken = pbSkuDetails[lenPbSkuDetails-1].GetSku().GetId()
 	}
-	return &pb.BatchGetSkusResponse{
+	return connect.NewResponse(&pb.BatchGetSkusResponse{
 		SkuDetails:    pbSkuDetails,
 		NextPageToken: nextPageToken,
-	}, nil
+	}), nil
 }
 
 func convertToPbProductStatus(productStatus *biz.ProductStatus) pb.ProductStatus {

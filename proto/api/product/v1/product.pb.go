@@ -7,7 +7,6 @@
 package v1
 
 import (
-	_ "google.golang.org/genproto/googleapis/api/annotations"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	fieldmaskpb "google.golang.org/protobuf/types/known/fieldmaskpb"
@@ -801,7 +800,7 @@ var File_api_product_v1_product_proto protoreflect.FileDescriptor
 const file_api_product_v1_product_proto_rawDesc = "" +
 	"\n" +
 	"\x1capi/product/v1/product.proto\x12\n" +
-	"product.v1\x1a\x1cgoogle/api/annotations.proto\x1a google/protobuf/field_mask.proto\x1a\x1cgoogle/protobuf/struct.proto\"\x83\x01\n" +
+	"product.v1\x1a google/protobuf/field_mask.proto\x1a\x1cgoogle/protobuf/struct.proto\"\x83\x01\n" +
 	"\x15SearchProductsRequest\x12\x1d\n" +
 	"\n" +
 	"page_token\x18\x01 \x01(\tR\tpageToken\x12\x1b\n" +
@@ -858,13 +857,13 @@ const file_api_product_v1_product_proto_rawDesc = "" +
 	"\x14PRODUCT_STATUS_DRAFT\x10\x01\x12\x1a\n" +
 	"\x16PRODUCT_STATUS_PENDING\x10\x02\x12\x19\n" +
 	"\x15PRODUCT_STATUS_ACTIVE\x10\x03\x12\x1a\n" +
-	"\x16PRODUCT_STATUS_OFFLINE\x10\x042\xf9\x04\n" +
-	"\x0eProductService\x12m\n" +
-	"\x0eSearchProducts\x12!.product.v1.SearchProductsRequest\x1a\".product.v1.SearchProductsResponse\"\x14\x82\xd3\xe4\x93\x02\x0e\x12\f/v1/products\x12\x8d\x01\n" +
-	"\x12ListSellerProducts\x12%.product.v1.ListSellerProductsRequest\x1a&.product.v1.ListSellerProductsResponse\"(\x82\xd3\xe4\x93\x02\"\x12 /v1/sellers/{seller_id}/products\x12|\n" +
-	"\x12BatchCreateProduct\x12%.product.v1.BatchCreateProductRequest\x1a&.product.v1.BatchCreateProductResponse\"\x17\x82\xd3\xe4\x93\x02\x11:\x01*\"\f/v1/products\x12|\n" +
-	"\x12BatchUpdateProduct\x12%.product.v1.BatchUpdateProductRequest\x1a&.product.v1.BatchUpdateProductResponse\"\x17\x82\xd3\xe4\x93\x02\x11:\x01*2\f/v1/products\x12l\n" +
-	"\fBatchGetSkus\x12\x1f.product.v1.BatchGetSkusRequest\x1a .product.v1.BatchGetSkusResponse\"\x19\x82\xd3\xe4\x93\x02\x13:\x01*\"\x0e/v1/skus/batchB4Z2github.com/azusayn/azushop/proto/api/product/v1;v1b\x06proto3"
+	"\x16PRODUCT_STATUS_OFFLINE\x10\x042\xeb\x03\n" +
+	"\x0eProductService\x12W\n" +
+	"\x0eSearchProducts\x12!.product.v1.SearchProductsRequest\x1a\".product.v1.SearchProductsResponse\x12c\n" +
+	"\x12ListSellerProducts\x12%.product.v1.ListSellerProductsRequest\x1a&.product.v1.ListSellerProductsResponse\x12c\n" +
+	"\x12BatchCreateProduct\x12%.product.v1.BatchCreateProductRequest\x1a&.product.v1.BatchCreateProductResponse\x12c\n" +
+	"\x12BatchUpdateProduct\x12%.product.v1.BatchUpdateProductRequest\x1a&.product.v1.BatchUpdateProductResponse\x12Q\n" +
+	"\fBatchGetSkus\x12\x1f.product.v1.BatchGetSkusRequest\x1a .product.v1.BatchGetSkusResponseB4Z2github.com/azusayn/azushop/proto/api/product/v1;v1b\x06proto3"
 
 var (
 	file_api_product_v1_product_proto_rawDescOnce sync.Once

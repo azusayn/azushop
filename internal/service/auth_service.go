@@ -9,6 +9,8 @@ import (
 
 	"github.com/azusayn/azushop/internal/biz"
 	"github.com/azusayn/azushop/internal/pkg/crypto"
+
+	"connectrpc.com/connect"
 )
 
 type AuthService struct {
@@ -33,19 +35,28 @@ func NewAuthService(uc *biz.UserUsecase, config *conf.Data) (*AuthService, error
 	}, nil
 }
 
-func (s *AuthService) Login(ctx context.Context, req *pb.LoginRequest) (*pb.LoginResponse, error) {
-	token, err := s.uc.Login(ctx, s.privateKey, s.issuer, req.Name, req.Password, s.keyVersion)
+// AuthServiceConnectHandler implements the ConnectRPC handler for AuthService.
+type AuthServiceConnectHandler struct {
+	authService *AuthService
+}
+
+func NewAuthServiceConnectHandler(authService *AuthService) *AuthServiceConnectHandler {
+	return &AuthServiceConnectHandler{authService: authService}
+}
+
+func (h *AuthServiceConnectHandler) Login(ctx context.Context, req *connect.Request[pb.LoginRequest]) (*connect.Response[pb.LoginResponse], error) {
+	token, err := h.authService.uc.Login(ctx, h.authService.privateKey, h.authService.issuer, req.Msg.Name, req.Msg.Password, h.authService.keyVersion)
 	if err != nil {
 		return nil, err
 	}
-	return &pb.LoginResponse{
+	return connect.NewResponse(&pb.LoginResponse{
 		AccessToken: token,
-	}, nil
+	}), nil
 }
 
-func (s *AuthService) Register(ctx context.Context, req *pb.RegisterRequest) (*pb.RegisterResponse, error) {
-	if err := s.uc.Register(ctx, req.Name, req.Password); err != nil {
+func (h *AuthServiceConnectHandler) Register(ctx context.Context, req *connect.Request[pb.RegisterRequest]) (*connect.Response[pb.RegisterResponse], error) {
+	if err := h.authService.uc.Register(ctx, req.Msg.Name, req.Msg.Password); err != nil {
 		return nil, err
 	}
-	return &pb.RegisterResponse{}, nil
+	return connect.NewResponse(&pb.RegisterResponse{}), nil
 }

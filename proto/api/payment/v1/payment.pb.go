@@ -7,7 +7,6 @@
 package v1
 
 import (
-	_ "google.golang.org/genproto/googleapis/api/annotations"
 	httpbody "google.golang.org/genproto/googleapis/api/httpbody"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -264,7 +263,7 @@ var File_api_payment_v1_payment_proto protoreflect.FileDescriptor
 const file_api_payment_v1_payment_proto_rawDesc = "" +
 	"\n" +
 	"\x1capi/payment/v1/payment.proto\x12\n" +
-	"payment.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x19google/api/httpbody.proto\"s\n" +
+	"payment.v1\x1a\x19google/api/httpbody.proto\"s\n" +
 	"\x14CreatePaymentRequest\x12\x19\n" +
 	"\border_id\x18\x01 \x01(\x03R\aorderId\x12@\n" +
 	"\x0epayment_method\x18\x02 \x01(\x0e2\x19.payment.v1.PaymentMethodR\rpaymentMethod\")\n" +
@@ -278,10 +277,10 @@ const file_api_payment_v1_payment_proto_rawDesc = "" +
 	"\x1aPAYMENT_METHOD_UNSPECIFIED\x10\x00\x12\x19\n" +
 	"\x15PAYMENT_METHOD_STRIPE\x10\x01\x12\x19\n" +
 	"\x15PAYMENT_METHOD_ALIPAY\x10\x02\x12\x19\n" +
-	"\x15PAYMENT_METHOD_WECHAT\x10\x032\xfa\x01\n" +
-	"\x0ePaymentService\x12s\n" +
-	"\rCreatePayment\x12 .payment.v1.CreatePaymentRequest\x1a!.payment.v1.CreatePaymentResponse\"\x1d\x82\xd3\xe4\x93\x02\x17:\x01*\"\x12/v1/payment/create\x12s\n" +
-	"\bCallback\x12\x1b.payment.v1.CallbackRequest\x1a\x1c.payment.v1.CallbackResponse\",\x82\xd3\xe4\x93\x02&:\x03raw\"\x1f/v1/payment/callback/{provider}B4Z2github.com/azusayn/azushop/proto/api/payment/v1;v1b\x06proto3"
+	"\x15PAYMENT_METHOD_WECHAT\x10\x032\xad\x01\n" +
+	"\x0ePaymentService\x12T\n" +
+	"\rCreatePayment\x12 .payment.v1.CreatePaymentRequest\x1a!.payment.v1.CreatePaymentResponse\x12E\n" +
+	"\bCallback\x12\x1b.payment.v1.CallbackRequest\x1a\x1c.payment.v1.CallbackResponseB4Z2github.com/azusayn/azushop/proto/api/payment/v1;v1b\x06proto3"
 
 var (
 	file_api_payment_v1_payment_proto_rawDescOnce sync.Once
