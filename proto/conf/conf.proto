@@ -24,8 +24,7 @@ message Server {
   GRPC grpc = 2;
 }
 
-message Data {
-  message Database {
+ message Database {
     string driver = 1;
     string source = 2;
   }
@@ -49,6 +48,15 @@ message Data {
   message Kafka {
     repeated string broker_addrs = 1;
   }
+
+message EmbeddingAPI {
+  string endpoint = 1;
+  string secret = 2;
+  string model = 3;
+  float max_distance = 4;
+}
+
+message Data {
   Database database = 1;
   Redis redis = 2;
   ServiceAddr service_addr = 3;
@@ -57,6 +65,7 @@ message Data {
   string app_name = 6;
   Auth auth = 7;
   string otlp_grpc_address = 8;
+  EmbeddingAPI embedding_api = 9;
 }
 
 message Auth {

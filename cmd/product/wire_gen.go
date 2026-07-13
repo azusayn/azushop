@@ -9,6 +9,7 @@ package main
 import (
 	"github.com/azusayn/azushop/internal/biz"
 	"github.com/azusayn/azushop/internal/data"
+	"github.com/azusayn/azushop/internal/pkg/llm"
 	"github.com/azusayn/azushop/internal/server"
 	"github.com/azusayn/azushop/internal/service"
 	"github.com/azusayn/azushop/proto/conf"
@@ -37,8 +38,9 @@ func wireProductApp(confServer *conf.Server, confData *conf.Data, logger log.Log
 		return nil, nil, err
 	}
 	productPublisher := data.NewProductPublisher(kafkaProducer)
-	productUsecase := biz.NewProductUsecase(productRepo, productPublisher)
-	productService := service.NewProductService(productUsecase)
+	openAIClient := llm.NewOpenAIClient(confData)
+	productUsecase := biz.NewProductUsecase(productRepo, productPublisher, openAIClient)
+	productService := service.NewProductService(productUsecase, confData)
 	tracerProvider, cleanup, err := server.NewGlobalTraceProvider(confData)
 	if err != nil {
 		return nil, nil, err

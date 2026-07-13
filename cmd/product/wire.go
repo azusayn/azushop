@@ -6,6 +6,7 @@ package main
 import (
 	"github.com/azusayn/azushop/internal/biz"
 	"github.com/azusayn/azushop/internal/data"
+	"github.com/azusayn/azushop/internal/pkg/llm"
 	"github.com/azusayn/azushop/internal/server"
 	"github.com/azusayn/azushop/internal/service"
 	"github.com/azusayn/azushop/proto/conf"
@@ -23,6 +24,7 @@ func wireProductApp(*conf.Server, *conf.Data, log.Logger) (*kratos.App, func(), 
 		biz.NewProductUsecase,
 		service.NewProductService,
 		server.NewGlobalTraceProvider,
+		llm.NewOpenAIClient,
 		newApp,
 	))
 }

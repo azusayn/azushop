@@ -126,23 +126,384 @@ func (x *Server) GetGrpc() *Server_GRPC {
 	return nil
 }
 
+type Database struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Driver        string                 `protobuf:"bytes,1,opt,name=driver,proto3" json:"driver,omitempty"`
+	Source        string                 `protobuf:"bytes,2,opt,name=source,proto3" json:"source,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Database) Reset() {
+	*x = Database{}
+	mi := &file_conf_conf_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Database) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Database) ProtoMessage() {}
+
+func (x *Database) ProtoReflect() protoreflect.Message {
+	mi := &file_conf_conf_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Database.ProtoReflect.Descriptor instead.
+func (*Database) Descriptor() ([]byte, []int) {
+	return file_conf_conf_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *Database) GetDriver() string {
+	if x != nil {
+		return x.Driver
+	}
+	return ""
+}
+
+func (x *Database) GetSource() string {
+	if x != nil {
+		return x.Source
+	}
+	return ""
+}
+
+type Redis struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Network       string                 `protobuf:"bytes,1,opt,name=network,proto3" json:"network,omitempty"`
+	Addr          string                 `protobuf:"bytes,2,opt,name=addr,proto3" json:"addr,omitempty"`
+	ReadTimeout   *durationpb.Duration   `protobuf:"bytes,3,opt,name=read_timeout,json=readTimeout,proto3" json:"read_timeout,omitempty"`
+	WriteTimeout  *durationpb.Duration   `protobuf:"bytes,4,opt,name=write_timeout,json=writeTimeout,proto3" json:"write_timeout,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Redis) Reset() {
+	*x = Redis{}
+	mi := &file_conf_conf_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Redis) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Redis) ProtoMessage() {}
+
+func (x *Redis) ProtoReflect() protoreflect.Message {
+	mi := &file_conf_conf_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Redis.ProtoReflect.Descriptor instead.
+func (*Redis) Descriptor() ([]byte, []int) {
+	return file_conf_conf_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *Redis) GetNetwork() string {
+	if x != nil {
+		return x.Network
+	}
+	return ""
+}
+
+func (x *Redis) GetAddr() string {
+	if x != nil {
+		return x.Addr
+	}
+	return ""
+}
+
+func (x *Redis) GetReadTimeout() *durationpb.Duration {
+	if x != nil {
+		return x.ReadTimeout
+	}
+	return nil
+}
+
+func (x *Redis) GetWriteTimeout() *durationpb.Duration {
+	if x != nil {
+		return x.WriteTimeout
+	}
+	return nil
+}
+
+type ServiceAddr struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Product       string                 `protobuf:"bytes,1,opt,name=product,proto3" json:"product,omitempty"`
+	Inventory     string                 `protobuf:"bytes,2,opt,name=inventory,proto3" json:"inventory,omitempty"`
+	Order         string                 `protobuf:"bytes,3,opt,name=order,proto3" json:"order,omitempty"`
+	Auth          string                 `protobuf:"bytes,4,opt,name=auth,proto3" json:"auth,omitempty"`
+	Payment       string                 `protobuf:"bytes,5,opt,name=payment,proto3" json:"payment,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ServiceAddr) Reset() {
+	*x = ServiceAddr{}
+	mi := &file_conf_conf_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ServiceAddr) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ServiceAddr) ProtoMessage() {}
+
+func (x *ServiceAddr) ProtoReflect() protoreflect.Message {
+	mi := &file_conf_conf_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ServiceAddr.ProtoReflect.Descriptor instead.
+func (*ServiceAddr) Descriptor() ([]byte, []int) {
+	return file_conf_conf_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *ServiceAddr) GetProduct() string {
+	if x != nil {
+		return x.Product
+	}
+	return ""
+}
+
+func (x *ServiceAddr) GetInventory() string {
+	if x != nil {
+		return x.Inventory
+	}
+	return ""
+}
+
+func (x *ServiceAddr) GetOrder() string {
+	if x != nil {
+		return x.Order
+	}
+	return ""
+}
+
+func (x *ServiceAddr) GetAuth() string {
+	if x != nil {
+		return x.Auth
+	}
+	return ""
+}
+
+func (x *ServiceAddr) GetPayment() string {
+	if x != nil {
+		return x.Payment
+	}
+	return ""
+}
+
+type Payment struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	StripeSecretKey  string                 `protobuf:"bytes,1,opt,name=stripe_secret_key,json=stripeSecretKey,proto3" json:"stripe_secret_key,omitempty"`
+	StripeSuccessUrl string                 `protobuf:"bytes,2,opt,name=stripe_success_url,json=stripeSuccessUrl,proto3" json:"stripe_success_url,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *Payment) Reset() {
+	*x = Payment{}
+	mi := &file_conf_conf_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Payment) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Payment) ProtoMessage() {}
+
+func (x *Payment) ProtoReflect() protoreflect.Message {
+	mi := &file_conf_conf_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Payment.ProtoReflect.Descriptor instead.
+func (*Payment) Descriptor() ([]byte, []int) {
+	return file_conf_conf_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *Payment) GetStripeSecretKey() string {
+	if x != nil {
+		return x.StripeSecretKey
+	}
+	return ""
+}
+
+func (x *Payment) GetStripeSuccessUrl() string {
+	if x != nil {
+		return x.StripeSuccessUrl
+	}
+	return ""
+}
+
+type Kafka struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	BrokerAddrs   []string               `protobuf:"bytes,1,rep,name=broker_addrs,json=brokerAddrs,proto3" json:"broker_addrs,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Kafka) Reset() {
+	*x = Kafka{}
+	mi := &file_conf_conf_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Kafka) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Kafka) ProtoMessage() {}
+
+func (x *Kafka) ProtoReflect() protoreflect.Message {
+	mi := &file_conf_conf_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Kafka.ProtoReflect.Descriptor instead.
+func (*Kafka) Descriptor() ([]byte, []int) {
+	return file_conf_conf_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *Kafka) GetBrokerAddrs() []string {
+	if x != nil {
+		return x.BrokerAddrs
+	}
+	return nil
+}
+
+type EmbeddingAPI struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Endpoint      string                 `protobuf:"bytes,1,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
+	Secret        string                 `protobuf:"bytes,2,opt,name=secret,proto3" json:"secret,omitempty"`
+	Model         string                 `protobuf:"bytes,3,opt,name=model,proto3" json:"model,omitempty"`
+	MaxDistance   float32                `protobuf:"fixed32,4,opt,name=max_distance,json=maxDistance,proto3" json:"max_distance,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EmbeddingAPI) Reset() {
+	*x = EmbeddingAPI{}
+	mi := &file_conf_conf_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EmbeddingAPI) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EmbeddingAPI) ProtoMessage() {}
+
+func (x *EmbeddingAPI) ProtoReflect() protoreflect.Message {
+	mi := &file_conf_conf_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EmbeddingAPI.ProtoReflect.Descriptor instead.
+func (*EmbeddingAPI) Descriptor() ([]byte, []int) {
+	return file_conf_conf_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *EmbeddingAPI) GetEndpoint() string {
+	if x != nil {
+		return x.Endpoint
+	}
+	return ""
+}
+
+func (x *EmbeddingAPI) GetSecret() string {
+	if x != nil {
+		return x.Secret
+	}
+	return ""
+}
+
+func (x *EmbeddingAPI) GetModel() string {
+	if x != nil {
+		return x.Model
+	}
+	return ""
+}
+
+func (x *EmbeddingAPI) GetMaxDistance() float32 {
+	if x != nil {
+		return x.MaxDistance
+	}
+	return 0
+}
+
 type Data struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
-	Database        *Data_Database         `protobuf:"bytes,1,opt,name=database,proto3" json:"database,omitempty"`
-	Redis           *Data_Redis            `protobuf:"bytes,2,opt,name=redis,proto3" json:"redis,omitempty"`
-	ServiceAddr     *Data_ServiceAddr      `protobuf:"bytes,3,opt,name=service_addr,json=serviceAddr,proto3" json:"service_addr,omitempty"`
-	Payment         *Data_Payment          `protobuf:"bytes,4,opt,name=payment,proto3" json:"payment,omitempty"`
-	Kafka           *Data_Kafka            `protobuf:"bytes,5,opt,name=kafka,proto3" json:"kafka,omitempty"`
+	Database        *Database              `protobuf:"bytes,1,opt,name=database,proto3" json:"database,omitempty"`
+	Redis           *Redis                 `protobuf:"bytes,2,opt,name=redis,proto3" json:"redis,omitempty"`
+	ServiceAddr     *ServiceAddr           `protobuf:"bytes,3,opt,name=service_addr,json=serviceAddr,proto3" json:"service_addr,omitempty"`
+	Payment         *Payment               `protobuf:"bytes,4,opt,name=payment,proto3" json:"payment,omitempty"`
+	Kafka           *Kafka                 `protobuf:"bytes,5,opt,name=kafka,proto3" json:"kafka,omitempty"`
 	AppName         string                 `protobuf:"bytes,6,opt,name=app_name,json=appName,proto3" json:"app_name,omitempty"`
 	Auth            *Auth                  `protobuf:"bytes,7,opt,name=auth,proto3" json:"auth,omitempty"`
 	OtlpGrpcAddress string                 `protobuf:"bytes,8,opt,name=otlp_grpc_address,json=otlpGrpcAddress,proto3" json:"otlp_grpc_address,omitempty"`
+	EmbeddingApi    *EmbeddingAPI          `protobuf:"bytes,9,opt,name=embedding_api,json=embeddingApi,proto3" json:"embedding_api,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
 
 func (x *Data) Reset() {
 	*x = Data{}
-	mi := &file_conf_conf_proto_msgTypes[2]
+	mi := &file_conf_conf_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -154,7 +515,7 @@ func (x *Data) String() string {
 func (*Data) ProtoMessage() {}
 
 func (x *Data) ProtoReflect() protoreflect.Message {
-	mi := &file_conf_conf_proto_msgTypes[2]
+	mi := &file_conf_conf_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -167,38 +528,38 @@ func (x *Data) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Data.ProtoReflect.Descriptor instead.
 func (*Data) Descriptor() ([]byte, []int) {
-	return file_conf_conf_proto_rawDescGZIP(), []int{2}
+	return file_conf_conf_proto_rawDescGZIP(), []int{8}
 }
 
-func (x *Data) GetDatabase() *Data_Database {
+func (x *Data) GetDatabase() *Database {
 	if x != nil {
 		return x.Database
 	}
 	return nil
 }
 
-func (x *Data) GetRedis() *Data_Redis {
+func (x *Data) GetRedis() *Redis {
 	if x != nil {
 		return x.Redis
 	}
 	return nil
 }
 
-func (x *Data) GetServiceAddr() *Data_ServiceAddr {
+func (x *Data) GetServiceAddr() *ServiceAddr {
 	if x != nil {
 		return x.ServiceAddr
 	}
 	return nil
 }
 
-func (x *Data) GetPayment() *Data_Payment {
+func (x *Data) GetPayment() *Payment {
 	if x != nil {
 		return x.Payment
 	}
 	return nil
 }
 
-func (x *Data) GetKafka() *Data_Kafka {
+func (x *Data) GetKafka() *Kafka {
 	if x != nil {
 		return x.Kafka
 	}
@@ -226,6 +587,13 @@ func (x *Data) GetOtlpGrpcAddress() string {
 	return ""
 }
 
+func (x *Data) GetEmbeddingApi() *EmbeddingAPI {
+	if x != nil {
+		return x.EmbeddingApi
+	}
+	return nil
+}
+
 type Auth struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	Issuer         string                 `protobuf:"bytes,1,opt,name=issuer,proto3" json:"issuer,omitempty"`
@@ -238,7 +606,7 @@ type Auth struct {
 
 func (x *Auth) Reset() {
 	*x = Auth{}
-	mi := &file_conf_conf_proto_msgTypes[3]
+	mi := &file_conf_conf_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -250,7 +618,7 @@ func (x *Auth) String() string {
 func (*Auth) ProtoMessage() {}
 
 func (x *Auth) ProtoReflect() protoreflect.Message {
-	mi := &file_conf_conf_proto_msgTypes[3]
+	mi := &file_conf_conf_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -263,7 +631,7 @@ func (x *Auth) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Auth.ProtoReflect.Descriptor instead.
 func (*Auth) Descriptor() ([]byte, []int) {
-	return file_conf_conf_proto_rawDescGZIP(), []int{3}
+	return file_conf_conf_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *Auth) GetIssuer() string {
@@ -305,7 +673,7 @@ type Server_HTTP struct {
 
 func (x *Server_HTTP) Reset() {
 	*x = Server_HTTP{}
-	mi := &file_conf_conf_proto_msgTypes[4]
+	mi := &file_conf_conf_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -317,7 +685,7 @@ func (x *Server_HTTP) String() string {
 func (*Server_HTTP) ProtoMessage() {}
 
 func (x *Server_HTTP) ProtoReflect() protoreflect.Message {
-	mi := &file_conf_conf_proto_msgTypes[4]
+	mi := &file_conf_conf_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -365,7 +733,7 @@ type Server_GRPC struct {
 
 func (x *Server_GRPC) Reset() {
 	*x = Server_GRPC{}
-	mi := &file_conf_conf_proto_msgTypes[5]
+	mi := &file_conf_conf_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -377,7 +745,7 @@ func (x *Server_GRPC) String() string {
 func (*Server_GRPC) ProtoMessage() {}
 
 func (x *Server_GRPC) ProtoReflect() protoreflect.Message {
-	mi := &file_conf_conf_proto_msgTypes[5]
+	mi := &file_conf_conf_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -414,298 +782,6 @@ func (x *Server_GRPC) GetTimeout() *durationpb.Duration {
 	return nil
 }
 
-type Data_Database struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Driver        string                 `protobuf:"bytes,1,opt,name=driver,proto3" json:"driver,omitempty"`
-	Source        string                 `protobuf:"bytes,2,opt,name=source,proto3" json:"source,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *Data_Database) Reset() {
-	*x = Data_Database{}
-	mi := &file_conf_conf_proto_msgTypes[6]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *Data_Database) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Data_Database) ProtoMessage() {}
-
-func (x *Data_Database) ProtoReflect() protoreflect.Message {
-	mi := &file_conf_conf_proto_msgTypes[6]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Data_Database.ProtoReflect.Descriptor instead.
-func (*Data_Database) Descriptor() ([]byte, []int) {
-	return file_conf_conf_proto_rawDescGZIP(), []int{2, 0}
-}
-
-func (x *Data_Database) GetDriver() string {
-	if x != nil {
-		return x.Driver
-	}
-	return ""
-}
-
-func (x *Data_Database) GetSource() string {
-	if x != nil {
-		return x.Source
-	}
-	return ""
-}
-
-type Data_Redis struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Network       string                 `protobuf:"bytes,1,opt,name=network,proto3" json:"network,omitempty"`
-	Addr          string                 `protobuf:"bytes,2,opt,name=addr,proto3" json:"addr,omitempty"`
-	ReadTimeout   *durationpb.Duration   `protobuf:"bytes,3,opt,name=read_timeout,json=readTimeout,proto3" json:"read_timeout,omitempty"`
-	WriteTimeout  *durationpb.Duration   `protobuf:"bytes,4,opt,name=write_timeout,json=writeTimeout,proto3" json:"write_timeout,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *Data_Redis) Reset() {
-	*x = Data_Redis{}
-	mi := &file_conf_conf_proto_msgTypes[7]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *Data_Redis) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Data_Redis) ProtoMessage() {}
-
-func (x *Data_Redis) ProtoReflect() protoreflect.Message {
-	mi := &file_conf_conf_proto_msgTypes[7]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Data_Redis.ProtoReflect.Descriptor instead.
-func (*Data_Redis) Descriptor() ([]byte, []int) {
-	return file_conf_conf_proto_rawDescGZIP(), []int{2, 1}
-}
-
-func (x *Data_Redis) GetNetwork() string {
-	if x != nil {
-		return x.Network
-	}
-	return ""
-}
-
-func (x *Data_Redis) GetAddr() string {
-	if x != nil {
-		return x.Addr
-	}
-	return ""
-}
-
-func (x *Data_Redis) GetReadTimeout() *durationpb.Duration {
-	if x != nil {
-		return x.ReadTimeout
-	}
-	return nil
-}
-
-func (x *Data_Redis) GetWriteTimeout() *durationpb.Duration {
-	if x != nil {
-		return x.WriteTimeout
-	}
-	return nil
-}
-
-type Data_ServiceAddr struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Product       string                 `protobuf:"bytes,1,opt,name=product,proto3" json:"product,omitempty"`
-	Inventory     string                 `protobuf:"bytes,2,opt,name=inventory,proto3" json:"inventory,omitempty"`
-	Order         string                 `protobuf:"bytes,3,opt,name=order,proto3" json:"order,omitempty"`
-	Auth          string                 `protobuf:"bytes,4,opt,name=auth,proto3" json:"auth,omitempty"`
-	Payment       string                 `protobuf:"bytes,5,opt,name=payment,proto3" json:"payment,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *Data_ServiceAddr) Reset() {
-	*x = Data_ServiceAddr{}
-	mi := &file_conf_conf_proto_msgTypes[8]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *Data_ServiceAddr) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Data_ServiceAddr) ProtoMessage() {}
-
-func (x *Data_ServiceAddr) ProtoReflect() protoreflect.Message {
-	mi := &file_conf_conf_proto_msgTypes[8]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Data_ServiceAddr.ProtoReflect.Descriptor instead.
-func (*Data_ServiceAddr) Descriptor() ([]byte, []int) {
-	return file_conf_conf_proto_rawDescGZIP(), []int{2, 2}
-}
-
-func (x *Data_ServiceAddr) GetProduct() string {
-	if x != nil {
-		return x.Product
-	}
-	return ""
-}
-
-func (x *Data_ServiceAddr) GetInventory() string {
-	if x != nil {
-		return x.Inventory
-	}
-	return ""
-}
-
-func (x *Data_ServiceAddr) GetOrder() string {
-	if x != nil {
-		return x.Order
-	}
-	return ""
-}
-
-func (x *Data_ServiceAddr) GetAuth() string {
-	if x != nil {
-		return x.Auth
-	}
-	return ""
-}
-
-func (x *Data_ServiceAddr) GetPayment() string {
-	if x != nil {
-		return x.Payment
-	}
-	return ""
-}
-
-type Data_Payment struct {
-	state            protoimpl.MessageState `protogen:"open.v1"`
-	StripeSecretKey  string                 `protobuf:"bytes,1,opt,name=stripe_secret_key,json=stripeSecretKey,proto3" json:"stripe_secret_key,omitempty"`
-	StripeSuccessUrl string                 `protobuf:"bytes,2,opt,name=stripe_success_url,json=stripeSuccessUrl,proto3" json:"stripe_success_url,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
-}
-
-func (x *Data_Payment) Reset() {
-	*x = Data_Payment{}
-	mi := &file_conf_conf_proto_msgTypes[9]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *Data_Payment) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Data_Payment) ProtoMessage() {}
-
-func (x *Data_Payment) ProtoReflect() protoreflect.Message {
-	mi := &file_conf_conf_proto_msgTypes[9]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Data_Payment.ProtoReflect.Descriptor instead.
-func (*Data_Payment) Descriptor() ([]byte, []int) {
-	return file_conf_conf_proto_rawDescGZIP(), []int{2, 3}
-}
-
-func (x *Data_Payment) GetStripeSecretKey() string {
-	if x != nil {
-		return x.StripeSecretKey
-	}
-	return ""
-}
-
-func (x *Data_Payment) GetStripeSuccessUrl() string {
-	if x != nil {
-		return x.StripeSuccessUrl
-	}
-	return ""
-}
-
-type Data_Kafka struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	BrokerAddrs   []string               `protobuf:"bytes,1,rep,name=broker_addrs,json=brokerAddrs,proto3" json:"broker_addrs,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *Data_Kafka) Reset() {
-	*x = Data_Kafka{}
-	mi := &file_conf_conf_proto_msgTypes[10]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *Data_Kafka) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Data_Kafka) ProtoMessage() {}
-
-func (x *Data_Kafka) ProtoReflect() protoreflect.Message {
-	mi := &file_conf_conf_proto_msgTypes[10]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Data_Kafka.ProtoReflect.Descriptor instead.
-func (*Data_Kafka) Descriptor() ([]byte, []int) {
-	return file_conf_conf_proto_rawDescGZIP(), []int{2, 4}
-}
-
-func (x *Data_Kafka) GetBrokerAddrs() []string {
-	if x != nil {
-		return x.BrokerAddrs
-	}
-	return nil
-}
-
 var File_conf_conf_proto protoreflect.FileDescriptor
 
 const file_conf_conf_proto_rawDesc = "" +
@@ -724,35 +800,41 @@ const file_conf_conf_proto_rawDesc = "" +
 	"\x04GRPC\x12\x18\n" +
 	"\anetwork\x18\x01 \x01(\tR\anetwork\x12\x12\n" +
 	"\x04addr\x18\x02 \x01(\tR\x04addr\x123\n" +
-	"\atimeout\x18\x03 \x01(\v2\x19.google.protobuf.DurationR\atimeout\"\xc8\x06\n" +
-	"\x04Data\x12*\n" +
-	"\bdatabase\x18\x01 \x01(\v2\x0e.Data.DatabaseR\bdatabase\x12!\n" +
-	"\x05redis\x18\x02 \x01(\v2\v.Data.RedisR\x05redis\x124\n" +
-	"\fservice_addr\x18\x03 \x01(\v2\x11.Data.ServiceAddrR\vserviceAddr\x12'\n" +
-	"\apayment\x18\x04 \x01(\v2\r.Data.PaymentR\apayment\x12!\n" +
-	"\x05kafka\x18\x05 \x01(\v2\v.Data.KafkaR\x05kafka\x12\x19\n" +
-	"\bapp_name\x18\x06 \x01(\tR\aappName\x12\x19\n" +
-	"\x04auth\x18\a \x01(\v2\x05.AuthR\x04auth\x12*\n" +
-	"\x11otlp_grpc_address\x18\b \x01(\tR\x0fotlpGrpcAddress\x1a:\n" +
+	"\atimeout\x18\x03 \x01(\v2\x19.google.protobuf.DurationR\atimeout\":\n" +
 	"\bDatabase\x12\x16\n" +
 	"\x06driver\x18\x01 \x01(\tR\x06driver\x12\x16\n" +
-	"\x06source\x18\x02 \x01(\tR\x06source\x1a\xb3\x01\n" +
+	"\x06source\x18\x02 \x01(\tR\x06source\"\xb3\x01\n" +
 	"\x05Redis\x12\x18\n" +
 	"\anetwork\x18\x01 \x01(\tR\anetwork\x12\x12\n" +
 	"\x04addr\x18\x02 \x01(\tR\x04addr\x12<\n" +
 	"\fread_timeout\x18\x03 \x01(\v2\x19.google.protobuf.DurationR\vreadTimeout\x12>\n" +
-	"\rwrite_timeout\x18\x04 \x01(\v2\x19.google.protobuf.DurationR\fwriteTimeout\x1a\x89\x01\n" +
+	"\rwrite_timeout\x18\x04 \x01(\v2\x19.google.protobuf.DurationR\fwriteTimeout\"\x89\x01\n" +
 	"\vServiceAddr\x12\x18\n" +
 	"\aproduct\x18\x01 \x01(\tR\aproduct\x12\x1c\n" +
 	"\tinventory\x18\x02 \x01(\tR\tinventory\x12\x14\n" +
 	"\x05order\x18\x03 \x01(\tR\x05order\x12\x12\n" +
 	"\x04auth\x18\x04 \x01(\tR\x04auth\x12\x18\n" +
-	"\apayment\x18\x05 \x01(\tR\apayment\x1ac\n" +
+	"\apayment\x18\x05 \x01(\tR\apayment\"c\n" +
 	"\aPayment\x12*\n" +
 	"\x11stripe_secret_key\x18\x01 \x01(\tR\x0fstripeSecretKey\x12,\n" +
-	"\x12stripe_success_url\x18\x02 \x01(\tR\x10stripeSuccessUrl\x1a*\n" +
+	"\x12stripe_success_url\x18\x02 \x01(\tR\x10stripeSuccessUrl\"*\n" +
 	"\x05Kafka\x12!\n" +
-	"\fbroker_addrs\x18\x01 \x03(\tR\vbrokerAddrs\"\x91\x01\n" +
+	"\fbroker_addrs\x18\x01 \x03(\tR\vbrokerAddrs\"{\n" +
+	"\fEmbeddingAPI\x12\x1a\n" +
+	"\bendpoint\x18\x01 \x01(\tR\bendpoint\x12\x16\n" +
+	"\x06secret\x18\x02 \x01(\tR\x06secret\x12\x14\n" +
+	"\x05model\x18\x03 \x01(\tR\x05model\x12!\n" +
+	"\fmax_distance\x18\x04 \x01(\x02R\vmaxDistance\"\xd4\x02\n" +
+	"\x04Data\x12%\n" +
+	"\bdatabase\x18\x01 \x01(\v2\t.DatabaseR\bdatabase\x12\x1c\n" +
+	"\x05redis\x18\x02 \x01(\v2\x06.RedisR\x05redis\x12/\n" +
+	"\fservice_addr\x18\x03 \x01(\v2\f.ServiceAddrR\vserviceAddr\x12\"\n" +
+	"\apayment\x18\x04 \x01(\v2\b.PaymentR\apayment\x12\x1c\n" +
+	"\x05kafka\x18\x05 \x01(\v2\x06.KafkaR\x05kafka\x12\x19\n" +
+	"\bapp_name\x18\x06 \x01(\tR\aappName\x12\x19\n" +
+	"\x04auth\x18\a \x01(\v2\x05.AuthR\x04auth\x12*\n" +
+	"\x11otlp_grpc_address\x18\b \x01(\tR\x0fotlpGrpcAddress\x122\n" +
+	"\rembedding_api\x18\t \x01(\v2\r.EmbeddingAPIR\fembeddingApi\"\x91\x01\n" +
 	"\x04Auth\x12\x16\n" +
 	"\x06issuer\x18\x01 \x01(\tR\x06issuer\x12\x1f\n" +
 	"\vkey_version\x18\x02 \x01(\tR\n" +
@@ -772,41 +854,43 @@ func file_conf_conf_proto_rawDescGZIP() []byte {
 	return file_conf_conf_proto_rawDescData
 }
 
-var file_conf_conf_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+var file_conf_conf_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_conf_conf_proto_goTypes = []any{
 	(*Bootstrap)(nil),           // 0: Bootstrap
 	(*Server)(nil),              // 1: Server
-	(*Data)(nil),                // 2: Data
-	(*Auth)(nil),                // 3: Auth
-	(*Server_HTTP)(nil),         // 4: Server.HTTP
-	(*Server_GRPC)(nil),         // 5: Server.GRPC
-	(*Data_Database)(nil),       // 6: Data.Database
-	(*Data_Redis)(nil),          // 7: Data.Redis
-	(*Data_ServiceAddr)(nil),    // 8: Data.ServiceAddr
-	(*Data_Payment)(nil),        // 9: Data.Payment
-	(*Data_Kafka)(nil),          // 10: Data.Kafka
-	(*durationpb.Duration)(nil), // 11: google.protobuf.Duration
+	(*Database)(nil),            // 2: Database
+	(*Redis)(nil),               // 3: Redis
+	(*ServiceAddr)(nil),         // 4: ServiceAddr
+	(*Payment)(nil),             // 5: Payment
+	(*Kafka)(nil),               // 6: Kafka
+	(*EmbeddingAPI)(nil),        // 7: EmbeddingAPI
+	(*Data)(nil),                // 8: Data
+	(*Auth)(nil),                // 9: Auth
+	(*Server_HTTP)(nil),         // 10: Server.HTTP
+	(*Server_GRPC)(nil),         // 11: Server.GRPC
+	(*durationpb.Duration)(nil), // 12: google.protobuf.Duration
 }
 var file_conf_conf_proto_depIdxs = []int32{
 	1,  // 0: Bootstrap.server:type_name -> Server
-	2,  // 1: Bootstrap.data:type_name -> Data
-	4,  // 2: Server.http:type_name -> Server.HTTP
-	5,  // 3: Server.grpc:type_name -> Server.GRPC
-	6,  // 4: Data.database:type_name -> Data.Database
-	7,  // 5: Data.redis:type_name -> Data.Redis
-	8,  // 6: Data.service_addr:type_name -> Data.ServiceAddr
-	9,  // 7: Data.payment:type_name -> Data.Payment
-	10, // 8: Data.kafka:type_name -> Data.Kafka
-	3,  // 9: Data.auth:type_name -> Auth
-	11, // 10: Server.HTTP.timeout:type_name -> google.protobuf.Duration
-	11, // 11: Server.GRPC.timeout:type_name -> google.protobuf.Duration
-	11, // 12: Data.Redis.read_timeout:type_name -> google.protobuf.Duration
-	11, // 13: Data.Redis.write_timeout:type_name -> google.protobuf.Duration
-	14, // [14:14] is the sub-list for method output_type
-	14, // [14:14] is the sub-list for method input_type
-	14, // [14:14] is the sub-list for extension type_name
-	14, // [14:14] is the sub-list for extension extendee
-	0,  // [0:14] is the sub-list for field type_name
+	8,  // 1: Bootstrap.data:type_name -> Data
+	10, // 2: Server.http:type_name -> Server.HTTP
+	11, // 3: Server.grpc:type_name -> Server.GRPC
+	12, // 4: Redis.read_timeout:type_name -> google.protobuf.Duration
+	12, // 5: Redis.write_timeout:type_name -> google.protobuf.Duration
+	2,  // 6: Data.database:type_name -> Database
+	3,  // 7: Data.redis:type_name -> Redis
+	4,  // 8: Data.service_addr:type_name -> ServiceAddr
+	5,  // 9: Data.payment:type_name -> Payment
+	6,  // 10: Data.kafka:type_name -> Kafka
+	9,  // 11: Data.auth:type_name -> Auth
+	7,  // 12: Data.embedding_api:type_name -> EmbeddingAPI
+	12, // 13: Server.HTTP.timeout:type_name -> google.protobuf.Duration
+	12, // 14: Server.GRPC.timeout:type_name -> google.protobuf.Duration
+	15, // [15:15] is the sub-list for method output_type
+	15, // [15:15] is the sub-list for method input_type
+	15, // [15:15] is the sub-list for extension type_name
+	15, // [15:15] is the sub-list for extension extendee
+	0,  // [0:15] is the sub-list for field type_name
 }
 
 func init() { file_conf_conf_proto_init() }
@@ -820,7 +904,7 @@ func file_conf_conf_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_conf_conf_proto_rawDesc), len(file_conf_conf_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   11,
+			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

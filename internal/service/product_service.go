@@ -6,6 +6,7 @@ import (
 
 	pb "github.com/azusayn/azushop/proto/api/product/v1"
 	productv1connect "github.com/azusayn/azushop/proto/api/product/v1/v1connect"
+	"github.com/azusayn/azushop/proto/conf"
 
 	"context"
 	"errors"
@@ -23,11 +24,15 @@ import (
 
 type ProductService struct {
 	pb.UnimplementedProductServiceServer
-	uc *biz.ProductUsecase
+	uc                         *biz.ProductUsecase
+	maxEmbeddingSearchDistance float32
 }
 
-func NewProductService(uc *biz.ProductUsecase) *ProductService {
-	return &ProductService{uc: uc}
+func NewProductService(uc *biz.ProductUsecase, cd *conf.Data) *ProductService {
+	return &ProductService{
+		uc:                         uc,
+		maxEmbeddingSearchDistance: cd.GetEmbeddingApi().GetMaxDistance(),
+	}
 }
 
 const (
@@ -42,6 +47,36 @@ type ProductServiceConnectHandler struct {
 
 func NewProductServiceConnectHandler(productService *ProductService) *ProductServiceConnectHandler {
 	return &ProductServiceConnectHandler{productService: productService}
+}
+
+func (h *ProductServiceConnectHandler) SearchProducts(ctx context.Context, req *connect.Request[pb.SearchProductsRequest]) (*connect.Response[pb.SearchProductsResponse], error) {
+	r := req.Msg
+	if r.PageSize > maxPageSize {
+		return nil, status.Error(codes.OutOfRange, codes.OutOfRange.String())
+	}
+	pageToken, err := str.ParseUUID(r.PageToken)
+	if err != nil {
+		return nil, err
+	}
+	products, err := h.productService.uc.SearchProducts(
+		ctx,
+		r.GetKeyword(),
+		h.productService.maxEmbeddingSearchDistance,
+		pageToken,
+		r.GetPageSize(),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	pbProducts, err := convertToPbProducts(products)
+	if err != nil {
+		return nil, err
+	}
+
+	return connect.NewResponse(&pb.SearchProductsResponse{
+		Products: pbProducts,
+	}), nil
 }
 
 func (h *ProductServiceConnectHandler) ListSellerProducts(ctx context.Context, req *connect.Request[pb.ListSellerProductsRequest]) (*connect.Response[pb.ListSellerProductsResponse], error) {
@@ -91,6 +126,7 @@ func (h *ProductServiceConnectHandler) BatchCreateProduct(ctx context.Context, r
 	if err := h.productService.uc.BatchCheckProducts(products); err != nil {
 		return nil, err
 	}
+
 	_, err = h.productService.uc.BatchCreateProducts(ctx, products, userID, biz.UserRole(role))
 	if err != nil {
 		return nil, err

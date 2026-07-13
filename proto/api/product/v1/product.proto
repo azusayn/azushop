@@ -29,12 +29,9 @@ message SearchProductsRequest {
     string page_token = 1;
     int32 page_size = 2;
     string keyword = 3;
-    bool fuzzy = 4;
 }
 
 message SearchProductsResponse {
-    string page_token = 1;
-    int32 page_size = 2;
     repeated Product products = 3;
 }
 

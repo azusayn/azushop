@@ -83,7 +83,6 @@ type SearchProductsRequest struct {
 	PageToken     string                 `protobuf:"bytes,1,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	PageSize      int32                  `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	Keyword       string                 `protobuf:"bytes,3,opt,name=keyword,proto3" json:"keyword,omitempty"`
-	Fuzzy         bool                   `protobuf:"varint,4,opt,name=fuzzy,proto3" json:"fuzzy,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -139,17 +138,8 @@ func (x *SearchProductsRequest) GetKeyword() string {
 	return ""
 }
 
-func (x *SearchProductsRequest) GetFuzzy() bool {
-	if x != nil {
-		return x.Fuzzy
-	}
-	return false
-}
-
 type SearchProductsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	PageToken     string                 `protobuf:"bytes,1,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
-	PageSize      int32                  `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	Products      []*Product             `protobuf:"bytes,3,rep,name=products,proto3" json:"products,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -183,20 +173,6 @@ func (x *SearchProductsResponse) ProtoReflect() protoreflect.Message {
 // Deprecated: Use SearchProductsResponse.ProtoReflect.Descriptor instead.
 func (*SearchProductsResponse) Descriptor() ([]byte, []int) {
 	return file_api_product_v1_product_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *SearchProductsResponse) GetPageToken() string {
-	if x != nil {
-		return x.PageToken
-	}
-	return ""
-}
-
-func (x *SearchProductsResponse) GetPageSize() int32 {
-	if x != nil {
-		return x.PageSize
-	}
-	return 0
 }
 
 func (x *SearchProductsResponse) GetProducts() []*Product {
@@ -800,17 +776,13 @@ var File_api_product_v1_product_proto protoreflect.FileDescriptor
 const file_api_product_v1_product_proto_rawDesc = "" +
 	"\n" +
 	"\x1capi/product/v1/product.proto\x12\n" +
-	"product.v1\x1a google/protobuf/field_mask.proto\x1a\x1cgoogle/protobuf/struct.proto\"\x83\x01\n" +
+	"product.v1\x1a google/protobuf/field_mask.proto\x1a\x1cgoogle/protobuf/struct.proto\"m\n" +
 	"\x15SearchProductsRequest\x12\x1d\n" +
 	"\n" +
 	"page_token\x18\x01 \x01(\tR\tpageToken\x12\x1b\n" +
 	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\x12\x18\n" +
-	"\akeyword\x18\x03 \x01(\tR\akeyword\x12\x14\n" +
-	"\x05fuzzy\x18\x04 \x01(\bR\x05fuzzy\"\x85\x01\n" +
-	"\x16SearchProductsResponse\x12\x1d\n" +
-	"\n" +
-	"page_token\x18\x01 \x01(\tR\tpageToken\x12\x1b\n" +
-	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\x12/\n" +
+	"\akeyword\x18\x03 \x01(\tR\akeyword\"I\n" +
+	"\x16SearchProductsResponse\x12/\n" +
 	"\bproducts\x18\x03 \x03(\v2\x13.product.v1.ProductR\bproducts\"c\n" +
 	"\x03Sku\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12-\n" +

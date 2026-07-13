@@ -8,6 +8,8 @@ CREATE TABLE users (
 );
 
 -- product service.
+CREATE EXTENSION IF NOT EXISTS vector;
+
 CREATE TYPE product_status AS ENUM (
   'draft',
   'pending',
@@ -20,12 +22,15 @@ CREATE TABLE products (
   product_name VARCHAR(255) NOT NULL,
   status product_status NOT NULL,
   seller_id INT NOT NULL,
+  -- for bge m3 embedding model.
+  embedding vector(1024),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_products_seller_id ON products(seller_id);
 CREATE UNIQUE INDEX idx_products_seller_id_product_name ON products(seller_id, product_name);
+CREATE INDEX idx_products_embedding ON products USING hnsw (embedding vector_cosine_ops);
 
 CREATE TABLE skus (
   -- UUIDv7

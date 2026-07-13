@@ -3,12 +3,14 @@ package biz
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log/slog"
 
+	"github.com/azusayn/azushop/internal/pkg/llm"
 	"github.com/azusayn/azutils/validate"
 	"github.com/google/uuid"
+	"github.com/pkg/errors"
+	"github.com/samber/lo"
 )
 
 type ProductStatus string
@@ -42,9 +44,11 @@ type Product struct {
 	SellerID      int32
 	ProductStatus ProductStatus
 	Skus          []*Sku
+	Embedding     []float32
 }
 
 type ProductRepo interface {
+	SearchProductsByKeyword(ctx context.Context, embedding []float32, maxDistance float32) ([]*Product, error)
 	ListProductsBySellerId(ctx context.Context, sellerID int32, pageToken uuid.UUID, pageSize int32, productStatus ProductStatus) ([]*Product, error)
 	BatchCreateProducts(ctx context.Context, product []*Product) ([]*Product, error)
 	BatchUpdateProducts(ctx context.Context, product []*Product, paths []string) error
@@ -56,14 +60,16 @@ type ProductPublisher interface {
 }
 
 type ProductUsecase struct {
-	repo      ProductRepo
-	publisher ProductPublisher
+	repo            ProductRepo
+	publisher       ProductPublisher
+	embeddingClient *llm.OpenAIClient
 }
 
-func NewProductUsecase(repo ProductRepo, publisher ProductPublisher) *ProductUsecase {
+func NewProductUsecase(repo ProductRepo, publisher ProductPublisher, openaiClient *llm.OpenAIClient) *ProductUsecase {
 	return &ProductUsecase{
-		repo:      repo,
-		publisher: publisher,
+		repo:            repo,
+		publisher:       publisher,
+		embeddingClient: openaiClient,
 	}
 }
 
@@ -143,6 +149,17 @@ func productsFilter(products []*Product, userID int32, role UserRole) ([]*Produc
 	return nil, fmt.Errorf("role %q doesn't have the permissions to operate products", role)
 }
 
+func (uc *ProductUsecase) SearchProducts(ctx context.Context, keyword string, maxDistance float32, pageToken uuid.UUID, pageSize int32) ([]*Product, error) {
+	embeddings, err := uc.embeddingClient.CreateEmbeddings(ctx, []string{keyword})
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create embeddings")
+	}
+	if len(embeddings) != 1 {
+		return nil, errors.New("invalid embeddings dimension")
+	}
+	return uc.repo.SearchProductsByKeyword(ctx, embeddings[0], maxDistance)
+}
+
 func (uc *ProductUsecase) BatchCreateProducts(
 	ctx context.Context,
 	products []*Product,
@@ -153,6 +170,20 @@ func (uc *ProductUsecase) BatchCreateProducts(
 	if err != nil {
 		return nil, err
 	}
+
+	productNames := lo.Map(products, func(p *Product, _ int) string {
+		return p.ProductName
+	})
+
+	// generate embedding by product names.
+	embeddings, err := uc.embeddingClient.CreateEmbeddings(ctx, productNames)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create embeddings")
+	}
+	for i, p := range products {
+		p.Embedding = embeddings[i]
+	}
+
 	createdProds, err := uc.repo.BatchCreateProducts(ctx, products)
 	if err != nil {
 		return nil, err

@@ -143,7 +143,7 @@ func (uc *InventoryUsecase) DeductStock(ctx context.Context, orderID int64) erro
 			return err
 		}
 		if inventoryLock.Status != InventoryLockStatusLocked {
-			return fmt.Errorf("order %q has been procceed", inventoryLock.OrderID)
+			return fmt.Errorf("order %d has been procceed", inventoryLock.OrderID)
 		}
 		var orderItems []*OrderItem
 		if err := json.Unmarshal(inventoryLock.Payload, &orderItems); err != nil {

@@ -14,6 +14,7 @@ import (
 	"github.com/azusayn/azutils/sql"
 	"github.com/google/uuid"
 	"github.com/google/wire"
+	"github.com/pgvector/pgvector-go"
 )
 
 var ProductDataProviderSet = wire.NewSet(
@@ -50,6 +51,17 @@ func cacheKeyProduct(sellerID int32, pageToken uuid.UUID, pageSize int32, produc
 
 func cacheKeyProductSet(sellerID int32) string {
 	return fmt.Sprintf("product:%d", sellerID)
+}
+
+func (repo *ProductRepo) SearchProductsByKeyword(ctx context.Context, embedding []float32, maxDistance float32) ([]*biz.Product, error) {
+	var products []*biz.Product
+	if err := repo.postgres.GormClient.
+		WithContext(ctx).
+		Where("embedding <=> ? < ?", pgvector.NewVector(embedding), maxDistance).
+		Find(&products).Error; err != nil {
+		return nil, err
+	}
+	return products, nil
 }
 
 func (repo *ProductRepo) ListProductsBySellerId(
@@ -158,7 +170,7 @@ func (repo *ProductRepo) BatchCreateProducts(ctx context.Context, products []*bi
 	client := repo.postgres.Conn
 
 	ss := str.NewStringSet()
-	productsColNames := []string{"id", "product_name", "seller_id", "status"}
+	productsColNames := []string{"id", "product_name", "seller_id", "status", "embedding"}
 	productsRowValues := make([][]any, 0, len(products))
 	skusColNames := []string{"id", "product_id", "attrs", "unit_price"}
 	skusRowValues := make([][]any, 0)
@@ -169,7 +181,7 @@ func (repo *ProductRepo) BatchCreateProducts(ctx context.Context, products []*bi
 			return nil, err
 		}
 		p.ID = productID
-		productsRowValues = append(productsRowValues, []any{productID, p.ProductName, p.SellerID, p.ProductStatus})
+		productsRowValues = append(productsRowValues, []any{productID, p.ProductName, p.SellerID, p.ProductStatus, p.Embedding})
 		for _, s := range p.Skus {
 			skuID, err := uuid.NewV7()
 			if err != nil {
