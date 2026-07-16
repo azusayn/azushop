@@ -5,7 +5,7 @@ services:
       - "6379:6379"
 
   postgres:
-    image: postgres:latest
+    image: pgvector/pgvector:0.8.5-pg18-trixie
     ports:
       - "5432:5432"
     environment:
