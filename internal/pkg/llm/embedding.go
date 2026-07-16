@@ -20,7 +20,11 @@ type OpenAIClient struct {
 
 func NewOpenAIClient(cd *conf.Data) *OpenAIClient {
 	embeddingAPI := cd.GetEmbeddingApi()
-	client := openai.NewClient(option.WithAPIKey(embeddingAPI.GetSecret()))
+	client := openai.NewClient(
+		option.WithAPIKey(embeddingAPI.GetSecret()),
+		// e.g. https://example.ai.com/v1
+		option.WithBaseURL(embeddingAPI.GetEndpoint()),
+	)
 	return &OpenAIClient{
 		embeddingModel: embeddingAPI.GetModel(),
 		Client:         client,
