@@ -15,6 +15,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/google/wire"
 	"github.com/pgvector/pgvector-go"
+	"gorm.io/gorm"
 )
 
 var ProductDataProviderSet = wire.NewSet(
@@ -54,10 +55,13 @@ func cacheKeyProductSet(sellerID int32) string {
 }
 
 func (repo *ProductRepo) SearchProductsByKeyword(ctx context.Context, embedding []float32, maxDistance float32) ([]*biz.Product, error) {
+	v := pgvector.NewVector(embedding)
 	var products []*biz.Product
 	if err := repo.postgres.GormClient.
 		WithContext(ctx).
-		Where("embedding <=> ? < ?", pgvector.NewVector(embedding), maxDistance).
+		Model(&biz.Product{}).
+		Where("embedding <=> ? < ?", v, maxDistance).
+		Order(gorm.Expr("embedding <=> ?", v)).
 		Find(&products).Error; err != nil {
 		return nil, err
 	}
@@ -79,9 +83,9 @@ func (repo *ProductRepo) ListProductsBySellerId(
 	client := repo.postgres.Conn
 
 	stmt := `
-		SELECT p.id, p.product_name, p.status, 
+		SELECT p.id, p.product_name, p.status,
 			s.id, s.attrs, s.unit_price
-		FROM products p 
+		FROM products p
 		JOIN skus s ON p.id=s.product_id
 		WHERE p.id > $1 AND p.seller_id = $2 %s
 		ORDER BY p.id LIMIT $3
@@ -170,7 +174,7 @@ func (repo *ProductRepo) BatchCreateProducts(ctx context.Context, products []*bi
 	client := repo.postgres.Conn
 
 	ss := str.NewStringSet()
-	productsColNames := []string{"id", "product_name", "seller_id", "status", "embedding"}
+	productsColNames := []string{"id", "product_name", "description", "seller_id", "status", "embedding"}
 	productsRowValues := make([][]any, 0, len(products))
 	skusColNames := []string{"id", "product_id", "attrs", "unit_price"}
 	skusRowValues := make([][]any, 0)
@@ -181,7 +185,12 @@ func (repo *ProductRepo) BatchCreateProducts(ctx context.Context, products []*bi
 			return nil, err
 		}
 		p.ID = productID
-		productsRowValues = append(productsRowValues, []any{productID, p.ProductName, p.SellerID, p.ProductStatus, p.Embedding})
+		var embeddingVal any
+		if len(p.Embedding.Slice()) > 0 {
+			v := p.Embedding
+			embeddingVal = &v
+		}
+		productsRowValues = append(productsRowValues, []any{productID, p.ProductName, p.Description, p.SellerID, p.ProductStatus, embeddingVal})
 		for _, s := range p.Skus {
 			skuID, err := uuid.NewV7()
 			if err != nil {
@@ -306,11 +315,11 @@ func (repo *ProductRepo) BatchGetSkuDetails(
 ) ([]*biz.SkuDetail, error) {
 	client := repo.postgres.Conn
 	stmt := `
-		SELECT 
-			p.product_name, 
-			s.id, 
-			s.product_id, 
-			s.attrs, 
+		SELECT
+			p.product_name,
+			s.id,
+			s.product_id,
+			s.attrs,
 			s.unit_price
 		FROM skus s
 		JOIN products p ON p.id = s.product_id

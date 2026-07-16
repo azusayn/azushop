@@ -9,6 +9,7 @@ import (
 	"github.com/azusayn/azushop/internal/pkg/llm"
 	"github.com/azusayn/azutils/validate"
 	"github.com/google/uuid"
+	"github.com/pgvector/pgvector-go"
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
 )
@@ -47,7 +48,7 @@ type Product struct {
 	ProductStatus ProductStatus
 	Skus          []*Sku
 	Description   string
-	Embedding     []float32
+	Embedding     pgvector.Vector
 }
 
 type ProductRepo interface {
@@ -160,7 +161,7 @@ func (uc *ProductUsecase) SearchProducts(ctx context.Context, keyword string, ma
 	if len(embeddings) != 1 {
 		return nil, errors.New("invalid embeddings dimension")
 	}
-	return uc.repo.SearchProductsByKeyword(ctx, embeddings[0], maxDistance)
+	return uc.repo.SearchProductsByKeyword(ctx, embeddings[0].Slice(), maxDistance)
 }
 
 func (uc *ProductUsecase) BatchCreateProducts(
