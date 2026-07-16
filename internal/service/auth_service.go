@@ -14,7 +14,6 @@ import (
 )
 
 type AuthService struct {
-	pb.UnimplementedAuthServiceServer
 	uc         *biz.UserUsecase
 	privateKey ed25519.PrivateKey
 	issuer     string

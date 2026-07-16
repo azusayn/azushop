@@ -23,30 +23,24 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 
 	"connectrpc.com/connect"
+
+	inventoryv1connect "github.com/azusayn/azushop/proto/api/inventory/v1/v1connect"
+	productv1connect "github.com/azusayn/azushop/proto/api/product/v1/v1connect"
 )
 
 type OrderServiceClient struct {
-	inventory inventorypb.InventoryServiceClient
-	product   productpb.ProductServiceClient
+	inventory inventoryv1connect.InventoryServiceClient
+	product   productv1connect.ProductServiceClient
 }
 
-func NewOrderServiceClient(config *conf.Data) (*OrderServiceClient, error) {
-	inventory, err := NewInventoryClient(config)
-	if err != nil {
-		return nil, err
-	}
-	product, err := NewProductClient(config)
-	if err != nil {
-		return nil, err
-	}
+func NewOrderServiceClient(config *conf.Data) *OrderServiceClient {
 	return &OrderServiceClient{
-		inventory: inventory,
-		product:   product,
-	}, nil
+		inventory: NewInventoryClient(config),
+		product:   NewProductClient(config),
+	}
 }
 
 type OrderService struct {
-	pb.UnimplementedOrderServiceServer
 	uc            *biz.OrderUsecase
 	serviceClient *OrderServiceClient
 }
@@ -57,6 +51,8 @@ func NewOrderService(uc *biz.OrderUsecase, c *OrderServiceClient) *OrderService 
 		serviceClient: c,
 	}
 }
+
+const maxPageSize = 100
 
 // OrderServiceConnectHandler implements the ConnectRPC handler for OrderService.
 type OrderServiceConnectHandler struct {
@@ -107,7 +103,8 @@ func (h *OrderServiceConnectHandler) CancelOrder(ctx context.Context, req *conne
 		return nil, err
 	}
 	inventoryService := h.orderService.serviceClient.inventory
-	_, err := inventoryService.ReleaseStock(ctx, &inventorypb.ReleaseStockRequest{OrderId: r.OrderId})
+	releaseReq := connect.NewRequest(&inventorypb.ReleaseStockRequest{OrderId: r.OrderId})
+	_, err := inventoryService.ReleaseStock(ctx, releaseReq)
 	if err != nil {
 		return nil, err
 	}
@@ -157,27 +154,28 @@ func (h *OrderServiceConnectHandler) ListOrders(ctx context.Context, req *connec
 
 func fetchAllSkuDetails(
 	ctx context.Context,
-	productService productpb.ProductServiceClient,
+	productService productv1connect.ProductServiceClient,
 	skuIDs []string,
 ) (map[string]*productpb.SkuDetail, error) {
 	var nextPageToken string
 	m := make(map[string]*productpb.SkuDetail)
 	for {
-		resp, err := productService.BatchGetSkus(ctx, &productpb.BatchGetSkusRequest{
+		req := connect.NewRequest(&productpb.BatchGetSkusRequest{
 			PageToken: nextPageToken,
 			PageSize:  maxPageSize,
 			SkuIds:    skuIDs,
 		})
+		resp, err := productService.BatchGetSkus(ctx, req)
 		if err != nil {
 			return nil, err
 		}
-		for _, skuDetail := range resp.SkuDetails {
+		for _, skuDetail := range resp.Msg.SkuDetails {
 			m[skuDetail.GetSku().GetId()] = skuDetail
 		}
-		if resp.NextPageToken == "" {
+		if resp.Msg.NextPageToken == "" {
 			break
 		}
-		nextPageToken = resp.NextPageToken
+		nextPageToken = resp.Msg.NextPageToken
 	}
 	return m, nil
 }

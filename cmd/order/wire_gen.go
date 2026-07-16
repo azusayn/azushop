@@ -10,54 +10,42 @@ import (
 	"github.com/azusayn/azushop/internal/biz"
 	"github.com/azusayn/azushop/internal/data"
 	"github.com/azusayn/azushop/internal/runner"
-	"github.com/azusayn/azushop/internal/server"
 	"github.com/azusayn/azushop/internal/service"
 	"github.com/azusayn/azushop/proto/conf"
-	"github.com/go-kratos/kratos/v2"
-	"github.com/go-kratos/kratos/v2/log"
-)
-
-import (
-	_ "go.uber.org/automaxprocs"
+	"github.com/google/wire"
 )
 
 // Injectors from wire.go:
 
-func wireOrderApp(confServer *conf.Server, confData *conf.Data, logger log.Logger) (*kratos.App, func(), error) {
-	postgres, err := data.NewPostgres(confData)
+func wireApp(serverConfig *conf.Server, dataConfig *conf.Data) (*App, func(), error) {
+	postgres, err := data.NewPostgres(dataConfig)
 	if err != nil {
 		return nil, nil, err
 	}
 	orderRepo := data.NewOrderRepo(postgres)
-	orderSubscriber, err := data.NewOrderSubscriber(confData)
+	orderSubscriber, err := data.NewOrderSubscriber(dataConfig)
 	if err != nil {
 		return nil, nil, err
 	}
-	kafkaProducer, err := data.NewKafkaProducer(confData)
+	kafkaProducer, err := data.NewKafkaProducer(dataConfig)
 	if err != nil {
 		return nil, nil, err
 	}
 	orderPublisher := data.NewOrderPublisher(kafkaProducer)
 	transaction := data.NewTransaction(postgres)
 	orderUsecase := biz.NewOrderUsecase(orderRepo, orderSubscriber, orderPublisher, transaction)
-	orderServiceClient, err := service.NewOrderServiceClient(confData)
-	if err != nil {
-		return nil, nil, err
-	}
+	orderServiceClient := service.NewOrderServiceClient(dataConfig)
 	orderService := service.NewOrderService(orderUsecase, orderServiceClient)
-	tracerProvider, cleanup, err := server.NewGlobalTraceProvider(confData)
-	if err != nil {
-		return nil, nil, err
-	}
-	grpcServer, err := server.NewOrderGRPCServer(confServer, confData, orderService, tracerProvider, logger)
-	if err != nil {
-		cleanup()
-		return nil, nil, err
-	}
-	httpServer := server.NewOrderHTTPServer(confServer, orderService, logger)
+	orderServiceConnectHandler := service.NewOrderServiceConnectHandler(orderService)
 	orderRunner := runner.NewOrderRunner(orderUsecase)
-	app := newApp(logger, grpcServer, httpServer, orderRunner)
+	app, err := newApp(serverConfig, dataConfig, orderServiceConnectHandler, orderRunner)
+	if err != nil {
+		return nil, nil, err
+	}
 	return app, func() {
-		cleanup()
 	}, nil
 }
+
+// wire.go:
+
+var wireProviders = wire.NewSet(data.OrderDataProviderSet, biz.NewOrderUsecase, service.NewOrderServiceClient, service.NewOrderService, service.NewOrderServiceConnectHandler, runner.NewOrderRunner, newApp)

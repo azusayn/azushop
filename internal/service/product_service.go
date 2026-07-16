@@ -23,7 +23,6 @@ import (
 )
 
 type ProductService struct {
-	pb.UnimplementedProductServiceServer
 	uc                         *biz.ProductUsecase
 	maxEmbeddingSearchDistance float32
 }
@@ -35,9 +34,7 @@ func NewProductService(uc *biz.ProductUsecase, cd *conf.Data) *ProductService {
 	}
 }
 
-const (
-	maxPageSize = 100
-)
+const maxPageSizeProduct = 100
 
 // ProductServiceConnectHandler implements the ConnectRPC handler for ProductService.
 type ProductServiceConnectHandler struct {
@@ -51,7 +48,7 @@ func NewProductServiceConnectHandler(productService *ProductService) *ProductSer
 
 func (h *ProductServiceConnectHandler) SearchProducts(ctx context.Context, req *connect.Request[pb.SearchProductsRequest]) (*connect.Response[pb.SearchProductsResponse], error) {
 	r := req.Msg
-	if r.PageSize > maxPageSize {
+	if r.PageSize > maxPageSizeProduct {
 		return nil, status.Error(codes.OutOfRange, codes.OutOfRange.String())
 	}
 	pageToken, err := str.ParseUUID(r.PageToken)
@@ -81,7 +78,7 @@ func (h *ProductServiceConnectHandler) SearchProducts(ctx context.Context, req *
 
 func (h *ProductServiceConnectHandler) ListSellerProducts(ctx context.Context, req *connect.Request[pb.ListSellerProductsRequest]) (*connect.Response[pb.ListSellerProductsResponse], error) {
 	r := req.Msg
-	if r.PageSize > maxPageSize {
+	if r.PageSize > maxPageSizeProduct {
 		return nil, status.Error(codes.OutOfRange, codes.OutOfRange.String())
 	}
 	userID, role, err := common.ExtractUserInfo(&ctx)
@@ -156,7 +153,7 @@ func (h *ProductServiceConnectHandler) BatchUpdateProduct(ctx context.Context, r
 
 func (h *ProductServiceConnectHandler) BatchGetSkus(ctx context.Context, req *connect.Request[pb.BatchGetSkusRequest]) (*connect.Response[pb.BatchGetSkusResponse], error) {
 	r := req.Msg
-	if r.PageSize < 1 || r.PageSize > maxPageSize {
+	if r.PageSize < 1 || r.PageSize > maxPageSizeProduct {
 		return nil, status.Error(codes.OutOfRange, codes.OutOfRange.String())
 	}
 	var uuids []uuid.UUID

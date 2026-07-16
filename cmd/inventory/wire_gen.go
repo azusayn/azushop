@@ -10,41 +10,36 @@ import (
 	"github.com/azusayn/azushop/internal/biz"
 	"github.com/azusayn/azushop/internal/data"
 	"github.com/azusayn/azushop/internal/runner"
-	"github.com/azusayn/azushop/internal/server"
 	"github.com/azusayn/azushop/internal/service"
 	"github.com/azusayn/azushop/proto/conf"
-	"github.com/go-kratos/kratos/v2"
-	"github.com/go-kratos/kratos/v2/log"
-)
-
-import (
-	_ "go.uber.org/automaxprocs"
+	"github.com/google/wire"
 )
 
 // Injectors from wire.go:
 
-func wireInventoryApp(confServer *conf.Server, confData *conf.Data, logger log.Logger) (*kratos.App, func(), error) {
-	postgres, err := data.NewPostgres(confData)
+func wireApp(serverConfig *conf.Server, dataConfig *conf.Data) (*App, func(), error) {
+	postgres, err := data.NewPostgres(dataConfig)
 	if err != nil {
 		return nil, nil, err
 	}
 	inventoryRepo := data.NewInventoryRepo(postgres)
 	transaction := data.NewTransaction(postgres)
-	inventorySubscriber, err := data.NewInventorySubscriber(confData)
+	inventorySubscriber, err := data.NewInventorySubscriber(dataConfig)
 	if err != nil {
 		return nil, nil, err
 	}
 	inventoryUsecase := biz.NewInventoryUsecase(inventoryRepo, transaction, inventorySubscriber)
 	inventoryService := service.NewInventoryService(inventoryUsecase)
-	tracerProvider, cleanup, err := server.NewGlobalTraceProvider(confData)
+	inventoryServiceConnectHandler := service.NewInventoryServiceConnectHandler(inventoryService)
+	inventoryRunner := runner.NewInventoryRunner(inventoryUsecase)
+	app, err := newApp(serverConfig, dataConfig, inventoryServiceConnectHandler, inventoryRunner)
 	if err != nil {
 		return nil, nil, err
 	}
-	grpcServer := server.NewInventoryGRPCServer(confServer, inventoryService, tracerProvider, logger)
-	httpServer := server.NewInventoryHTTPServer(confServer, inventoryService, logger)
-	inventoryRunner := runner.NewInventoryRunner(inventoryUsecase)
-	app := newApp(logger, grpcServer, httpServer, inventoryRunner)
 	return app, func() {
-		cleanup()
 	}, nil
 }
+
+// wire.go:
+
+var wireProviders = wire.NewSet(data.InventoryDataProviderSet, biz.NewInventoryUsecase, service.NewInventoryService, service.NewInventoryServiceConnectHandler, runner.NewInventoryRunner, newApp)

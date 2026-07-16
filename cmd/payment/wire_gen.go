@@ -9,47 +9,38 @@ package main
 import (
 	"github.com/azusayn/azushop/internal/biz"
 	"github.com/azusayn/azushop/internal/data"
-	"github.com/azusayn/azushop/internal/server"
 	"github.com/azusayn/azushop/internal/service"
 	"github.com/azusayn/azushop/proto/conf"
-	"github.com/go-kratos/kratos/v2"
-	"github.com/go-kratos/kratos/v2/log"
-)
-
-import (
-	_ "go.uber.org/automaxprocs"
+	"github.com/google/wire"
 )
 
 // Injectors from wire.go:
 
-func wirePaymentApp(confServer *conf.Server, confData *conf.Data, logger log.Logger) (*kratos.App, func(), error) {
-	postgres, err := data.NewPostgres(confData)
+func wireApp(serverConfig *conf.Server, dataConfig *conf.Data) (*App, func(), error) {
+	postgres, err := data.NewPostgres(dataConfig)
 	if err != nil {
 		return nil, nil, err
 	}
 	paymentRepo := data.NewPaymentRepo(postgres)
-	kafkaProducer, err := data.NewKafkaProducer(confData)
+	kafkaProducer, err := data.NewKafkaProducer(dataConfig)
 	if err != nil {
 		return nil, nil, err
 	}
 	paymentPublisher := data.NewPaymentPublisher(kafkaProducer)
 	paymentUsecase := biz.NewPaymentUsecase(paymentRepo, paymentPublisher)
-	paymentService, err := service.NewPaymentService(paymentUsecase, confData)
+	paymentService, err := service.NewPaymentService(paymentUsecase, dataConfig)
 	if err != nil {
 		return nil, nil, err
 	}
-	tracerProvider, cleanup, err := server.NewGlobalTraceProvider(confData)
+	paymentServiceConnectHandler := service.NewPaymentServiceConnectHandler(paymentService)
+	app, err := newApp(serverConfig, dataConfig, paymentServiceConnectHandler)
 	if err != nil {
 		return nil, nil, err
 	}
-	grpcServer, err := server.NewPaymentGRPCServer(confServer, confData, paymentService, tracerProvider, logger)
-	if err != nil {
-		cleanup()
-		return nil, nil, err
-	}
-	httpServer := server.NewPaymentHTTPServer(confServer, paymentService)
-	app := newApp(logger, grpcServer, httpServer)
 	return app, func() {
-		cleanup()
 	}, nil
 }
+
+// wire.go:
+
+var wireProviders = wire.NewSet(data.PaymentDataProviderSet, biz.NewPaymentUsecase, service.NewPaymentService, service.NewPaymentServiceConnectHandler, newApp)

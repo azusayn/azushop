@@ -4,12 +4,11 @@ import (
 	"context"
 	"time"
 
-	"github.com/go-kratos/kratos/v2/middleware"
-	"github.com/go-kratos/kratos/v2/transport"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	"connectrpc.com/connect"
 )
 
 var (
@@ -36,24 +35,20 @@ var (
 	)
 )
 
-func MetricsInterceptor() middleware.Middleware {
-	return func(handler middleware.Handler) middleware.Handler {
-		return func(ctx context.Context, req any) (any, error) {
+func MetricsInterceptor() connect.UnaryInterceptorFunc {
+	return func(next connect.UnaryFunc) connect.UnaryFunc {
+		return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
 			start := time.Now()
-			tr, ok := transport.FromServerContext(ctx)
-			if !ok {
-				return nil, status.Error(codes.Internal, "failed to extract transporter from ctx")
-			}
-			method := tr.Operation()
-			RequestInFlights.WithLabelValues(method).Inc()
-			defer RequestInFlights.WithLabelValues(method).Dec()
+			procedure := req.Spec().Procedure
+			RequestInFlights.WithLabelValues(procedure).Inc()
+			defer RequestInFlights.WithLabelValues(procedure).Dec()
 
-			resp, err := handler(ctx, req)
+			resp, err := next(ctx, req)
 			code := status.Code(err).String()
 			elapsed := time.Since(start).Seconds()
 
-			RequestDuration.WithLabelValues(method, code).Observe(elapsed)
-			RequestTotal.WithLabelValues(method, code).Inc()
+			RequestDuration.WithLabelValues(procedure, code).Observe(elapsed)
+			RequestTotal.WithLabelValues(procedure, code).Inc()
 
 			return resp, err
 		}

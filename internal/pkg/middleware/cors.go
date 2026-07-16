@@ -4,8 +4,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-
-	httptransport "github.com/go-kratos/kratos/v2/transport/http"
 )
 
 type CORSConfig struct {
@@ -28,7 +26,7 @@ func DefaultCORSConfig() *CORSConfig {
 	}
 }
 
-func CORSFilter(config *CORSConfig) httptransport.FilterFunc {
+func CORSFilter(config *CORSConfig) func(http.Handler) http.Handler {
 	if config == nil {
 		config = DefaultCORSConfig()
 	}
@@ -41,7 +39,6 @@ func CORSFilter(config *CORSConfig) httptransport.FilterFunc {
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Set CORS response headers.
 			if wildcardOrigin {
 				w.Header().Set("Access-Control-Allow-Origin", "*")
 			} else if origin := r.Header.Get("Origin"); origin != "" {

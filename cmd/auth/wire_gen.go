@@ -10,39 +10,34 @@ import (
 	"github.com/azusayn/azushop/internal/biz"
 	"github.com/azusayn/azushop/internal/data"
 	"github.com/azusayn/azushop/internal/runner"
-	"github.com/azusayn/azushop/internal/server"
 	"github.com/azusayn/azushop/internal/service"
 	"github.com/azusayn/azushop/proto/conf"
-	"github.com/go-kratos/kratos/v2"
-	"github.com/go-kratos/kratos/v2/log"
-)
-
-import (
-	_ "go.uber.org/automaxprocs"
+	"github.com/google/wire"
 )
 
 // Injectors from wire.go:
 
-func wireAuthApp(confServer *conf.Server, confData *conf.Data, logger log.Logger) (*kratos.App, func(), error) {
-	postgres, err := data.NewPostgres(confData)
+func wireApp(serverConfig *conf.Server, dataConfig *conf.Data) (*App, func(), error) {
+	postgres, err := data.NewPostgres(dataConfig)
 	if err != nil {
 		return nil, nil, err
 	}
 	userRepo := data.NewUserRepo(postgres)
 	userUsecase := biz.NewUserUsecase(userRepo)
-	authService, err := service.NewAuthService(userUsecase, confData)
+	authService, err := service.NewAuthService(userUsecase, dataConfig)
 	if err != nil {
 		return nil, nil, err
 	}
-	tracerProvider, cleanup, err := server.NewGlobalTraceProvider(confData)
-	if err != nil {
-		return nil, nil, err
-	}
-	grpcServer := server.NewAuthGRPCServer(confServer, authService, tracerProvider, logger)
-	httpServer := server.NewAuthHTTPServer(confServer, authService, logger)
+	authServiceConnectHandler := service.NewAuthServiceConnectHandler(authService)
 	metricsRunner := runner.NewMetricsRunner()
-	app := newApp(logger, grpcServer, httpServer, metricsRunner)
+	app, err := newApp(serverConfig, dataConfig, authServiceConnectHandler, metricsRunner)
+	if err != nil {
+		return nil, nil, err
+	}
 	return app, func() {
-		cleanup()
 	}, nil
 }
+
+// wire.go:
+
+var wireProviders = wire.NewSet(data.AuthDataProviderSet, biz.NewUserUsecase, service.NewAuthService, service.NewAuthServiceConnectHandler, runner.NewMetricsRunner, newApp)

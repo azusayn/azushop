@@ -1,78 +1,102 @@
 package main
 
 import (
+	"context"
 	"flag"
-	"os"
+	"net/http"
+	"os/signal"
+	"syscall"
 
+	cfg "github.com/azusayn/azushop/internal/pkg/config"
+	"github.com/azusayn/azushop/internal/pkg/log"
+	"github.com/azusayn/azushop/internal/pkg/middleware"
 	"github.com/azusayn/azushop/internal/runner"
+	"github.com/azusayn/azushop/internal/server"
+	"github.com/azusayn/azushop/internal/service"
 	"github.com/azusayn/azushop/proto/conf"
-	"github.com/go-kratos/kratos/v2"
-	"github.com/go-kratos/kratos/v2/config"
-	"github.com/go-kratos/kratos/v2/config/file"
-	"github.com/go-kratos/kratos/v2/log"
-	"github.com/go-kratos/kratos/v2/transport/grpc"
-	"github.com/go-kratos/kratos/v2/transport/http"
-	_ "go.uber.org/automaxprocs"
+	authv1connect "github.com/azusayn/azushop/proto/api/auth/v1/v1connect"
+
+	"golang.org/x/sync/errgroup"
+
+	"connectrpc.com/connect"
 )
 
-var (
-	Name     string
-	Version  string
-	flagconf string
+var flagconf string
 
-	id, _ = os.Hostname()
-)
+// App holds the components for the auth service.
+type App struct {
+	Server        *http.Server
+	MetricsRunner *runner.MetricsRunner
+}
+
+// newApp creates the App from wire-injected dependencies.
+func newApp(
+	serverConfig *conf.Server,
+	config *conf.Data,
+	connectHandler *service.AuthServiceConnectHandler,
+	metricsRunner *runner.MetricsRunner,
+) (*App, error) {
+	path, handler := authv1connect.NewAuthServiceHandler(
+		connectHandler,
+		connect.WithInterceptors(
+			middleware.MetricsInterceptor(),
+		),
+	)
+
+	mux := http.NewServeMux()
+	mux.Handle(path, handler)
+
+	return &App{
+		Server: &http.Server{
+			Addr:    serverConfig.Http.Addr,
+			Handler: middleware.CORSFilter(nil)(mux),
+		},
+		MetricsRunner: metricsRunner,
+	}, nil
+}
 
 func init() {
 	flag.StringVar(&flagconf, "conf", "configs/auth.yaml", "config path, eg: -conf config.yaml")
 }
 
-func newApp(
-	logger log.Logger,
-	grpcServer *grpc.Server,
-	httpServer *http.Server,
-	metricsRunner *runner.MetricsRunner,
-) *kratos.App {
-	return kratos.New(
-		kratos.ID(id),
-		kratos.Name(Name),
-		kratos.Version(Version),
-		kratos.Metadata(map[string]string{}),
-		kratos.Logger(logger),
-		kratos.Server(
-			grpcServer,
-			httpServer,
-			metricsRunner,
-		),
-	)
-}
-
 func main() {
 	flag.Parse()
-	logger := log.With(log.NewStdLogger(os.Stdout))
-	c := config.New(
-		config.WithSource(
-			file.NewSource(flagconf),
-		),
-	)
-	//nolint:errcheck
-	defer c.Close()
-
-	if err := c.Load(); err != nil {
-		panic(err)
-	}
+	log.SetupLogger("azushop.auth")
 
 	var bc conf.Bootstrap
-	if err := c.Scan(&bc); err != nil {
+	if err := cfg.LoadYAMLConfig(flagconf, &bc); err != nil {
 		panic(err)
 	}
-	app, cleanup, err := wireAuthApp(bc.Server, bc.Data, logger)
+
+	tp, tpCleanup, err := server.NewGlobalTraceProvider(bc.Data)
+	if err != nil {
+		panic(err)
+	}
+	defer tpCleanup()
+
+	app, cleanup, err := wireApp(bc.Server, bc.Data)
 	if err != nil {
 		panic(err)
 	}
 	defer cleanup()
 
-	if err := app.Run(); err != nil {
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer cancel()
+
+	g, egCtx := errgroup.WithContext(ctx)
+	g.Go(func() error {
+		return app.Server.ListenAndServe()
+	})
+	g.Go(func() error {
+		return app.MetricsRunner.Start(egCtx)
+	})
+	g.Go(func() error {
+		<-egCtx.Done()
+		tp.Shutdown(context.Background())
+		app.MetricsRunner.Stop(context.Background())
+		return app.Server.Shutdown(context.Background())
+	})
+	if err := g.Wait(); err != nil {
 		panic(err)
 	}
 }

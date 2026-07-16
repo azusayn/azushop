@@ -3,7 +3,6 @@ package service
 import (
 	"github.com/azusayn/azushop/internal/common"
 
-	orderpb "github.com/azusayn/azushop/proto/api/order/v1"
 	pb "github.com/azusayn/azushop/proto/api/payment/v1"
 	"github.com/azusayn/azushop/proto/conf"
 
@@ -21,20 +20,19 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"connectrpc.com/connect"
+
+	orderv1connect "github.com/azusayn/azushop/proto/api/order/v1/v1connect"
+	orderpb "github.com/azusayn/azushop/proto/api/order/v1"
 )
 
 type PaymentService struct {
-	pb.UnimplementedPaymentServiceServer
 	uc               *biz.PaymentUsecase
 	stripeSuccessUrl string
-	order            orderpb.OrderServiceClient
+	order            orderv1connect.OrderServiceClient
 }
 
 func NewPaymentService(uc *biz.PaymentUsecase, config *conf.Data) (*PaymentService, error) {
-	orderClient, err := NewOrderClient(config)
-	if err != nil {
-		return nil, err
-	}
+	orderClient := NewOrderClient(config)
 
 	if secret := os.Getenv("STRIPE_SECRET_KEY"); secret != "" {
 		stripe.Key = secret
@@ -76,12 +74,13 @@ func (h *PaymentServiceConnectHandler) CreatePayment(ctx context.Context, req *c
 		return nil, err
 	}
 	orderService := h.paymentService.order
-	resp, err := orderService.GetOrder(ctx, &orderpb.GetOrderRequest{OrderId: r.OrderId})
+	getReq := connect.NewRequest(&orderpb.GetOrderRequest{OrderId: r.OrderId})
+	resp, err := orderService.GetOrder(ctx, getReq)
 	if err != nil {
 		return nil, err
 	}
 
-	switch resp.GetOrder().GetOrderStatus() {
+	switch resp.Msg.GetOrder().GetOrderStatus() {
 	case orderpb.OrderStatus_ORDER_STATUS_PENDING:
 		break
 	case orderpb.OrderStatus_ORDER_STATUS_CANCELLED:
@@ -90,7 +89,7 @@ func (h *PaymentServiceConnectHandler) CreatePayment(ctx context.Context, req *c
 		return nil, status.Error(codes.AlreadyExists, fmt.Sprintf("order %d has been paid already", r.OrderId))
 	}
 
-	paymentItems, err := convertToPaymentItems(resp.GetOrder().GetOrderItems())
+	paymentItems, err := convertToPaymentItems(resp.Msg.GetOrder().GetOrderItems())
 	if err != nil {
 		return nil, err
 	}

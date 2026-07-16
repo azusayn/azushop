@@ -2,43 +2,37 @@ package middleware
 
 import (
 	"context"
+	"crypto/ed25519"
+	"errors"
 	"strconv"
 	"strings"
 
-	authv1connect "github.com/azusayn/azushop/proto/api/auth/v1/v1connect"
-
 	"github.com/azusayn/azushop/internal/common"
+
 	"github.com/azusayn/azutils/auth"
-	"github.com/go-kratos/kratos/v2/middleware"
-	"github.com/go-kratos/kratos/v2/transport"
 	"github.com/golang-jwt/jwt/v5"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
+
+	"connectrpc.com/connect"
 )
 
-func AuthInterceptor(publicKey any, issuer string, verify bool) middleware.Middleware {
-	return func(handler middleware.Handler) middleware.Handler {
-		return func(ctx context.Context, req any) (any, error) {
-			tr, ok := transport.FromServerContext(ctx)
-			if !ok {
-				return nil, status.Error(codes.Internal, codes.Internal.String())
-			}
-			if requireAuth(tr.Operation()) {
-				md, ok := metadata.FromIncomingContext(ctx)
-				if !ok {
-					return nil, status.Error(codes.Unauthenticated, codes.Unauthenticated.String())
-				}
-				vals := md.Get(auth.HttpHeaderAuthorization)
-				if len(vals) == 0 {
+// AuthInterceptor returns a ConnectRPC interceptor that extracts JWT claims
+// from the Authorization header and injects user info into the request context.
+func AuthInterceptor(publicKey ed25519.PublicKey, issuer string, verify bool) connect.UnaryInterceptorFunc {
+	return func(next connect.UnaryFunc) connect.UnaryFunc {
+		return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
+			if !req.Spec().IsClient {
+				// Server-side: extract token from request headers
+				token := req.Header().Get(auth.HttpHeaderAuthorization)
+				if token == "" {
 					return nil, status.Error(codes.Unauthenticated, "missing token")
 				}
-				tokens := strings.Split(vals[0], " ")
-				if len(tokens) != 2 || strings.ToLower(tokens[0]) != auth.HttpHeaderBearer {
+				parts := strings.Split(token, " ")
+				if len(parts) != 2 || strings.ToLower(parts[0]) != auth.HttpHeaderBearer {
 					return nil, status.Error(codes.Unauthenticated, "invalid access token format")
 				}
-
-				jwToken := tokens[1]
+				jwToken := parts[1]
 
 				var userID int32
 				var role string
@@ -50,9 +44,7 @@ func AuthInterceptor(publicKey any, issuer string, verify bool) middleware.Middl
 						return nil, status.Error(codes.Unauthenticated, err.Error())
 					}
 				} else {
-					// NOTE: JWT token pass-through
 					parser := jwt.NewParser()
-					// TODO: move it to utils
 					claim := auth.CustomClaims{}
 
 					_, _, err := parser.ParseUnverified(jwToken, &claim)
@@ -75,22 +67,40 @@ func AuthInterceptor(publicKey any, issuer string, verify bool) middleware.Middl
 					}
 				}
 
-				common.WithUserInfo(&ctx, userID, role)
+				ctx = context.WithValue(ctx, common.UserIDCtxKey, userID)
+				ctx = context.WithValue(ctx, common.UserRoleCtxKey, role)
 				bearerToken := auth.HttpHeaderBearer + " " + jwToken
-				common.WithServiceInnerToken(&ctx, bearerToken)
+				ctx = context.WithValue(ctx, common.ServiceInnerTokenKey, bearerToken)
 			}
-			return handler(ctx, req)
+			return next(ctx, req)
 		}
 	}
 }
 
-// TODO: differ roles in different APIs.
-func requireAuth(methodName string) bool {
-	switch methodName {
-	case authv1connect.AuthServiceLoginProcedure,
-		authv1connect.AuthServiceRegisterProcedure:
-		return false
-	default:
+// AuthClientInterceptor returns a ConnectRPC client interceptor that forwards
+// the internal service token from context to outgoing request headers.
+func AuthClientInterceptor() connect.UnaryInterceptorFunc {
+	return func(next connect.UnaryFunc) connect.UnaryFunc {
+		return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
+			if req.Spec().IsClient {
+				token, err := extractServiceInnerToken(ctx)
+				if err != nil {
+					return nil, err
+				}
+				req.Header().Set("authorization", token)
+			}
+			return next(ctx, req)
+		}
 	}
-	return true
+}
+
+func extractServiceInnerToken(ctx context.Context) (string, error) {
+	if ctx == nil {
+		return "", errors.New("missing context")
+	}
+	token, ok := ctx.Value(common.ServiceInnerTokenKey).(string)
+	if !ok || token == "" {
+		return "", errors.New("missing inner token")
+	}
+	return token, nil
 }

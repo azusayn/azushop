@@ -10,49 +10,40 @@ import (
 	"github.com/azusayn/azushop/internal/biz"
 	"github.com/azusayn/azushop/internal/data"
 	"github.com/azusayn/azushop/internal/pkg/llm"
-	"github.com/azusayn/azushop/internal/server"
 	"github.com/azusayn/azushop/internal/service"
 	"github.com/azusayn/azushop/proto/conf"
-	"github.com/go-kratos/kratos/v2"
-	"github.com/go-kratos/kratos/v2/log"
-)
-
-import (
-	_ "go.uber.org/automaxprocs"
+	"github.com/google/wire"
 )
 
 // Injectors from wire.go:
 
-func wireProductApp(confServer *conf.Server, confData *conf.Data, logger log.Logger) (*kratos.App, func(), error) {
-	postgres, err := data.NewPostgres(confData)
+func wireApp(serverConfig *conf.Server, dataConfig *conf.Data) (*App, func(), error) {
+	postgres, err := data.NewPostgres(dataConfig)
 	if err != nil {
 		return nil, nil, err
 	}
-	redis, err := data.NewRedis(confData)
+	redis, err := data.NewRedis(dataConfig)
 	if err != nil {
 		return nil, nil, err
 	}
 	productRepo := data.NewProductRepo(postgres, redis)
-	kafkaProducer, err := data.NewKafkaProducer(confData)
+	kafkaProducer, err := data.NewKafkaProducer(dataConfig)
 	if err != nil {
 		return nil, nil, err
 	}
 	productPublisher := data.NewProductPublisher(kafkaProducer)
-	openAIClient := llm.NewOpenAIClient(confData)
+	openAIClient := llm.NewOpenAIClient(dataConfig)
 	productUsecase := biz.NewProductUsecase(productRepo, productPublisher, openAIClient)
-	productService := service.NewProductService(productUsecase, confData)
-	tracerProvider, cleanup, err := server.NewGlobalTraceProvider(confData)
+	productService := service.NewProductService(productUsecase, dataConfig)
+	productServiceConnectHandler := service.NewProductServiceConnectHandler(productService)
+	app, err := newApp(serverConfig, dataConfig, productServiceConnectHandler)
 	if err != nil {
 		return nil, nil, err
 	}
-	grpcServer, err := server.NewProductGRPCServer(confServer, confData, productService, tracerProvider, logger)
-	if err != nil {
-		cleanup()
-		return nil, nil, err
-	}
-	httpServer := server.NewProductHTTPServer(confServer, productService, logger)
-	app := newApp(logger, grpcServer, httpServer)
 	return app, func() {
-		cleanup()
 	}, nil
 }
+
+// wire.go:
+
+var wireProviders = wire.NewSet(data.ProductDataProviderSet, biz.NewProductUsecase, llm.NewOpenAIClient, service.NewProductService, service.NewProductServiceConnectHandler, newApp)

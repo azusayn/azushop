@@ -16,7 +16,6 @@ import (
 )
 
 type InventoryService struct {
-	pb.UnimplementedInventoryServiceServer
 	uc *biz.InventoryUsecase
 }
 

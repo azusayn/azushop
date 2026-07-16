@@ -4,18 +4,18 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/go-kratos/kratos/v2/middleware"
+	"connectrpc.com/connect"
 )
 
-func LogInterceptor() middleware.Middleware {
-	return func(handler middleware.Handler) middleware.Handler {
-		return func(ctx context.Context, req any) (any, error) {
-			resp, err := handler(ctx, req)
+func LogInterceptor() connect.UnaryInterceptorFunc {
+	return func(next connect.UnaryFunc) connect.UnaryFunc {
+		return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
+			resp, err := next(ctx, req)
 			if err != nil {
 				slog.Error("request failed", slog.Any("error", err))
 				return nil, err
 			}
-			slog.Info("request succeeded", slog.Any("response", resp))
+			slog.Info("request succeeded", slog.String("procedure", req.Spec().Procedure))
 			return resp, err
 		}
 	}
