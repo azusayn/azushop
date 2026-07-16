@@ -57,8 +57,9 @@ message Product {
   string product_name = 2;
   // TODO(3): optional when used as input
   int32 seller_id = 3;
-  repeated Sku skus = 4;
-  ProductStatus product_status = 5;
+  string description = 4;
+  repeated Sku skus = 5;
+  ProductStatus product_status = 6;
 }
 
 message ListSellerProductsRequest {

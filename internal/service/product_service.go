@@ -320,6 +320,7 @@ func convertToBizProducts(pbProducts []*pb.Product) ([]*biz.Product, error) {
 			ID:            bytesUuid,
 			ProductName:   p.ProductName,
 			SellerID:      p.SellerId,
+			Description:   p.Description,
 			ProductStatus: convertToBizProductStatus(&p.ProductStatus),
 			Skus:          skus,
 		})

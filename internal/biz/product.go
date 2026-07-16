@@ -23,6 +23,8 @@ const (
 	ProductStatusOffline     ProductStatus = "offline"
 )
 
+const productEmbeddingFmt = "Title: %s\nDescription: %s"
+
 type Numeric string
 
 type Sku struct {
@@ -44,6 +46,7 @@ type Product struct {
 	SellerID      int32
 	ProductStatus ProductStatus
 	Skus          []*Sku
+	Description   string
 	Embedding     []float32
 }
 
@@ -171,12 +174,12 @@ func (uc *ProductUsecase) BatchCreateProducts(
 		return nil, err
 	}
 
-	productNames := lo.Map(products, func(p *Product, _ int) string {
-		return p.ProductName
+	embeddingInputs := lo.Map(products, func(p *Product, _ int) string {
+		return fmt.Sprintf(productEmbeddingFmt, p.ProductName, p.Description)
 	})
 
 	// generate embedding by product names.
-	embeddings, err := uc.embeddingClient.CreateEmbeddings(ctx, productNames)
+	embeddings, err := uc.embeddingClient.CreateEmbeddings(ctx, embeddingInputs)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create embeddings")
 	}

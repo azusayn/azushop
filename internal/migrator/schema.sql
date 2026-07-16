@@ -22,7 +22,8 @@ CREATE TABLE products (
   product_name VARCHAR(255) NOT NULL,
   status product_status NOT NULL,
   seller_id INT NOT NULL,
-  -- for bge m3 embedding model.
+  description text,
+  -- use 1024 dims for bge m3 embedding model.
   embedding vector(1024),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()

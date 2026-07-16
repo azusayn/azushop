@@ -250,8 +250,9 @@ type Product struct {
 	ProductName string `protobuf:"bytes,2,opt,name=product_name,json=productName,proto3" json:"product_name,omitempty"`
 	// TODO(3): optional when used as input
 	SellerId      int32         `protobuf:"varint,3,opt,name=seller_id,json=sellerId,proto3" json:"seller_id,omitempty"`
-	Skus          []*Sku        `protobuf:"bytes,4,rep,name=skus,proto3" json:"skus,omitempty"`
-	ProductStatus ProductStatus `protobuf:"varint,5,opt,name=product_status,json=productStatus,proto3,enum=product.v1.ProductStatus" json:"product_status,omitempty"`
+	Description   string        `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
+	Skus          []*Sku        `protobuf:"bytes,5,rep,name=skus,proto3" json:"skus,omitempty"`
+	ProductStatus ProductStatus `protobuf:"varint,6,opt,name=product_status,json=productStatus,proto3,enum=product.v1.ProductStatus" json:"product_status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -305,6 +306,13 @@ func (x *Product) GetSellerId() int32 {
 		return x.SellerId
 	}
 	return 0
+}
+
+func (x *Product) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
 }
 
 func (x *Product) GetSkus() []*Sku {
@@ -788,13 +796,14 @@ const file_api_product_v1_product_proto_rawDesc = "" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12-\n" +
 	"\x05attrs\x18\x02 \x01(\v2\x17.google.protobuf.StructR\x05attrs\x12\x1d\n" +
 	"\n" +
-	"unit_price\x18\x03 \x01(\tR\tunitPrice\"\xc0\x01\n" +
+	"unit_price\x18\x03 \x01(\tR\tunitPrice\"\xe2\x01\n" +
 	"\aProduct\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12!\n" +
 	"\fproduct_name\x18\x02 \x01(\tR\vproductName\x12\x1b\n" +
-	"\tseller_id\x18\x03 \x01(\x05R\bsellerId\x12#\n" +
-	"\x04skus\x18\x04 \x03(\v2\x0f.product.v1.SkuR\x04skus\x12@\n" +
-	"\x0eproduct_status\x18\x05 \x01(\x0e2\x19.product.v1.ProductStatusR\rproductStatus\"\xce\x01\n" +
+	"\tseller_id\x18\x03 \x01(\x05R\bsellerId\x12 \n" +
+	"\vdescription\x18\x04 \x01(\tR\vdescription\x12#\n" +
+	"\x04skus\x18\x05 \x03(\v2\x0f.product.v1.SkuR\x04skus\x12@\n" +
+	"\x0eproduct_status\x18\x06 \x01(\x0e2\x19.product.v1.ProductStatusR\rproductStatus\"\xce\x01\n" +
 	"\x19ListSellerProductsRequest\x12\x1d\n" +
 	"\n" +
 	"page_token\x18\x01 \x01(\tR\tpageToken\x12\x1b\n" +
