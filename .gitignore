@@ -42,3 +42,7 @@ bin/
 # Configs
 /configs/
 
+
+# frontend
+.next/
+node_modules/
