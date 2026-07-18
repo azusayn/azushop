@@ -6,6 +6,7 @@ CREATE TABLE users (
   salt VARCHAR(255) NOT NULL,
   role VARCHAR(255) NOT NULL CHECK (role IN ('admin', 'merchant', 'customer'))
 );
+ALTER TABLE users ADD CONSTRAINT uq_users_username UNIQUE (username);
 
 -- product service.
 CREATE EXTENSION IF NOT EXISTS vector;
