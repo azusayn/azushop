@@ -4,6 +4,7 @@ metadata:
   name: azushop-gateway
 spec:
   gatewayClassName: envoy
+  listeners:
     - name: http
       protocol: HTTP
       port: 80
