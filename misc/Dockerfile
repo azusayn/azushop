@@ -1,11 +1,11 @@
-FROM golang:1.26.3-alpine3.23 AS builder
+FROM golang:1.26.5-alpine3.24 AS builder
 WORKDIR /build
 COPY . .
 
 RUN go mod download
 RUN go build -ldflags="-w -s" -o bin/ ./cmd/...
 
-FROM alpine:3.23 AS backend
+FROM alpine:3.24 AS backend
 WORKDIR /app
 RUN addgroup --gid 777 --system azushop && adduser --uid 777 --system azushop
 
