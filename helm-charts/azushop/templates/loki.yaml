@@ -11,8 +11,7 @@ data:
       grpc_listen_port: 9096
 
     common:
-      instance_addr: 127.0.0.1
-      path_prefix: /loki             
+      path_prefix: /loki
       storage:
         filesystem:
           chunks_directory: /loki/chunks
@@ -44,7 +43,7 @@ kind: StatefulSet
 metadata:
   name: loki
 spec:
-  serviceName: "loki-service" 
+  serviceName: "loki-service"
   replicas: 1
   selector:
     matchLabels:
@@ -59,21 +58,22 @@ spec:
         runAsUser: 10001
         runAsGroup: 10001
       containers:
-      - name: loki
-        image: grafana/loki:3.7.2
-        args: ["-config.file=/etc/loki/config/loki.yaml"]
-        ports:
-        - containerPort: 3100
-          name: http
-        volumeMounts:
-        - name: loki-data
-          mountPath: /loki         
-        - name: config-volume
-          mountPath: /etc/loki/config 
+        - name: loki
+          image: grafana/loki:3.7.2
+          args: ["-config.file=/etc/loki/config/loki.yaml"]
+          ports:
+            - containerPort: 3100
+              name: http
+          volumeMounts:
+            - name: loki-data
+              mountPath: /loki
+            - name: config-volume
+              mountPath: /etc/loki/config
       volumes:
         - name: config-volume
           configMap:
             name: loki-config
+  # kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisioner/master/deploy/local-path-storage.yaml
   volumeClaimTemplates:
     - metadata:
         name: loki-data
@@ -81,7 +81,7 @@ spec:
         accessModes: ["ReadWriteOnce"]
         resources:
           requests:
-            storage: "1Gi" 
+            storage: "1Gi"
 ---
 apiVersion: v1
 kind: Service

@@ -5,7 +5,7 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app: kafaka
+      app: kafka
   serviceName: kafka-service
   template:
     metadata:
@@ -14,27 +14,38 @@ spec:
     spec:
       containers:
         - name: kafka
-          image: "kafka:4.2.1"
+          image: apache/kafka:4.3.1
           env:
-            KAFKA_NODE_ID: {{ .Values.kafka.nodeID }}
-            KAFKA_PROCESS_ROLES: broker,controller
-            KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+            - name: KAFKA_NODE_ID
+              value: "{{ .Values.kafka.nodeID }}"
+            - name: KAFKA_PROCESS_ROLES
+              value: "broker,controller"
+            - name: KAFKA_LISTENERS
+              value: "PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093"
             # TODO: registry (zookeeper / kRaft).
-            KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-service:9092
-            KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-            KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
-            KAFKA_CONTROLLER_QUORUM_VOTERS: "{{ .Values.kafka.nodeID }}@kafka-service:9093"
-            KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: {{ .Values.kafka.offsetsTopicReplicationFactor }}
-            KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: {{ .Values.kafka.transactionStateLogReplicationFactor }}
-            KAFKA_LOG_DIRS: {{ .Values.kafka.logDirs }}
-            CLUSTER_ID: {{ .Values.kafka.clusterID }}
+            - name: KAFKA_ADVERTISED_LISTENERS
+              value: "PLAINTEXT://kafka-service:9092"
+            - name: KAFKA_CONTROLLER_LISTENER_NAMES
+              value: "CONTROLLER"
+            - name: KAFKA_LISTENER_SECURITY_PROTOCOL_MAP
+              value: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT"
+            - name: KAFKA_CONTROLLER_QUORUM_VOTERS
+              value: "{{ .Values.kafka.nodeID }}@kafka-service:9093"
+            - name: KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR
+              value: "{{ .Values.kafka.offsetsTopicReplicationFactor }}"
+            - name: KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR
+              value: "{{ .Values.kafka.transactionStateLogReplicationFactor }}"
+            - name: KAFKA_LOG_DIRS
+              value: "{{ .Values.kafka.logDirs }}"
+            - name: CLUSTER_ID
+              value: "{{ .Values.kafka.clusterID }}"
           ports:
-            containerPort: 9092
+            - containerPort: 9092
           volumeMounts:
-            name: kafka-data
-            mountPath: /var/lib/kafka/data
+            - name: kafka-data
+              mountPath: /var/lib/kafka/data
   volumeClaimTemplates:
-    - matadata:
+    - metadata:
         name: kafka-data
       spec:
         accessModes: ["ReadWriteOnce"]
