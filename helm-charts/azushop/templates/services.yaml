@@ -1,0 +1,55 @@
+# deployments
+{{- range .Values.services.names }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ . }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ . }}
+  template:
+    metadata:
+      labels:
+        app: {{ . }}
+    spec:
+      containers:
+        - name: {{ . }}
+          image: {{.Values.services.image}}
+          command: 
+            - "./{{ . }}"
+          volumeMounts:
+            - name: configs-volume
+              mountPath: /app/configs
+              readOnly: true
+    volumes:
+      - name: configs-volume
+        secret:
+          secretName: azushop-config
+
+{{- end}}
+
+# services 
+{{- range .Values.services.names }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{.}}
+spec:
+  type: ClusterIP
+  selector:
+    app: {{.}}
+  ports:
+    - port: 8080
+      targetPort: 8080
+{{- end}}
+
+# secrets
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: azushop-config
+type: Opaque
+data: {{ -  (.Files.Glob "configs/*").AsSecrets | nindent 2 }}

@@ -42,3 +42,12 @@ grafana:
     limits:
       cpu: "500m"
       memory: "512Mi"
+
+services:
+  image: "azusaing/azushop:latest"
+  names:
+    - auth
+    - inventory
+    - order
+    - payment
+    - product
