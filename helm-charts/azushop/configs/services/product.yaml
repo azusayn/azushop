@@ -1,0 +1,25 @@
+server:
+  http:
+    addr: 0.0.0.0:8080
+    timeout: 1s
+data:
+  app_name: "azushop.product"
+  database:
+    driver: pgx
+    source: postgres://postgres:270153@postgres:5432/postgres?sslmode=disable
+  redis:
+    addr: redis-service:6379
+    read_timeout: 0.2s
+    write_timeout: 0.2s
+  kafka:
+    broker_addrs:
+      - "kafka-service:9092"
+  auth:
+    issuer: azushop
+    public_key_path: "configs/dev.public.pem"
+  embedding_api:
+    endpoint: "https://ai-eslab.dgut.edu.cn/v1"
+    secret: ""
+    model: "bge-m3"
+    max_distance: 0.8
+  otlp_grpc_address: "otel-collector:4317"

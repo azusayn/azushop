@@ -12,7 +12,8 @@ spec:
       labels:
         app: redis
     spec:
-      terminationGracePeriodSeconds: {{ .Values.redis.terminationGracePeriodSeconds }}
+      terminationGracePeriodSeconds:
+        {{ .Values.redis.terminationGracePeriodSeconds }}
       containers:
         - name: redis
           image: redis:8.8.0-alpine

@@ -1,33 +1,49 @@
-# download official CRD first:
-# kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.1.0/standard-install.yaml
-apiVersion: gateway.networking.k8s.io/v1
-kind: Gateway
+apiVersion: v1
+kind: ConfigMap
 metadata:
-  name: azushop-gateway
-spec:
-  gatewayClassName: envoy
-  listeners:
-    - name: http
-      protocol: HTTP
-      port: 80
-
+  name: envoy-config
+data:
+  envoy.yaml: |
+{{ .Files.Get "configs/infra/envoy.yaml" | indent 4 }}
 ---
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
+apiVersion: apps/v1
+kind: Deployment
 metadata:
-  name: azushop-http-route
+  name: envoy
 spec:
-  parentRefs:
-    - name: azushop-gateway
-  hostnames:
-    - {{ .Values.ingress.host }}
-  rules:
-    {{- range .Values.ingress.services }}
-    - matches:
-      - path:
-          type: PathPrefix
-          value: {{ .path | quote }}
-      backendRefs:
-        - name: {{ .name }}
-          port: {{ .port }}
-    {{- end }}
+  replicas: 1
+  selector:
+    matchLabels:
+      app: envoy
+  template:
+    metadata:
+      labels:
+        app: envoy
+    spec:
+      containers:
+        - name: envoy
+          image: envoyproxy/envoy:v1.38.0
+          args: ["-c", "/etc/envoy/envoy.yaml"]
+          ports:
+            - containerPort: 10000
+              name: http
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/envoy
+              readOnly: true
+      volumes:
+        - name: config-volume
+          configMap:
+            name: envoy-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: envoy
+spec:
+  selector:
+    app: envoy
+  ports:
+    - port: 10000
+      targetPort: 10000
+      name: http

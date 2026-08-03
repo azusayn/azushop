@@ -1,4 +1,5 @@
 # deployments
+{{- $image := .Values.services.image -}}
 {{- range .Values.services.names }}
 ---
 apiVersion: apps/v1
@@ -16,22 +17,29 @@ spec:
     spec:
       containers:
         - name: {{ . }}
-          image: {{.Values.services.image}}
-          command: 
-            - "./{{ . }}"
+          image: {{ $image }}
+          command:
+            - "/usr/local/bin/{{ . }}"
+          env:
+            - name: STRIPE_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: stripe-secret
+                  key: STRIPE_SECRET_KEY
           volumeMounts:
             - name: configs-volume
               mountPath: /app/configs
               readOnly: true
-    volumes:
-      - name: configs-volume
-        secret:
-          secretName: azushop-config
+      volumes:
+        - name: configs-volume
+          secret:
+            secretName: azushop-config
 
 {{- end}}
 
-# services 
+# services
 {{- range .Values.services.names }}
+---
 apiVersion: v1
 kind: Service
 metadata:
@@ -52,4 +60,14 @@ kind: Secret
 metadata:
   name: azushop-config
 type: Opaque
-data: {{ -  (.Files.Glob "configs/*").AsSecrets | nindent 2 }}
+data: {{-  (.Files.Glob "configs/services/*").AsSecrets | nindent 2 }}
+{{- if .Values.stripe.secretKey }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: stripe-secret
+type: Opaque
+stringData:
+  STRIPE_SECRET_KEY: {{ .Values.stripe.secretKey | quote }}
+{{- end }}

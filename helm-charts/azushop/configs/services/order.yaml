@@ -1,0 +1,25 @@
+server:
+  http:
+    addr: 0.0.0.0:8080
+    timeout: 1s
+data:
+  app_name: "azushop.order"
+  database:
+    driver: pgx
+    source: postgres://postgres:270153@postgres:5432/postgres?sslmode=disable
+  redis:
+    addr: redis-service:6379
+    read_timeout: 0.2s
+    write_timeout: 0.2s
+  service_addr:
+    product: product:8080
+  payment:
+    stripe_secret_key:
+    stripe_success_url:
+  kafka:
+    broker_addrs:
+      - "kafka-service:9092"
+  auth:
+    issuer: azushop
+    public_key_path: "configs/dev.public.pem"
+  otlp_grpc_address: "otel-collector:4317"

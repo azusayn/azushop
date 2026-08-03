@@ -4,39 +4,7 @@ metadata:
   name: loki-config
 data:
   loki.yaml: |
-    auth_enabled: false
-
-    server:
-      http_listen_port: 3100
-      grpc_listen_port: 9096
-
-    common:
-      path_prefix: /loki
-      storage:
-        filesystem:
-          chunks_directory: /loki/chunks
-          rules_directory: /loki/rules
-      replication_factor: 1
-      ring:
-        kvstore:
-          store: inmemory
-
-    schema_config:
-      configs:
-        - from: 2024-01-01
-          store: tsdb
-          object_store: filesystem
-          schema: v13
-          index:
-            prefix: index_
-            period: 24h
-
-    storage_config:
-      filesystem:
-        directory: /loki/chunks
-
-    analytics:
-      reporting_enabled: false
+{{ .Files.Get "configs/infra/loki.yaml" | indent 4 }}
 ---
 apiVersion: apps/v1
 kind: StatefulSet
@@ -73,7 +41,6 @@ spec:
         - name: config-volume
           configMap:
             name: loki-config
-  # kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisioner/master/deploy/local-path-storage.yaml
   volumeClaimTemplates:
     - metadata:
         name: loki-data

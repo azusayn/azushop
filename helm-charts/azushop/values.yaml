@@ -51,3 +51,6 @@ services:
     - order
     - payment
     - product
+
+stripe:
+  secretKey: "sk_test_dummy"
