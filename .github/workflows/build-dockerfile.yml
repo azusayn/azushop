@@ -11,10 +11,17 @@ on:
         options:
           - ubuntu-24.04
           - self-hosted
+  workflow_call:
+    inputs:
+      runner:
+        description: 'Runner environment'
+        required: false
+        type: string
+        default: 'ubuntu-24.04'
 
 jobs:
   build:
-    runs-on: ${{ github.event.inputs.runner }}
+    runs-on: ${{ inputs.runner }}
 
     steps:
       - name: Checkout

@@ -1,0 +1,82 @@
+# After a PR is merged into main (push to main): lint → test → reuse Docker build/push.
+name: CI on main
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-main-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  golangci-lint:
+    name: golangci-lint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Install golangci-lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.12.2
+          install-only: true
+
+      - name: Run golangci-lint
+        run: golangci-lint run --verbose --timeout 10m ./...
+
+  proto-lint:
+    name: proto-lint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: buf lint
+        uses: bufbuild/buf-action@v1
+        with:
+          input: proto
+          lint: true
+          format: false
+          breaking: false
+
+  go-test:
+    name: go-test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Verify go.mod is tidy
+        run: |
+          go mod tidy
+          git diff --exit-code
+
+      - name: Run tests
+        run: go test ./...
+
+  docker-build:
+    name: docker-build
+    needs:
+      - golangci-lint
+      - proto-lint
+      - go-test
+    uses: ./.github/workflows/build-dockerfile.yml
+    secrets: inherit
+    with:
+      runner: ubuntu-24.04
