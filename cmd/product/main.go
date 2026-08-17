@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"net/http"
 	"os/signal"
@@ -13,8 +14,8 @@ import (
 	"github.com/azusayn/azushop/internal/pkg/middleware"
 	"github.com/azusayn/azushop/internal/server"
 	"github.com/azusayn/azushop/internal/service"
-	"github.com/azusayn/azushop/proto/conf"
 	productv1connect "github.com/azusayn/azushop/proto/api/product/v1/v1connect"
+	"github.com/azusayn/azushop/proto/conf"
 
 	"golang.org/x/sync/errgroup"
 
@@ -92,8 +93,10 @@ func main() {
 	})
 	g.Go(func() error {
 		<-egCtx.Done()
-		tp.Shutdown(context.Background())
-		return app.Server.Shutdown(context.Background())
+		return errors.Join(
+			tp.Shutdown(context.Background()),
+			app.Server.Shutdown(context.Background()),
+		)
 	})
 	if err := g.Wait(); err != nil {
 		panic(err)
