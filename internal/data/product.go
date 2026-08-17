@@ -101,8 +101,7 @@ func (repo *ProductRepo) ListProductsBySellerId(
 	if err != nil {
 		return nil, err
 	}
-	//nolint:errcheck
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	// mapping frop product ID to its SKUs.
 	m := make(map[uuid.UUID][]*biz.Sku)
@@ -338,6 +337,7 @@ func (repo *ProductRepo) BatchGetSkuDetails(
 	if err != nil {
 		return nil, err
 	}
+	defer func() { _ = rows.Close() }()
 	var skus []*biz.SkuDetail
 	for rows.Next() {
 		var skuDetail biz.SkuDetail

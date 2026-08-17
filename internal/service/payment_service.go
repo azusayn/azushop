@@ -21,8 +21,8 @@ import (
 
 	"connectrpc.com/connect"
 
-	orderv1connect "github.com/azusayn/azushop/proto/api/order/v1/v1connect"
 	orderpb "github.com/azusayn/azushop/proto/api/order/v1"
+	orderv1connect "github.com/azusayn/azushop/proto/api/order/v1/v1connect"
 )
 
 type PaymentService struct {

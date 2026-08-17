@@ -25,10 +25,6 @@ linters:
       - builtin$
       - examples$
       - proto/
-    rules:
-      - path: 'cmd/.*/main\.go'
-        linters:
-          - errcheck
 
 formatters:
   enable:

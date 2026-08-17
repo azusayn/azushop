@@ -40,11 +40,11 @@ type PaymentStatus string
 
 const (
 	PaymentStatusUnspecified PaymentStatus = "unspecified"
-	PaymentStatusPending    PaymentStatus = "pending"
-	PaymentStatusCancelled  PaymentStatus = "cancelled"
-	PaymentStatusPaid       PaymentStatus = "paid"
-	PaymentStatusRefunding  PaymentStatus = "refunding"
-	PaymentStatusRefunded   PaymentStatus = "refunded"
+	PaymentStatusPending     PaymentStatus = "pending"
+	PaymentStatusCancelled   PaymentStatus = "cancelled"
+	PaymentStatusPaid        PaymentStatus = "paid"
+	PaymentStatusRefunding   PaymentStatus = "refunding"
+	PaymentStatusRefunded    PaymentStatus = "refunded"
 )
 
 type PaymentMethod string
