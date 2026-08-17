@@ -1,7 +1,10 @@
-# After a PR is merged into main (push to main): lint → test → reuse Docker build/push.
-name: CI on main
+# Checks on PRs to main; after merge (push to main) also build/push Docker image.
+name: CI
 
 on:
+  pull_request:
+    branches:
+      - main
   push:
     branches:
       - main
@@ -10,7 +13,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: ci-main-${{ github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -72,6 +75,8 @@ jobs:
 
   docker-build:
     name: docker-build
+    # Only publish images when changes land on main (merged PR / direct push).
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs:
       - golangci-lint
       - proto-lint
