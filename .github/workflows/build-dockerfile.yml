@@ -1,3 +1,6 @@
+# Build and push multi-arch image.
+# Default runner: ubuntu-24.04.
+# Later: pass self-hosted when CD also applies cluster changes.
 name: Build Dockerfile
 
 on:
@@ -14,7 +17,7 @@ on:
   workflow_call:
     inputs:
       runner:
-        description: 'Runner environment'
+        description: 'Runner environment (ubuntu for now; self-hosted later for cluster deploys)'
         required: false
         type: string
         default: 'ubuntu-24.04'

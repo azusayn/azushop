@@ -1,0 +1,23 @@
+# After merge into main: build and push the Docker image.
+# Runner is ubuntu for now. Switch to self-hosted later when this job also drives cluster deploys.
+name: CD
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cd-main-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  docker-build:
+    name: docker-build
+    uses: ./.github/workflows/build-dockerfile.yml
+    secrets: inherit
+    with:
+      runner: ubuntu-24.04
