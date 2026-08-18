@@ -85,7 +85,7 @@ CREATE TABLE orders (
   order_items JSONB NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-CREATE UNIQUE INDEX uk_payments_idempotency_key ON orders(idempotency_key);
+CREATE UNIQUE INDEX uk_orders_idempotency_key ON orders(idempotency_key);
 
 -- TODO(4): Debezium CDC.
 CREATE TABLE order_outbox_messages (
@@ -114,6 +114,7 @@ CREATE TYPE payment_status AS ENUM (
 
 CREATE TABLE payments (
   id BIGSERIAL NOT NULL PRIMARY KEY,
+  idempotency_key TEXT NOT NULL,
   -- id from payment provider.
   external_id TEXT NOT NULL,
   order_id BIGINT NOT NULL,
@@ -127,3 +128,4 @@ CREATE TABLE payments (
 CREATE INDEX idx_payments_user_id ON payments(user_id);
 CREATE UNIQUE INDEX idx_payments_external_id ON payments(external_id);
 CREATE INDEX idx_payments_order_id ON payments(order_id);
+CREATE UNIQUE INDEX uk_payments_idempotency_key ON payments(idempotency_key);

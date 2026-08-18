@@ -14,7 +14,7 @@ import (
 )
 
 type PaymentRepo interface {
-	CreatePayment(ctx context.Context, orderID int64, userID int32, total decimal.Decimal,
+	CreatePayment(ctx context.Context, idempotencyKey string, orderID int64, userID int32, total decimal.Decimal,
 		method PaymentMethod, status PaymentStatus, externalID string) (*Payment, error)
 	UpdatePaymentByID(ctx context.Context, payment *Payment, paths []string) error
 	UpdatePaymentStatusByOrderID(ctx context.Context, orderID int64, status PaymentStatus) error
@@ -72,9 +72,10 @@ type PaymentItem struct {
 	Attr      json.RawMessage
 }
 
-// return *Payment and payment URL.
+// CreatePayment creates a payemnt and returns a successURL from the payment provider.
 func (uc *PaymentUsecase) CreatePayment(
 	ctx context.Context,
+	idempotencyKey string,
 	orderID int64,
 	userID int32,
 	method PaymentMethod,
@@ -98,7 +99,7 @@ func (uc *PaymentUsecase) CreatePayment(
 	default:
 		return "", fmt.Errorf("unsupported method %q", method)
 	}
-	_, err = uc.repo.CreatePayment(ctx, orderID, userID, total, method, PaymentStatusPending, externalID)
+	_, err = uc.repo.CreatePayment(ctx, idempotencyKey, orderID, userID, total, method, PaymentStatusPending, externalID)
 	if err != nil {
 		return "", err
 	}

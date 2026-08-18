@@ -64,6 +64,11 @@ func NewPaymentServiceConnectHandler(paymentService *PaymentService) *PaymentSer
 }
 
 func (h *PaymentServiceConnectHandler) CreatePayment(ctx context.Context, req *connect.Request[pb.CreatePaymentRequest]) (*connect.Response[pb.CreatePaymentResponse], error) {
+	idempotencyKey, err := common.ExtractIdempotencyKey(&ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	r := req.Msg
 	userID, _, err := common.ExtractUserInfo(&ctx)
 	if err != nil {
@@ -93,7 +98,7 @@ func (h *PaymentServiceConnectHandler) CreatePayment(ctx context.Context, req *c
 	if err != nil {
 		return nil, err
 	}
-	url, err := h.paymentService.uc.CreatePayment(ctx, r.OrderId, userID, method, paymentItems, h.paymentService.stripeSuccessUrl)
+	url, err := h.paymentService.uc.CreatePayment(ctx, idempotencyKey, r.OrderId, userID, method, paymentItems, h.paymentService.stripeSuccessUrl)
 	if err != nil {
 		return nil, err
 	}

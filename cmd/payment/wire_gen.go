@@ -21,7 +21,11 @@ func wireApp(serverConfig *conf.Server, dataConfig *conf.Data) (*App, func(), er
 	if err != nil {
 		return nil, nil, err
 	}
-	paymentRepo := data.NewPaymentRepo(postgres)
+	redis, err := data.NewRedis(dataConfig)
+	if err != nil {
+		return nil, nil, err
+	}
+	paymentRepo := data.NewPaymentRepo(postgres, redis)
 	kafkaProducer, err := data.NewKafkaProducer(dataConfig)
 	if err != nil {
 		return nil, nil, err
