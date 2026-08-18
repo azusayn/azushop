@@ -21,6 +21,11 @@ on:
         required: false
         type: string
         default: 'ubuntu-24.04'
+      ref:
+        description: 'Git ref or SHA to checkout (merged commit for CD)'
+        required: false
+        type: string
+        default: ''
 
 jobs:
   build:
@@ -29,6 +34,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.ref != '' && inputs.ref || github.sha }}
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3

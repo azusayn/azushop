@@ -1,4 +1,4 @@
-# PR checks against main. Image build happens in cd-main.yml after merge.
+# PR checks against main. Image build runs in cd-main.yml only after the PR is merged.
 name: CI
 
 on:
