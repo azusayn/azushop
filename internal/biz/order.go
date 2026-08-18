@@ -19,7 +19,7 @@ type OrderRepo interface {
 	// orders
 	ListOrders(ctx context.Context, userID int32, status OrderStatus, pageToken int64, pageSize int32) ([]*Order, error)
 	GetOrder(ctx context.Context, orderID int64) (*Order, error)
-	CreateOrder(ctx context.Context, orderItems []*OrderItem, total decimal.Decimal, status OrderStatus, userID int32) (*Order, error)
+	CreateOrder(ctx context.Context, idempotencyKey string, orderItems []*OrderItem, total decimal.Decimal, status OrderStatus, userID int32) (*Order, error)
 	UpdateOrderStatus(ctx context.Context, orderID int64, status OrderStatus) error
 	DeleteOrder(ctx context.Context, orderID int64) error
 	CancelOrder(ctx context.Context, orderID int64) error
@@ -79,13 +79,13 @@ type OrderItem struct {
 }
 
 type Order struct {
-	ID     int64           `gorm:"column:id"`
-	UserID int32           `gorm:"column:user_id"`
-	Total  decimal.Decimal `gorm:"column:total"`
-	Status OrderStatus     `gorm:"column:status"`
-	// []*OrderItem
-	OrderItems json.RawMessage `gorm:"column:order_items"`
-	CreatedAt  time.Time       `gorm:"column:created_at"`
+	ID             int64           `gorm:"column:id"`
+	IdempotencyKey string          `gorm:"column:idempotency_key"`
+	UserID         int32           `gorm:"column:user_id"`
+	Total          decimal.Decimal `gorm:"column:total"`
+	Status         OrderStatus     `gorm:"column:status"`
+	OrderItems     json.RawMessage `gorm:"column:order_items"`
+	CreatedAt      time.Time       `gorm:"column:created_at"`
 }
 
 type OrderOutboxMessage struct {
@@ -110,6 +110,8 @@ func (uc *OrderUsecase) ListOrders(
 
 func (uc *OrderUsecase) CreateOrder(
 	ctx context.Context,
+	// An idempotency key not found in the cache would be passed to the database.
+	idempotencyKey string,
 	orderItems []*OrderItem,
 	userID int32,
 ) (*Order, error) {
@@ -121,7 +123,7 @@ func (uc *OrderUsecase) CreateOrder(
 	var createdOrder *Order
 	var err error
 	err = uc.tx.Transaction(ctx, func(ctx context.Context) error {
-		createdOrder, err = uc.repo.CreateOrder(ctx, orderItems, total, OrderStatusPending, userID)
+		createdOrder, err = uc.repo.CreateOrder(ctx, idempotencyKey, orderItems, total, OrderStatusPending, userID)
 		if err != nil {
 			return err
 		}

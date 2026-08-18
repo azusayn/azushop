@@ -3,6 +3,7 @@ package data
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/IBM/sarama"
@@ -10,13 +11,20 @@ import (
 	"github.com/azusayn/azushop/proto/conf"
 	"github.com/google/uuid"
 	"github.com/google/wire"
+	"github.com/pkg/errors"
 	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
+)
+
+const (
+	createOrderIdempotencyCacheTime time.Duration = time.Minute * 10
+	idempotencyKeyExist                           = 1
 )
 
 var OrderDataProviderSet = wire.NewSet(
 	NewTransaction,
 	NewPostgres,
+	NewRedis,
 	NewOrderRepo,
 	NewOrderSubscriber,
 	NewKafkaProducer,
@@ -30,10 +38,14 @@ const (
 
 type OrderRepo struct {
 	postgres *Postgres
+	redis    *Redis
 }
 
-func NewOrderRepo(postgres *Postgres) biz.OrderRepo {
-	return &OrderRepo{postgres: postgres}
+func NewOrderRepo(postgres *Postgres, redis *Redis) biz.OrderRepo {
+	return &OrderRepo{
+		postgres: postgres,
+		redis:    redis,
+	}
 }
 
 func (repo *OrderRepo) ListOrders(
@@ -55,15 +67,25 @@ func (repo *OrderRepo) ListOrders(
 	return orders, nil
 }
 
+func cacheKeyIdempotencyKey(key string) string {
+	return fmt.Sprintf("idempotency:%s", key)
+}
+
 func (repo *OrderRepo) CreateOrder(
 	ctx context.Context,
+	idempotencyKey string,
 	orderItems []*biz.OrderItem,
 	total decimal.Decimal,
 	orderStatus biz.OrderStatus,
 	userID int32,
 ) (*biz.Order, error) {
-	client := GetTransaction(ctx)
-	if client == nil {
+	cacheKey := cacheKeyIdempotencyKey(idempotencyKey)
+	if _, ok := GetCache[int](ctx, repo.redis, idempotencyKey); ok {
+		return nil, errors.New("duplicate orders")
+	}
+
+	var client *gorm.DB
+	if client = GetTransaction(ctx); client == nil {
 		client = repo.postgres.GormClient
 	}
 	itemsJson, err := json.Marshal(orderItems)
@@ -71,14 +93,18 @@ func (repo *OrderRepo) CreateOrder(
 		return nil, err
 	}
 	order := &biz.Order{
-		UserID:     userID,
-		Status:     orderStatus,
-		OrderItems: itemsJson,
-		Total:      total,
+		IdempotencyKey: idempotencyKey,
+		UserID:         userID,
+		Status:         orderStatus,
+		OrderItems:     itemsJson,
+		Total:          total,
 	}
 	if err := client.WithContext(ctx).Create(order).Error; err != nil {
 		return nil, err
 	}
+
+	SetCache(ctx, repo.redis, cacheKey, idempotencyKeyExist, createOrderIdempotencyCacheTime)
+
 	return order, nil
 }
 

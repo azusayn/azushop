@@ -64,6 +64,11 @@ func NewOrderServiceConnectHandler(orderService *OrderService) *OrderServiceConn
 }
 
 func (h *OrderServiceConnectHandler) CreateOrder(ctx context.Context, req *connect.Request[pb.CreateOrderRequest]) (*connect.Response[pb.CreateOrderResponse], error) {
+	idempotencyKey, err := common.ExtractIdempotencyKey(&ctx)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+
 	r := req.Msg
 	if len(r.OrderItems) == 0 {
 		return nil, errors.New("empty order_items")
@@ -85,7 +90,7 @@ func (h *OrderServiceConnectHandler) CreateOrder(ctx context.Context, req *conne
 	if err != nil {
 		return nil, err
 	}
-	order, err := h.orderService.uc.CreateOrder(ctx, orderItems, userID)
+	order, err := h.orderService.uc.CreateOrder(ctx, idempotencyKey, orderItems, userID)
 	if err != nil {
 		return nil, err
 	}

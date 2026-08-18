@@ -22,7 +22,11 @@ func wireApp(serverConfig *conf.Server, dataConfig *conf.Data) (*App, func(), er
 	if err != nil {
 		return nil, nil, err
 	}
-	orderRepo := data.NewOrderRepo(postgres)
+	redis, err := data.NewRedis(dataConfig)
+	if err != nil {
+		return nil, nil, err
+	}
+	orderRepo := data.NewOrderRepo(postgres, redis)
 	orderSubscriber, err := data.NewOrderSubscriber(dataConfig)
 	if err != nil {
 		return nil, nil, err

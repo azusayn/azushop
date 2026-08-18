@@ -77,6 +77,7 @@ CREATE TYPE order_status AS ENUM (
 -- currency ref: https://docs.stripe.com/currencies#zero-decimal.
 CREATE TABLE orders (
   id BIGSERIAL PRIMARY KEY,
+  idempotency_key TEXT,
   user_id INT NOT NULL,
   -- subtotal without tax, TODO(3): this should be renamed to 'subtotal'.
   total NUMERIC(10, 2) NOT NULL,
@@ -84,6 +85,7 @@ CREATE TABLE orders (
   order_items JSONB NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+CREATE UNIQUE INDEX uk_payments_idempotency_key ON orders(idempotency_key);
 
 -- TODO(4): Debezium CDC.
 CREATE TABLE order_outbox_messages (
@@ -113,7 +115,7 @@ CREATE TYPE payment_status AS ENUM (
 CREATE TABLE payments (
   id BIGSERIAL NOT NULL PRIMARY KEY,
   -- id from payment provider.
-  external_id text NOT NULL,
+  external_id TEXT NOT NULL,
   order_id BIGINT NOT NULL,
   user_id INT NOT NULL,
   method payment_method NOT NULL,

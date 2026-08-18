@@ -12,8 +12,9 @@ const (
 	ServiceInnerTokenKey ContextKey = 0
 
 	// 1000+
-	UserIDCtxKey   ContextKey = 1001
-	UserRoleCtxKey ContextKey = 1002
+	UserIDCtxKey         ContextKey = 1001
+	UserRoleCtxKey       ContextKey = 1002
+	IdempotencyKeyCtxKey ContextKey = 1003
 
 	// 1100+
 	TransactionCtxKey ContextKey = 1101
@@ -51,4 +52,19 @@ func ExtractUserInfo(ctx *context.Context) (int32, string, error) {
 		return 0, "", errors.New("failed to extract user role")
 	}
 	return id, role, nil
+}
+
+func WithIdempotencyKey(ctx *context.Context, key string) {
+	*ctx = context.WithValue(*ctx, IdempotencyKeyCtxKey, key)
+}
+
+func ExtractIdempotencyKey(ctx *context.Context) (string, error) {
+	if ctx == nil {
+		return "", errors.New("missing context")
+	}
+	key, ok := (*ctx).Value(IdempotencyKeyCtxKey).(string)
+	if !ok || key == "" {
+		return "", errors.New("missing idempotency key")
+	}
+	return key, nil
 }
