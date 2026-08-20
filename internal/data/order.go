@@ -29,6 +29,8 @@ var OrderDataProviderSet = wire.NewSet(
 	NewOrderSubscriber,
 	NewKafkaProducer,
 	NewOrderPublisher,
+	NewProductClient,
+	NewInventoryClient,
 )
 
 const (
@@ -121,7 +123,22 @@ func (repo *OrderRepo) CancelOrder(ctx context.Context, orderID int64) error {
 	if client == nil {
 		client = repo.postgres.GormClient
 	}
-	return client.WithContext(ctx).Model(&biz.Order{}).Where("id = ?", orderID).Update("status", biz.OrderStatusCancelled).Error
+
+	result := client.
+		WithContext(ctx).
+		Model(&biz.Order{}).
+		Where("id = ?", orderID).
+		Where("status IN ?", []biz.OrderStatus{biz.OrderStatusPending, biz.OrderStatusConfirmed}).
+		Update("status", biz.OrderStatusCancelled)
+	if err := result.Error; err != nil {
+		return err
+	}
+
+	if result.RowsAffected == 0 {
+		return errors.New("order cannot be cancelled")
+	}
+
+	return nil
 }
 
 func (repo *OrderRepo) GetOrder(ctx context.Context, orderID int64) (*biz.Order, error) {

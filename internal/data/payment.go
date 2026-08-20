@@ -24,6 +24,7 @@ var PaymentDataProviderSet = wire.NewSet(
 	NewPaymentRepo,
 	NewKafkaProducer,
 	NewPaymentPublisher,
+	NewOrderClient,
 )
 
 type PaymentRepo struct {

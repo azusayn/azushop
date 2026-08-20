@@ -4,7 +4,6 @@ import (
 	inventorypb "github.com/azusayn/azushop/proto/api/inventory/v1"
 	pb "github.com/azusayn/azushop/proto/api/order/v1"
 	productpb "github.com/azusayn/azushop/proto/api/product/v1"
-	"github.com/azusayn/azushop/proto/conf"
 
 	"github.com/azusayn/azushop/internal/biz"
 	"github.com/azusayn/azushop/internal/common"
@@ -28,27 +27,21 @@ import (
 	productv1connect "github.com/azusayn/azushop/proto/api/product/v1/v1connect"
 )
 
-type OrderServiceClient struct {
-	inventory inventoryv1connect.InventoryServiceClient
-	product   productv1connect.ProductServiceClient
-}
-
-func NewOrderServiceClient(config *conf.Data) *OrderServiceClient {
-	return &OrderServiceClient{
-		inventory: NewInventoryClient(config),
-		product:   NewProductClient(config),
-	}
-}
-
 type OrderService struct {
-	uc            *biz.OrderUsecase
-	serviceClient *OrderServiceClient
+	uc        *biz.OrderUsecase
+	product   productv1connect.ProductServiceClient
+	inventory inventoryv1connect.InventoryServiceClient
 }
 
-func NewOrderService(uc *biz.OrderUsecase, c *OrderServiceClient) *OrderService {
+func NewOrderService(
+	uc *biz.OrderUsecase,
+	product productv1connect.ProductServiceClient,
+	inventory inventoryv1connect.InventoryServiceClient,
+) *OrderService {
 	return &OrderService{
-		uc:            uc,
-		serviceClient: c,
+		uc:        uc,
+		product:   product,
+		inventory: inventory,
 	}
 }
 
@@ -80,8 +73,7 @@ func (h *OrderServiceConnectHandler) CreateOrder(ctx context.Context, req *conne
 
 	skuIDs := lo.Map(r.OrderItems, func(item *pb.OrderItem, index int) string { return item.SkuId })
 
-	productService := h.orderService.serviceClient.product
-	m, err := fetchAllSkuDetails(ctx, productService, skuIDs)
+	m, err := fetchAllSkuDetails(ctx, h.orderService.product, skuIDs)
 	if err != nil {
 		return nil, err
 	}
@@ -107,12 +99,13 @@ func (h *OrderServiceConnectHandler) CancelOrder(ctx context.Context, req *conne
 	if err := h.orderService.uc.CancelOrder(ctx, r.GetOrderId()); err != nil {
 		return nil, err
 	}
-	inventoryService := h.orderService.serviceClient.inventory
+
 	releaseReq := connect.NewRequest(&inventorypb.ReleaseStockRequest{OrderId: r.OrderId})
-	_, err := inventoryService.ReleaseStock(ctx, releaseReq)
-	if err != nil {
+	// TODO: outbox
+	if _, err := h.orderService.inventory.ReleaseStock(ctx, releaseReq); err != nil {
 		return nil, err
 	}
+
 	return connect.NewResponse(&pb.CancelOrderResponse{}), nil
 }
 

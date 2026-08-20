@@ -19,7 +19,6 @@ func wireApp(serverConfig *conf.Server, dataConfig *conf.Data) (*App, func(), er
 var wireProviders = wire.NewSet(
 	data.OrderDataProviderSet,
 	biz.NewOrderUsecase,
-	service.NewOrderServiceClient,
 	service.NewOrderService,
 	service.NewOrderServiceConnectHandler,
 	runner.NewOrderRunner,

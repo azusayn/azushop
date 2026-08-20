@@ -31,9 +31,11 @@ type PaymentService struct {
 	order            orderv1connect.OrderServiceClient
 }
 
-func NewPaymentService(uc *biz.PaymentUsecase, config *conf.Data) (*PaymentService, error) {
-	orderClient := NewOrderClient(config)
-
+func NewPaymentService(
+	uc *biz.PaymentUsecase,
+	order orderv1connect.OrderServiceClient,
+	config *conf.Data,
+) (*PaymentService, error) {
 	if secret := os.Getenv("STRIPE_SECRET_KEY"); secret != "" {
 		stripe.Key = secret
 	} else if config.GetPayment().GetStripeSecretKey(); secret != "" {
@@ -50,7 +52,7 @@ func NewPaymentService(uc *biz.PaymentUsecase, config *conf.Data) (*PaymentServi
 	return &PaymentService{
 		uc:               uc,
 		stripeSuccessUrl: successURL,
-		order:            orderClient,
+		order:            order,
 	}, nil
 }
 

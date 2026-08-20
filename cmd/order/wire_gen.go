@@ -38,8 +38,9 @@ func wireApp(serverConfig *conf.Server, dataConfig *conf.Data) (*App, func(), er
 	orderPublisher := data.NewOrderPublisher(kafkaProducer)
 	transaction := data.NewTransaction(postgres)
 	orderUsecase := biz.NewOrderUsecase(orderRepo, orderSubscriber, orderPublisher, transaction)
-	orderServiceClient := service.NewOrderServiceClient(dataConfig)
-	orderService := service.NewOrderService(orderUsecase, orderServiceClient)
+	productServiceClient := data.NewProductClient(dataConfig)
+	inventoryServiceClient := data.NewInventoryClient(dataConfig)
+	orderService := service.NewOrderService(orderUsecase, productServiceClient, inventoryServiceClient)
 	orderServiceConnectHandler := service.NewOrderServiceConnectHandler(orderService)
 	orderRunner := runner.NewOrderRunner(orderUsecase)
 	app, err := newApp(serverConfig, dataConfig, orderServiceConnectHandler, orderRunner)
@@ -52,4 +53,4 @@ func wireApp(serverConfig *conf.Server, dataConfig *conf.Data) (*App, func(), er
 
 // wire.go:
 
-var wireProviders = wire.NewSet(data.OrderDataProviderSet, biz.NewOrderUsecase, service.NewOrderServiceClient, service.NewOrderService, service.NewOrderServiceConnectHandler, runner.NewOrderRunner, newApp)
+var wireProviders = wire.NewSet(data.OrderDataProviderSet, biz.NewOrderUsecase, service.NewOrderService, service.NewOrderServiceConnectHandler, runner.NewOrderRunner, newApp)
