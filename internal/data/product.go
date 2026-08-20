@@ -379,7 +379,7 @@ func (p *ProductPublisher) PublishProductCreated(ctx context.Context, skuIDs []u
 		return err
 	}
 	prodMsg := &sarama.ProducerMessage{
-		Topic: biz.KafkaTopicProductCreated,
+		Topic: string(biz.KafkaTopicProductCreated),
 		Value: sarama.ByteEncoder(bytes),
 	}
 	_, _, err = producer.SendMessage(prodMsg)

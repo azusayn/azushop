@@ -2,11 +2,9 @@ package data
 
 import (
 	"log/slog"
-	"time"
 
 	"github.com/IBM/sarama"
 	"github.com/azusayn/azushop/proto/conf"
-	"github.com/google/uuid"
 	"github.com/pkg/errors"
 )
 
@@ -20,26 +18,6 @@ const (
 	PaymentStatusRefunding   PaymentStatus = "refunding"
 	PaymentStatusRefunded    PaymentStatus = "refunded"
 )
-
-type PaymentStatusMessage struct {
-	OrderID int64
-	Status  PaymentStatus
-}
-
-type OrderItem struct {
-	SkuID    uuid.UUID
-	Quantity int64
-}
-
-type OrderCreatedMessage struct {
-	OrderID    int64
-	OrderItems []*OrderItem
-}
-
-type OrderCancelledMessage struct {
-	OrderID     int64
-	ExpiredTime time.Time
-}
 
 type KafkaProducer struct {
 	syncProducer sarama.SyncProducer

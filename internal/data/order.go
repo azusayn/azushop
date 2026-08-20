@@ -81,6 +81,7 @@ func (repo *OrderRepo) CreateOrder(
 	orderStatus biz.OrderStatus,
 	userID int32,
 ) (*biz.Order, error) {
+	// An idempotency key not found in the cache would be passed to the database.
 	cacheKey := cacheKeyIdempotencyKey(idempotencyKey)
 	if _, ok := GetCache[int](ctx, repo.redis, idempotencyKey); ok {
 		return nil, errors.New("duplicate orders")
@@ -158,7 +159,7 @@ func (repo *OrderRepo) UpdateOrderStatus(ctx context.Context, orderID int64, sta
 	return client.WithContext(ctx).Model(&biz.Order{}).Where("id = ?", orderID).Update("status", status).Error
 }
 
-func (repo *OrderRepo) CreateOutboxMessage(ctx context.Context, topic string, payload json.RawMessage) error {
+func (repo *OrderRepo) CreateOutboxMessage(ctx context.Context, eventType biz.OutboxEventType, payload json.RawMessage) error {
 	client := GetTransaction(ctx)
 	if client == nil {
 		client = repo.postgres.GormClient
@@ -168,15 +169,15 @@ func (repo *OrderRepo) CreateOutboxMessage(ctx context.Context, topic string, pa
 		return err
 	}
 	outboxMsg := &biz.OrderOutboxMessage{
-		ID:      id,
-		Topic:   topic,
-		Payload: payload,
+		ID:        id,
+		EventType: eventType,
+		Payload:   payload,
 	}
 	return client.WithContext(ctx).Create(outboxMsg).Error
 }
 
 // returns messages that are eligible for processing.
-func (repo *OrderRepo) ListOutboxMessages(ctx context.Context, topic string, limit int) ([]*biz.OrderOutboxMessage, error) {
+func (repo *OrderRepo) ListOutboxMessages(ctx context.Context, limit int) ([]*biz.OrderOutboxMessage, error) {
 	client := GetTransaction(ctx)
 	if client == nil {
 		client = repo.postgres.GormClient
@@ -186,7 +187,6 @@ func (repo *OrderRepo) ListOutboxMessages(ctx context.Context, topic string, lim
 	if err := client.
 		WithContext(ctx).
 		Where("sent_at IS NULL").
-		Where("topic = ?", topic).
 		Where("retry_count < ?", maxRetryCount).
 		Order("created_at").
 		Limit(limit).
@@ -238,9 +238,9 @@ func NewOrderSubscriber(config *conf.Data) (biz.OrderSubscriber, error) {
 }
 
 func (s *OrderSubscriber) SubscribePaymentStatus(ctx context.Context, handler func(int64, biz.PaymentStatus) error) error {
-	topics := []string{biz.KafkaTopicPaymentStatus}
+	topics := []string{string(biz.KafkaTopicPaymentStatus)}
 	consumerHandler := NewConsumerHandler(func(bytes []byte) error {
-		var msg PaymentStatusMessage
+		var msg biz.PaymentStatusMessage
 		if err := json.Unmarshal(bytes, &msg); err != nil {
 			return err
 		}
@@ -258,9 +258,9 @@ func (s *OrderSubscriber) SubscribePaymentStatus(ctx context.Context, handler fu
 }
 
 func (s *OrderSubscriber) SubscribeOrderCancelled(ctx context.Context, handler func(int64) error) error {
-	topics := []string{biz.KafkaTopicOrderCancelled}
+	topics := []string{string(biz.KafkaTopicOrderCancelled)}
 	consumerHandler := NewConsumerHandler(func(bytes []byte) error {
-		var msg OrderCancelledMessage
+		var msg biz.OrderCancelledMessage
 		if err := json.Unmarshal(bytes, &msg); err != nil {
 			return err
 		}
@@ -299,7 +299,7 @@ func (p *OrderPublisher) PublishOrderCreated(ctx context.Context, messages []*bi
 			return err
 		}
 		prodMsg := &sarama.ProducerMessage{
-			Topic: biz.KafkaTopicOrderCreated,
+			Topic: string(biz.KafkaTopicOrderCreated),
 			Value: sarama.ByteEncoder(bytes),
 		}
 		prodMsgs = append(prodMsgs, prodMsg)
@@ -320,7 +320,7 @@ func (p *OrderPublisher) PublishOrderCancelledDelay(ctx context.Context, message
 			return err
 		}
 		prodMsg := &sarama.ProducerMessage{
-			Topic: biz.KafkaTopicOrderCancelledDelay,
+			Topic: string(biz.KafkaTopicOrderCancelledDelay),
 			Value: sarama.ByteEncoder(bytes),
 		}
 		prodMsgs = append(prodMsgs, prodMsg)
@@ -328,19 +328,19 @@ func (p *OrderPublisher) PublishOrderCancelledDelay(ctx context.Context, message
 	return producer.SendMessages(prodMsgs)
 }
 
-func toOrderCancelledMsg(message *biz.OrderOutboxMessage) (*OrderCancelledMessage, error) {
+func toOrderCancelledMsg(message *biz.OrderOutboxMessage) (*biz.OrderCancelledMessage, error) {
 	var order biz.Order
 	if err := json.Unmarshal(message.Payload, &order); err != nil {
 		return nil, err
 	}
-	orderCancelledMsg := &OrderCancelledMessage{
+	orderCancelledMsg := &biz.OrderCancelledMessage{
 		OrderID:     order.ID,
 		ExpiredTime: time.Now().Add(orderTimeout),
 	}
 	return orderCancelledMsg, nil
 }
 
-func toOrderCreatedMessage(message *biz.OrderOutboxMessage) (*OrderCreatedMessage, error) {
+func toOrderCreatedMessage(message *biz.OrderOutboxMessage) (*biz.OrderCreatedMessage, error) {
 	var order biz.Order
 	if err := json.Unmarshal(message.Payload, &order); err != nil {
 		return nil, err
@@ -349,14 +349,14 @@ func toOrderCreatedMessage(message *biz.OrderOutboxMessage) (*OrderCreatedMessag
 	if err := json.Unmarshal(order.OrderItems, &bizOrderItems); err != nil {
 		return nil, err
 	}
-	var orderItems []*OrderItem
+	var orderItems []*biz.OrderItem
 	for _, bizOrderItem := range bizOrderItems {
-		orderItems = append(orderItems, &OrderItem{
+		orderItems = append(orderItems, &biz.OrderItem{
 			SkuID:    bizOrderItem.SkuID,
 			Quantity: bizOrderItem.Quantity,
 		})
 	}
-	orderCreatedMsg := &OrderCreatedMessage{
+	orderCreatedMsg := &biz.OrderCreatedMessage{
 		OrderID:    order.ID,
 		OrderItems: orderItems,
 	}

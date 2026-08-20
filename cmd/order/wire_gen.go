@@ -37,9 +37,9 @@ func wireApp(serverConfig *conf.Server, dataConfig *conf.Data) (*App, func(), er
 	}
 	orderPublisher := data.NewOrderPublisher(kafkaProducer)
 	transaction := data.NewTransaction(postgres)
-	orderUsecase := biz.NewOrderUsecase(orderRepo, orderSubscriber, orderPublisher, transaction)
-	productServiceClient := data.NewProductClient(dataConfig)
 	inventoryServiceClient := data.NewInventoryClient(dataConfig)
+	orderUsecase := biz.NewOrderUsecase(orderRepo, orderSubscriber, orderPublisher, transaction, inventoryServiceClient)
+	productServiceClient := data.NewProductClient(dataConfig)
 	orderService := service.NewOrderService(orderUsecase, productServiceClient, inventoryServiceClient)
 	orderServiceConnectHandler := service.NewOrderServiceConnectHandler(orderService)
 	orderRunner := runner.NewOrderRunner(orderUsecase)

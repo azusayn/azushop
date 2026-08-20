@@ -3,12 +3,16 @@ package biz
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 
+	"connectrpc.com/connect"
+	inventorypb "github.com/azusayn/azushop/proto/api/inventory/v1"
+	inventoryv1connect "github.com/azusayn/azushop/proto/api/inventory/v1/v1connect"
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
-	"go.uber.org/multierr"
 )
 
 const (
@@ -24,8 +28,8 @@ type OrderRepo interface {
 	DeleteOrder(ctx context.Context, orderID int64) error
 	CancelOrder(ctx context.Context, orderID int64) error
 	// order_outbox
-	CreateOutboxMessage(ctx context.Context, topic string, payload json.RawMessage) error
-	ListOutboxMessages(ctx context.Context, topic string, limit int) ([]*OrderOutboxMessage, error)
+	CreateOutboxMessage(ctx context.Context, eventType OutboxEventType, payload json.RawMessage) error
+	ListOutboxMessages(ctx context.Context, limit int) ([]*OrderOutboxMessage, error)
 	MarkOutboxMessagesSent(ctx context.Context, ids []uuid.UUID) error
 	MarkOutboxMessagesFailed(ctx context.Context, ids []uuid.UUID) error
 }
@@ -44,6 +48,7 @@ type OrderUsecase struct {
 	tx         Transaction
 	subscriber OrderSubscriber
 	publisher  OrderPublisher
+	inventory  inventoryv1connect.InventoryServiceClient
 }
 
 func NewOrderUsecase(
@@ -51,12 +56,14 @@ func NewOrderUsecase(
 	subscriber OrderSubscriber,
 	publisher OrderPublisher,
 	tx Transaction,
+	inventory inventoryv1connect.InventoryServiceClient,
 ) *OrderUsecase {
 	return &OrderUsecase{
 		repo:       repo,
 		tx:         tx,
 		subscriber: subscriber,
 		publisher:  publisher,
+		inventory:  inventory,
 	}
 }
 
@@ -90,7 +97,7 @@ type Order struct {
 
 type OrderOutboxMessage struct {
 	ID         uuid.UUID       `gorm:"column:id"`
-	Topic      string          `gorm:"column:topic"`
+	EventType  OutboxEventType `gorm:"column:event_type"`
 	Payload    json.RawMessage `gorm:"column:payload"`
 	RetryCount int             `gorm:"retry_count"`
 	CreatedAt  time.Time       `gorm:"column:created_at"`
@@ -110,7 +117,6 @@ func (uc *OrderUsecase) ListOrders(
 
 func (uc *OrderUsecase) CreateOrder(
 	ctx context.Context,
-	// An idempotency key not found in the cache would be passed to the database.
 	idempotencyKey string,
 	orderItems []*OrderItem,
 	userID int32,
@@ -131,11 +137,11 @@ func (uc *OrderUsecase) CreateOrder(
 		if err != nil {
 			return err
 		}
-		err = uc.repo.CreateOutboxMessage(ctx, KafkaTopicOrderCreated, payload)
+		err = uc.repo.CreateOutboxMessage(ctx, OutboxEventOrderCreated, payload)
 		if err != nil {
 			return err
 		}
-		return uc.repo.CreateOutboxMessage(ctx, KafkaTopicOrderCancelledDelay, payload)
+		return uc.repo.CreateOutboxMessage(ctx, OutboxEventOrderCancelledDelay, payload)
 	})
 	if err != nil {
 		return nil, err
@@ -144,7 +150,19 @@ func (uc *OrderUsecase) CreateOrder(
 }
 
 func (uc *OrderUsecase) CancelOrder(ctx context.Context, orderID int64) error {
-	return uc.repo.CancelOrder(ctx, orderID)
+	return uc.tx.Transaction(ctx, func(ctx context.Context) error {
+		if err := uc.repo.CancelOrder(ctx, orderID); err != nil {
+			return err
+		}
+		msg := ReleaseStockMessage{
+			OrderID: orderID,
+		}
+		bytes, err := json.Marshal(msg)
+		if err != nil {
+			return err
+		}
+		return uc.repo.CreateOutboxMessage(ctx, OutboxEventOrderCancelled, bytes)
+	})
 }
 
 func (uc *OrderUsecase) DeleteOrder(ctx context.Context, orderID int64) error {
@@ -180,25 +198,55 @@ func (uc *OrderUsecase) HandleOrderCancelled(ctx context.Context) error {
 	})
 }
 
-func (uc *OrderUsecase) ProcessOutboxMessages(ctx context.Context, topic string) error {
-	messages, err := uc.repo.ListOutboxMessages(ctx, topic, OutboxBatchSize)
+func (uc *OrderUsecase) ProcessOutboxMessages(ctx context.Context) error {
+	messages, err := uc.repo.ListOutboxMessages(ctx, OutboxBatchSize)
 	if err != nil {
 		return err
 	}
-	var ids []uuid.UUID
+	successIDs := make([]uuid.UUID, 0)
+	failIDs := make([]uuid.UUID, 0)
+
+	// TODO(3): buffer optimization
 	for _, message := range messages {
-		ids = append(ids, message.ID)
+		if err := uc.dispatchOutboxMessage(ctx, message); err != nil {
+			slog.ErrorContext(ctx, "failed to send outbox message", slog.Any("msg", message))
+			failIDs = append(failIDs, message.ID)
+			continue
+		}
+		successIDs = append(successIDs, message.ID)
 	}
-	switch topic {
-	case KafkaTopicOrderCreated:
-		err = uc.publisher.PublishOrderCreated(ctx, messages)
-	case KafkaTopicOrderCancelledDelay:
-		err = uc.publisher.PublishOrderCancelledDelay(ctx, messages)
+
+	if err = uc.repo.MarkOutboxMessagesFailed(ctx, failIDs); err != nil {
+		err = errors.Join(err, errors.New("failed to mark outbox messages failed"))
+	}
+
+	return errors.Join(err, uc.repo.MarkOutboxMessagesSent(ctx, successIDs))
+}
+
+// dispatchOutboxMessages dispatches an outbox message to the appropriate handler
+// based on its event type.
+func (uc *OrderUsecase) dispatchOutboxMessage(ctx context.Context, message *OrderOutboxMessage) error {
+	eventType := message.EventType
+	switch eventType {
+	case OutboxEventOrderCreated:
+		return uc.publisher.PublishOrderCreated(ctx, []*OrderOutboxMessage{message})
+
+	case OutboxEventOrderCancelledDelay:
+		return uc.publisher.PublishOrderCancelledDelay(ctx, []*OrderOutboxMessage{message})
+
+	case OutboxEventOrderCancelled:
+		var msg ReleaseStockMessage
+		if err := json.Unmarshal(message.Payload, &msg); err != nil {
+			return err
+		}
+		req := connect.NewRequest(&inventorypb.ReleaseStockRequest{
+			OrderId: msg.OrderID,
+		})
+		_, err := uc.inventory.ReleaseStock(ctx, req)
+		return err
+
 	default:
-		return fmt.Errorf("unsupported topic %q", topic)
 	}
-	if err != nil {
-		return multierr.Append(err, uc.repo.MarkOutboxMessagesFailed(ctx, ids))
-	}
-	return uc.repo.MarkOutboxMessagesSent(ctx, ids)
+
+	return fmt.Errorf("unknown event type %q", eventType)
 }

@@ -110,15 +110,15 @@ func NewPaymentPublisher(producer *KafkaProducer) biz.PaymentPublisher {
 
 func (p *PaymentPublisher) PublishPaymentStatus(ctx context.Context, orderID int64, status biz.PaymentStatus) error {
 	producer := p.kafkaProducer.syncProducer
-	bytes, err := json.Marshal(PaymentStatusMessage{
+	bytes, err := json.Marshal(biz.PaymentStatusMessage{
 		OrderID: orderID,
-		Status:  PaymentStatus(string(status)),
+		Status:  status,
 	})
 	if err != nil {
 		return err
 	}
 	msg := &sarama.ProducerMessage{
-		Topic: biz.KafkaTopicPaymentStatus,
+		Topic: string(biz.KafkaTopicPaymentStatus),
 		Value: sarama.ByteEncoder(bytes),
 	}
 	_, _, err = producer.SendMessage(msg)

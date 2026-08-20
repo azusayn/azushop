@@ -187,7 +187,7 @@ func NewInventorySubscriber(config *conf.Data) (biz.InventorySubscriber, error) 
 
 // TODO(3): wrap these subscriber function.
 func (s *InventorySubscriber) SubscribeProductCreated(ctx context.Context, handler func(skuIDs []uuid.UUID) error) error {
-	topics := []string{biz.KafkaTopicProductCreated}
+	topics := []string{string(biz.KafkaTopicProductCreated)}
 	consumerHandler := NewConsumerHandler(func(bytes []byte) error {
 		var msg ProductCreatedMessage
 		if err := json.Unmarshal(bytes, &msg); err != nil {
@@ -210,9 +210,9 @@ func (s *InventorySubscriber) SubscribeOrderCreated(
 	ctx context.Context,
 	handler func(orderID int64, orderItems []*biz.OrderItem) error,
 ) error {
-	topics := []string{biz.KafkaTopicOrderCreated}
+	topics := []string{string(biz.KafkaTopicOrderCreated)}
 	consumerHandler := NewConsumerHandler(func(bytes []byte) error {
-		var msg OrderCreatedMessage
+		var msg biz.OrderCreatedMessage
 		if err := json.Unmarshal(bytes, &msg); err != nil {
 			return err
 		}
@@ -240,13 +240,13 @@ func (s *InventorySubscriber) SubscribePaymentStatus(
 	ctx context.Context,
 	handler func(orderID int64, success bool) error,
 ) error {
-	topics := []string{biz.KafkaTopicOrderCreated}
+	topics := []string{string(biz.KafkaTopicOrderCreated)}
 	consumerHandler := NewConsumerHandler(func(bytes []byte) error {
-		var msg PaymentStatusMessage
+		var msg biz.PaymentStatusMessage
 		if err := json.Unmarshal(bytes, &msg); err != nil {
 			return err
 		}
-		return handler(msg.OrderID, msg.Status == PaymentStatusPaid)
+		return handler(msg.OrderID, msg.Status == biz.PaymentStatusPaid)
 	})
 	for {
 		err := s.paymentStatusSub.Consume(ctx, topics, consumerHandler)

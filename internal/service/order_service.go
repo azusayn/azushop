@@ -1,7 +1,6 @@
 package service
 
 import (
-	inventorypb "github.com/azusayn/azushop/proto/api/inventory/v1"
 	pb "github.com/azusayn/azushop/proto/api/order/v1"
 	productpb "github.com/azusayn/azushop/proto/api/product/v1"
 
@@ -95,17 +94,9 @@ func (h *OrderServiceConnectHandler) CreateOrder(ctx context.Context, req *conne
 }
 
 func (h *OrderServiceConnectHandler) CancelOrder(ctx context.Context, req *connect.Request[pb.CancelOrderRequest]) (*connect.Response[pb.CancelOrderResponse], error) {
-	r := req.Msg
-	if err := h.orderService.uc.CancelOrder(ctx, r.GetOrderId()); err != nil {
+	if err := h.orderService.uc.CancelOrder(ctx, req.Msg.GetOrderId()); err != nil {
 		return nil, err
 	}
-
-	releaseReq := connect.NewRequest(&inventorypb.ReleaseStockRequest{OrderId: r.OrderId})
-	// TODO: outbox
-	if _, err := h.orderService.inventory.ReleaseStock(ctx, releaseReq); err != nil {
-		return nil, err
-	}
-
 	return connect.NewResponse(&pb.CancelOrderResponse{}), nil
 }
 

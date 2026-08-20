@@ -2,6 +2,8 @@ package runner
 
 import (
 	"context"
+	"log/slog"
+	"time"
 
 	"github.com/azusayn/azushop/internal/biz"
 	"golang.org/x/sync/errgroup"
@@ -17,18 +19,32 @@ func NewOrderRunner(uc *biz.OrderUsecase) *OrderRunner {
 
 func (r *OrderRunner) Start(ctx context.Context) error {
 	g, ctx := errgroup.WithContext(ctx)
+
 	g.Go(func() error {
 		return r.uc.HandlePaymentStatus(ctx)
 	})
-	g.Go(func() error {
-		return r.uc.ProcessOutboxMessages(ctx, biz.KafkaTopicOrderCreated)
-	})
-	g.Go(func() error {
-		return r.uc.ProcessOutboxMessages(ctx, biz.KafkaTopicOrderCancelledDelay)
-	})
+
 	g.Go(func() error {
 		return r.uc.HandleOrderCancelled(ctx)
 	})
+
+	g.Go(func() error {
+		ticker := time.NewTicker(time.Second * 1)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				if err := r.uc.ProcessOutboxMessages(ctx); err != nil {
+					slog.Error("failed to process outbox messages")
+				}
+
+			case <-ctx.Done():
+				slog.InfoContext(ctx, "stop processing outbox messages")
+				return nil
+			}
+		}
+	})
+
 	return g.Wait()
 }
 

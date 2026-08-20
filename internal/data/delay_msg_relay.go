@@ -26,7 +26,7 @@ func NewDelayRelayPublisher(config *conf.Data) (biz.DelayMsgRelayPublisher, erro
 
 func (p *DelayMsgRelayPublisher) PublishOrderCancelled(ctx context.Context, orderID int64) error {
 	producer := p.kafkaProducer.syncProducer
-	orderCancelledMsg := &OrderCancelledMessage{
+	orderCancelledMsg := &biz.OrderCancelledMessage{
 		OrderID: orderID,
 	}
 	payload, err := json.Marshal(orderCancelledMsg)
@@ -34,7 +34,7 @@ func (p *DelayMsgRelayPublisher) PublishOrderCancelled(ctx context.Context, orde
 		return err
 	}
 	prodMsg := sarama.ProducerMessage{
-		Topic: biz.KafkaTopicOrderCancelled,
+		Topic: string(biz.KafkaTopicOrderCancelled),
 		Value: sarama.ByteEncoder(payload),
 	}
 	_, _, err = producer.SendMessage(&prodMsg)
@@ -54,7 +54,7 @@ func NewDelayMsgRelaySubscriber(config *conf.Data) (biz.DelayMsgRelaySubscriber,
 }
 
 func (s *DelayMsgRelaySubscriber) SubscribeDelayMessage(ctx context.Context, handler func(orderID int64) error) error {
-	topics := []string{biz.KafkaTopicOrderCancelledDelay}
+	topics := []string{string(biz.KafkaTopicOrderCancelledDelay)}
 	consumer := s.delayMessageRelaySub
 	consumerHandler := NewDelayConsumerHandler(consumer, func(orderID int64) error {
 		return handler(orderID)
@@ -101,7 +101,7 @@ func (c *DelayConsumerHandler) ConsumeClaim(session sarama.ConsumerGroupSession,
 			if !ok || msg == nil || len(msg.Value) == 0 {
 				return nil
 			}
-			var orderCancelMsg OrderCancelledMessage
+			var orderCancelMsg biz.OrderCancelledMessage
 			if err := json.Unmarshal(msg.Value, &orderCancelMsg); err != nil {
 				slog.Warn(err.Error())
 				continue
