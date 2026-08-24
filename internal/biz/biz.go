@@ -2,7 +2,6 @@ package biz
 
 import (
 	"context"
-	"time"
 )
 
 type KafkaTopicType string
@@ -15,7 +14,20 @@ const (
 	// used by the delay runner to defer delivery to "order.cancelled"
 	KafkaTopicOrderCancelledDelay KafkaTopicType = "order.cancelled.delay"
 	KafkaTopicOrderCancelled      KafkaTopicType = "order.cancelled"
+	KafkaTopicRetryQueue          KafkaTopicType = "order.retry_queue"
+	KafkaTopicDeadLetterQueue     KafkaTopicType = "order.dead_letter_queue"
 )
+
+type KafkaMessage struct {
+	Topic string
+	Value any
+}
+
+type RetryQueueMessage struct {
+	EventType  RetryQueueEventType
+	RetryCount int
+	Message    any
+}
 
 type OutboxEventType string
 
@@ -25,20 +37,16 @@ const (
 	OutboxEventOrderCancelledDelay OutboxEventType = "outbox.event.order.cancelled_delay"
 )
 
+type RetryQueueEventType string
+
+const (
+	RetryQueueEventTypeReleaseStock RetryQueueEventType = "mq.retry.event.release_stock"
+)
+
 // TODO(3): decouple these outgoing message structs from their corresponding outbox payloads.
 type PaymentStatusMessage struct {
 	OrderID int64
 	Status  PaymentStatus
-}
-
-type OrderCreatedMessage struct {
-	OrderID    int64
-	OrderItems []*OrderItem
-}
-
-type OrderCancelledMessage struct {
-	OrderID     int64
-	ExpiredTime time.Time
 }
 
 type ReleaseStockMessage struct {

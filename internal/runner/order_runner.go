@@ -21,11 +21,8 @@ func (r *OrderRunner) Start(ctx context.Context) error {
 	g, ctx := errgroup.WithContext(ctx)
 
 	g.Go(func() error {
-		return r.uc.HandlePaymentStatus(ctx)
-	})
+		return r.uc.HandleKafkaMessages(ctx)
 
-	g.Go(func() error {
-		return r.uc.HandleOrderCancelled(ctx)
 	})
 
 	g.Go(func() error {

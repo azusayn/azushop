@@ -16,7 +16,9 @@ import (
 )
 
 const (
-	OutboxBatchSize int = 100
+	OutboxBatchSize           int = 100
+	OrderTimeout                  = time.Second * 30
+	MaxMessageQueueRetryCount int = 3
 )
 
 type OrderRepo interface {
@@ -31,16 +33,14 @@ type OrderRepo interface {
 	CreateOutboxMessage(ctx context.Context, eventType OutboxEventType, payload json.RawMessage) error
 	ListOutboxMessages(ctx context.Context, limit int) ([]*OrderOutboxMessage, error)
 	MarkOutboxMessagesSent(ctx context.Context, ids []uuid.UUID) error
-	MarkOutboxMessagesFailed(ctx context.Context, ids []uuid.UUID) error
 }
 type OrderSubscriber interface {
-	SubscribePaymentStatus(ctx context.Context, handler func(orderID int64, status PaymentStatus) error) error
-	SubscribeOrderCancelled(context.Context, func(int64) error) error
+	RegisterHandler(topic KafkaTopicType, handler func(context.Context, []byte) error)
+	Subscribe(ctx context.Context) error
 }
 
 type OrderPublisher interface {
-	PublishOrderCreated(ctx context.Context, messages []*OrderOutboxMessage) error
-	PublishOrderCancelledDelay(ctx context.Context, messages []*OrderOutboxMessage) error
+	SendMessagaes(ctx context.Context, messages []*KafkaMessage) error
 }
 
 type OrderUsecase struct {
@@ -96,12 +96,11 @@ type Order struct {
 }
 
 type OrderOutboxMessage struct {
-	ID         uuid.UUID       `gorm:"column:id"`
-	EventType  OutboxEventType `gorm:"column:event_type"`
-	Payload    json.RawMessage `gorm:"column:payload"`
-	RetryCount int             `gorm:"retry_count"`
-	CreatedAt  time.Time       `gorm:"column:created_at"`
-	SentAt     time.Time       `gorm:"column:sent_at"`
+	ID        uuid.UUID       `gorm:"column:id"`
+	EventType OutboxEventType `gorm:"column:event_type"`
+	Payload   json.RawMessage `gorm:"column:payload"`
+	CreatedAt time.Time       `gorm:"column:created_at"`
+	SentAt    time.Time       `gorm:"column:sent_at"`
 }
 
 // retrieves orders by user ID, filtered by order status.
@@ -173,29 +172,61 @@ func (uc *OrderUsecase) GetOrder(ctx context.Context, orderID int64) (*Order, er
 	return uc.repo.GetOrder(ctx, orderID)
 }
 
-func (uc *OrderUsecase) HandlePaymentStatus(ctx context.Context) error {
-	return uc.subscriber.SubscribePaymentStatus(ctx, func(orderID int64, status PaymentStatus) error {
-		switch status {
-		case PaymentStatusPaid,
-			PaymentStatusCancelled:
-		default:
-			return fmt.Errorf("invalid status %q", status)
-		}
-		return uc.repo.UpdateOrderStatus(ctx, orderID, OrderStatusConfirmed)
-	})
+func (uc *OrderUsecase) HandleKafkaMessages(ctx context.Context) error {
+	uc.subscriber.RegisterHandler(KafkaTopicOrderCancelled, uc.handleOrderCancelled)
+	uc.subscriber.RegisterHandler(KafkaTopicPaymentStatus, uc.handlePaymentStatus)
+	uc.subscriber.RegisterHandler(KafkaTopicRetryQueue, uc.handleRetryQueueMessages)
+	return uc.subscriber.Subscribe(ctx)
 }
 
-func (uc *OrderUsecase) HandleOrderCancelled(ctx context.Context) error {
-	return uc.subscriber.SubscribeOrderCancelled(ctx, func(orderID int64) error {
-		order, err := uc.repo.GetOrder(ctx, orderID)
-		if err != nil {
-			return err
+func (uc *OrderUsecase) handleRetryQueueMessages(ctx context.Context, bytes []byte) error {
+	var retryMessage RetryQueueMessage
+	if err := json.Unmarshal(bytes, &retryMessage); err != nil {
+		return err
+	}
+
+	eventType := retryMessage.EventType
+	switch eventType {
+	case RetryQueueEventTypeReleaseStock:
+		v, ok := retryMessage.Message.(ReleaseStockMessage)
+		if !ok {
+			return errors.New("failed to convert any to ReleaseStockMessage")
 		}
-		if order.Status != OrderStatusPending {
-			return nil
-		}
-		return uc.repo.UpdateOrderStatus(ctx, orderID, OrderStatusCancelled)
-	})
+		return uc.releaseStock(ctx, &v, retryMessage.RetryCount)
+
+	default:
+	}
+	return fmt.Errorf("unknown event %q", eventType)
+
+}
+
+func (uc *OrderUsecase) handlePaymentStatus(ctx context.Context, bytes []byte) error {
+	var msg PaymentStatusMessage
+	if err := json.Unmarshal(bytes, &msg); err != nil {
+		return err
+	}
+	switch msg.Status {
+	case PaymentStatusPaid,
+		PaymentStatusCancelled:
+	default:
+		return fmt.Errorf("invalid status %q", msg.Status)
+	}
+	return uc.repo.UpdateOrderStatus(ctx, msg.OrderID, OrderStatusConfirmed)
+}
+
+func (uc *OrderUsecase) handleOrderCancelled(ctx context.Context, bytes []byte) error {
+	var msg OrderCancelledMessage
+	if err := json.Unmarshal(bytes, &msg); err != nil {
+		return err
+	}
+	order, err := uc.repo.GetOrder(ctx, msg.OrderID)
+	if err != nil {
+		return err
+	}
+	if order.Status != OrderStatusPending {
+		return nil
+	}
+	return uc.repo.UpdateOrderStatus(ctx, msg.OrderID, OrderStatusCancelled)
 }
 
 func (uc *OrderUsecase) ProcessOutboxMessages(ctx context.Context) error {
@@ -203,50 +234,148 @@ func (uc *OrderUsecase) ProcessOutboxMessages(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	successIDs := make([]uuid.UUID, 0)
-	failIDs := make([]uuid.UUID, 0)
+	sentIDs := make([]uuid.UUID, 0)
 
-	// TODO(3): buffer optimization
 	for _, message := range messages {
 		if err := uc.dispatchOutboxMessage(ctx, message); err != nil {
 			slog.ErrorContext(ctx, "failed to send outbox message", slog.Any("msg", message))
-			failIDs = append(failIDs, message.ID)
 			continue
 		}
-		successIDs = append(successIDs, message.ID)
+		sentIDs = append(sentIDs, message.ID)
 	}
 
-	if err = uc.repo.MarkOutboxMessagesFailed(ctx, failIDs); err != nil {
-		err = errors.Join(err, errors.New("failed to mark outbox messages failed"))
-	}
-
-	return errors.Join(err, uc.repo.MarkOutboxMessagesSent(ctx, successIDs))
+	return errors.Join(err, uc.repo.MarkOutboxMessagesSent(ctx, sentIDs))
 }
 
 // dispatchOutboxMessages dispatches an outbox message to the appropriate handler
 // based on its event type.
 func (uc *OrderUsecase) dispatchOutboxMessage(ctx context.Context, message *OrderOutboxMessage) error {
+	// TODO(3): batch messages by topic
 	eventType := message.EventType
 	switch eventType {
 	case OutboxEventOrderCreated:
-		return uc.publisher.PublishOrderCreated(ctx, []*OrderOutboxMessage{message})
+		msg, err := toOrderCreatedMessage(message)
+		if err != nil {
+			return err
+		}
+		return uc.publisher.SendMessagaes(ctx, []*KafkaMessage{{
+			Topic: string(KafkaTopicOrderCreated),
+			Value: msg,
+		}})
 
 	case OutboxEventOrderCancelledDelay:
-		return uc.publisher.PublishOrderCancelledDelay(ctx, []*OrderOutboxMessage{message})
+		msg, err := toOrderCancelledMsg(message)
+		if err != nil {
+			return err
+		}
+		return uc.publisher.SendMessagaes(ctx, []*KafkaMessage{{
+			Topic: string(KafkaTopicOrderCancelledDelay),
+			Value: msg,
+		}})
 
 	case OutboxEventOrderCancelled:
 		var msg ReleaseStockMessage
 		if err := json.Unmarshal(message.Payload, &msg); err != nil {
 			return err
 		}
-		req := connect.NewRequest(&inventorypb.ReleaseStockRequest{
-			OrderId: msg.OrderID,
-		})
-		_, err := uc.inventory.ReleaseStock(ctx, req)
-		return err
+		return uc.releaseStock(ctx, &msg, 0)
 
 	default:
 	}
 
 	return fmt.Errorf("unknown event type %q", eventType)
+}
+
+func (uc *OrderUsecase) releaseStock(
+	ctx context.Context,
+	msg *ReleaseStockMessage,
+	retryCount int,
+) error {
+	retryMsg := &RetryQueueMessage{
+		EventType:  RetryQueueEventTypeReleaseStock,
+		Message:    msg,
+		RetryCount: retryCount,
+	}
+	return uc.retry(ctx, retryMsg, func(ctx context.Context) error {
+		req := connect.NewRequest(&inventorypb.ReleaseStockRequest{
+			OrderId: msg.OrderID,
+		})
+		if _, err := uc.inventory.ReleaseStock(ctx, req); err != nil {
+			return fmt.Errorf("failed to release stock for order %d", msg.OrderID)
+		}
+		return nil
+	})
+}
+
+func (uc *OrderUsecase) retry(
+	ctx context.Context,
+	msg *RetryQueueMessage,
+	fn func(context.Context) error,
+) error {
+	if err := fn(ctx); err == nil {
+		return nil
+	}
+
+	if msg.RetryCount > MaxMessageQueueRetryCount {
+		slog.ErrorContext(ctx, fmt.Sprintf("max retries (%d) exceeded", MaxMessageQueueRetryCount))
+		if err := uc.publisher.SendMessagaes(ctx, []*KafkaMessage{{
+			Topic: string(KafkaTopicDeadLetterQueue),
+			Value: msg,
+		}}); err != nil {
+			slog.ErrorContext(ctx, "failed to send message to dead letter queue", slog.Any("msg", msg))
+		}
+		return nil
+	}
+
+	msg.RetryCount++
+
+	return uc.publisher.SendMessagaes(ctx, []*KafkaMessage{{
+		Topic: string(KafkaTopicRetryQueue),
+		Value: msg,
+	}})
+}
+
+type OrderCreatedMessage struct {
+	OrderID    int64
+	OrderItems []*OrderItem
+}
+
+func toOrderCreatedMessage(message *OrderOutboxMessage) (*OrderCreatedMessage, error) {
+	var order Order
+	if err := json.Unmarshal(message.Payload, &order); err != nil {
+		return nil, err
+	}
+	var bizOrderItems []*OrderItem
+	if err := json.Unmarshal(order.OrderItems, &bizOrderItems); err != nil {
+		return nil, err
+	}
+	var orderItems []*OrderItem
+	for _, bizOrderItem := range bizOrderItems {
+		orderItems = append(orderItems, &OrderItem{
+			SkuID:    bizOrderItem.SkuID,
+			Quantity: bizOrderItem.Quantity,
+		})
+	}
+	orderCreatedMsg := &OrderCreatedMessage{
+		OrderID:    order.ID,
+		OrderItems: orderItems,
+	}
+	return orderCreatedMsg, nil
+}
+
+type OrderCancelledMessage struct {
+	OrderID     int64
+	ExpiredTime time.Time
+}
+
+func toOrderCancelledMsg(message *OrderOutboxMessage) (*OrderCancelledMessage, error) {
+	var order Order
+	if err := json.Unmarshal(message.Payload, &order); err != nil {
+		return nil, err
+	}
+	orderCancelledMsg := &OrderCancelledMessage{
+		OrderID:     order.ID,
+		ExpiredTime: time.Now().Add(OrderTimeout),
+	}
+	return orderCancelledMsg, nil
 }
