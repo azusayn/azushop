@@ -1,6 +1,8 @@
 package data
 
 import (
+	"context"
+	"fmt"
 	"log/slog"
 
 	"github.com/IBM/sarama"
@@ -23,7 +25,7 @@ type KafkaProducer struct {
 	syncProducer sarama.SyncProducer
 }
 
-// TODO: async producer.
+// TODO(3): async producer.
 func NewKafkaProducer(config *conf.Data) (*KafkaProducer, error) {
 	brokerAddrs := config.GetKafka().GetBrokerAddrs()
 	if len(brokerAddrs) == 0 {
@@ -61,6 +63,7 @@ type ConsumerHandler struct {
 	handler func([]byte) error
 }
 
+// TODO(1):refactor it.
 func NewConsumerHandler(handler func([]byte) error) sarama.ConsumerGroupHandler {
 	return &ConsumerHandler{handler: handler}
 }
@@ -83,6 +86,41 @@ func (c *ConsumerHandler) ConsumeClaim(session sarama.ConsumerGroupSession, clai
 				return nil
 			}
 			if err := c.handler(msg.Value); err != nil {
+				slog.Warn(err.Error())
+			}
+			session.MarkMessage(msg, "")
+		}
+	}
+}
+
+type ConsumerHandlerV2 struct {
+	handlers map[string]func(context.Context, []byte) error
+}
+
+func NewConsumerHandlerV2(handlers map[string]func(context.Context, []byte) error) sarama.ConsumerGroupHandler {
+	return &ConsumerHandlerV2{handlers: handlers}
+}
+
+func (c *ConsumerHandlerV2) Setup(sarama.ConsumerGroupSession) error {
+	return nil
+}
+
+func (c *ConsumerHandlerV2) Cleanup(sarama.ConsumerGroupSession) error {
+	return nil
+}
+
+func (c *ConsumerHandlerV2) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
+	for {
+		select {
+		case <-session.Context().Done():
+			return nil
+		case msg, ok := <-claim.Messages():
+			topic := claim.Topic()
+			handler, ok := c.handlers[topic]
+			if !ok {
+				return fmt.Errorf("handler for topic %q not found", topic)
+			}
+			if err := handler(context.TODO(), msg.Value); err != nil {
 				slog.Warn(err.Error())
 			}
 			session.MarkMessage(msg, "")

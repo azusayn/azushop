@@ -93,7 +93,6 @@ CREATE TABLE order_outbox_messages (
   event_type VARCHAR(255) NOT NULL,
   payload JSON NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  retry_count INT NOT NULL DEFAULT 0,
   sent_at TIMESTAMPTZ
 );
 
