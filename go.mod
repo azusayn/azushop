@@ -1,6 +1,6 @@
 module github.com/azusayn/azushop
 
-go 1.26.4
+go 1.27
 
 require (
 	connectrpc.com/connect v1.20.0
