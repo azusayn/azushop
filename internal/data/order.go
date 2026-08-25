@@ -184,7 +184,8 @@ func (repo *OrderRepo) ListOutboxMessages(ctx context.Context, limit int) ([]*bi
 	if err := client.
 		WithContext(ctx).
 		Where("sent_at IS NULL").
-		Order("created_at").
+		Where("retry_count < ?", biz.OutboxMaxRetryCount).
+		Order("created_at ASC").
 		Limit(limit).
 		Find(&messages).
 		Error; err != nil {
@@ -194,11 +195,25 @@ func (repo *OrderRepo) ListOutboxMessages(ctx context.Context, limit int) ([]*bi
 }
 
 func (repo *OrderRepo) MarkOutboxMessagesSent(ctx context.Context, ids []uuid.UUID) error {
+	if len(ids) == 0 {
+		return nil
+	}
 	client := GetTransaction(ctx)
 	if client == nil {
 		client = repo.postgres.GormClient
 	}
 	return client.WithContext(ctx).Model(&biz.OrderOutboxMessage{}).Where("id IN ?", ids).Update("sent_at", time.Now()).Error
+}
+
+func (repo *OrderRepo) MarkOutboxMessagesFailed(ctx context.Context, ids []uuid.UUID) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	client := GetTransaction(ctx)
+	if client == nil {
+		client = repo.postgres.GormClient
+	}
+	return client.WithContext(ctx).Model(&biz.OrderOutboxMessage{}).Where("id IN ?", ids).Update("retry_count", gorm.Expr("retry_count + 1")).Error
 }
 
 type OrderSubscriber struct {

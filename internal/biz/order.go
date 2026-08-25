@@ -17,6 +17,7 @@ import (
 
 const (
 	OutboxBatchSize           int = 100
+	OutboxMaxRetryCount       int = 5
 	OrderTimeout                  = time.Second * 30
 	MaxMessageQueueRetryCount int = 3
 )
@@ -33,6 +34,7 @@ type OrderRepo interface {
 	CreateOutboxMessage(ctx context.Context, eventType OutboxEventType, payload json.RawMessage) error
 	ListOutboxMessages(ctx context.Context, limit int) ([]*OrderOutboxMessage, error)
 	MarkOutboxMessagesSent(ctx context.Context, ids []uuid.UUID) error
+	MarkOutboxMessagesFailed(ctx context.Context, ids []uuid.UUID) error
 }
 type OrderSubscriber interface {
 	RegisterHandler(topic KafkaTopicType, handler func(context.Context, []byte) error)
@@ -96,11 +98,12 @@ type Order struct {
 }
 
 type OrderOutboxMessage struct {
-	ID        uuid.UUID       `gorm:"column:id"`
-	EventType OutboxEventType `gorm:"column:event_type"`
-	Payload   json.RawMessage `gorm:"column:payload"`
-	CreatedAt time.Time       `gorm:"column:created_at"`
-	SentAt    time.Time       `gorm:"column:sent_at"`
+	ID         uuid.UUID       `gorm:"column:id"`
+	EventType  OutboxEventType `gorm:"column:event_type"`
+	Payload    json.RawMessage `gorm:"column:payload"`
+	RetryCount int             `gorm:"column:retry_count"`
+	CreatedAt  time.Time       `gorm:"column:created_at"`
+	SentAt     time.Time       `gorm:"column:sent_at"`
 }
 
 // retrieves orders by user ID, filtered by order status.
@@ -235,16 +238,21 @@ func (uc *OrderUsecase) ProcessOutboxMessages(ctx context.Context) error {
 		return err
 	}
 	sentIDs := make([]uuid.UUID, 0)
+	failedIDs := make([]uuid.UUID, 0)
 
 	for _, message := range messages {
 		if err := uc.dispatchOutboxMessage(ctx, message); err != nil {
-			slog.ErrorContext(ctx, "failed to send outbox message", slog.Any("msg", message))
+			slog.ErrorContext(ctx, "failed to send outbox message", slog.Any("msg", message), slog.Any("err", err))
+			failedIDs = append(failedIDs, message.ID)
 			continue
 		}
 		sentIDs = append(sentIDs, message.ID)
 	}
 
-	return errors.Join(err, uc.repo.MarkOutboxMessagesSent(ctx, sentIDs))
+	return errors.Join(
+		uc.repo.MarkOutboxMessagesFailed(ctx, failedIDs),
+		uc.repo.MarkOutboxMessagesSent(ctx, sentIDs),
+	)
 }
 
 // dispatchOutboxMessages dispatches an outbox message to the appropriate handler

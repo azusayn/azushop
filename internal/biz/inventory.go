@@ -182,6 +182,7 @@ func (uc *InventoryUsecase) HandleProductCreated(ctx context.Context) error {
 
 func (uc *InventoryUsecase) HandleOrderCreated(ctx context.Context) error {
 	return uc.subscriber.SubscribeOrderCreated(ctx, func(orderID int64, orderItems []*OrderItem) error {
+		// TODO(1): add retry for transient failures
 		return uc.ReserveStock(ctx, orderID, orderItems)
 	})
 }
