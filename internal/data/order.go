@@ -202,7 +202,16 @@ func (repo *OrderRepo) MarkOutboxMessagesSent(ctx context.Context, ids []uuid.UU
 	if client == nil {
 		client = repo.postgres.GormClient
 	}
-	return client.WithContext(ctx).Model(&biz.OrderOutboxMessage{}).Where("id IN ?", ids).Update("sent_at", time.Now()).Error
+	if err := client.
+		WithContext(ctx).
+		Model(&biz.OrderOutboxMessage{}).
+		Where("id IN ?", ids).
+		Update("sent_at", time.Now()).
+		Error; err != nil {
+		return fmt.Errorf("failed to mark outbox message (%v) sent: %w", ids, err)
+	}
+
+	return nil
 }
 
 func (repo *OrderRepo) MarkOutboxMessagesFailed(ctx context.Context, ids []uuid.UUID) error {
@@ -213,7 +222,17 @@ func (repo *OrderRepo) MarkOutboxMessagesFailed(ctx context.Context, ids []uuid.
 	if client == nil {
 		client = repo.postgres.GormClient
 	}
-	return client.WithContext(ctx).Model(&biz.OrderOutboxMessage{}).Where("id IN ?", ids).Update("retry_count", gorm.Expr("retry_count + 1")).Error
+
+	if err := client.
+		WithContext(ctx).
+		Model(&biz.OrderOutboxMessage{}).
+		Where("id IN ?", ids).
+		Update("retry_count", gorm.Expr("retry_count + 1")).
+		Error; err != nil {
+		return fmt.Errorf("failed to mark outbox message (%v) failed: %w", ids, err)
+	}
+
+	return nil
 }
 
 type OrderSubscriber struct {
