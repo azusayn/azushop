@@ -125,10 +125,7 @@ func (uc *PaymentUsecase) Callback(ctx context.Context, method PaymentMethod, bo
 	return uc.publisher.PublishPaymentStatus(ctx, orderID, paymentStatus)
 }
 
-// create a Stripe checkout session and return:
-// - PaymentIntent ID
-// - URL
-// - AmountTotal
+// createStripePayment creates a Stripe checkout session and return PaymentIntent ID, URL and AmountTotal
 func createStripePayment(
 	orderID int64,
 	userID int32,
@@ -138,13 +135,13 @@ func createStripePayment(
 	var lineItemParams []*stripe.CheckoutSessionLineItemParams
 	for _, item := range items {
 		unitAmount := item.UnitPrice.Mul(decimal.NewFromInt(100)).IntPart()
-		metadata := map[string]string{
-			"user_id":  strconv.FormatInt(int64(userID), 10),
-			"order_id": strconv.FormatInt(orderID, 10),
-		}
+		metadata := make(map[string]string)
 		if err := json.Unmarshal(item.Attr, &metadata); err != nil {
 			return "", "", 0, err
 		}
+		metadata["user_id"] = strconv.FormatInt(int64(userID), 10)
+		metadata["order_id"] = strconv.FormatInt(orderID, 10)
+
 		lineItemParams = append(lineItemParams, &stripe.CheckoutSessionLineItemParams{
 			PriceData: &stripe.CheckoutSessionLineItemPriceDataParams{
 				// TODO(3): support different currencies

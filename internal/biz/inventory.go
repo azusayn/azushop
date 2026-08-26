@@ -184,7 +184,7 @@ func (uc *InventoryUsecase) handleProductCreated(ctx context.Context, bytes []by
 	if err := json.Unmarshal(bytes, &msg); err != nil {
 		return err
 	}
-	// TODO(1): retrying topic.
+	// TODO: outbox
 	_, err := uc.repo.BatchCreateInventoris(ctx, msg.SkuIDs)
 	return err
 }
@@ -201,7 +201,7 @@ func (uc *InventoryUsecase) handleOrderCreated(ctx context.Context, bytes []byte
 			Quantity: orderItem.Quantity,
 		})
 	}
-	// TODO(1): add retry for transient failures
+	// TODO: outbox
 	return uc.ReserveStock(ctx, msg.OrderID, orderItems)
 }
 
@@ -213,5 +213,6 @@ func (uc *InventoryUsecase) handlePaymentStatus(ctx context.Context, bytes []byt
 	if msg.Status != PaymentStatusPaid {
 		return nil
 	}
+	// TODO: outbox
 	return uc.DeductStock(ctx, msg.OrderID)
 }
