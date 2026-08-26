@@ -29,9 +29,8 @@ type InventoryRepo interface {
 }
 
 type InventorySubscriber interface {
-	SubscribeProductCreated(ctx context.Context, handler func(skuIDs []uuid.UUID) error) error
-	SubscribeOrderCreated(ctx context.Context, handler func(orderID int64, orderItems []*OrderItem) error) error
-	SubscribePaymentStatus(ctx context.Context, handler func(orderID int64, success bool) error) error
+	RegisterHandler(topic KafkaTopicType, handler func(context.Context, []byte) error)
+	Subscribe(ctx context.Context) error
 }
 
 type Inventory struct {
@@ -53,6 +52,10 @@ type InventoryLock struct {
 	// []*biz.OrderItem
 	Payload []byte              `gorm:"column:payload"`
 	Status  InventoryLockStatus `gorm:"column:status"`
+}
+
+type ProductCreatedMessage struct {
+	SkuIDs []uuid.UUID
 }
 
 type InventoryUsecase struct {
@@ -169,30 +172,46 @@ func (uc *InventoryUsecase) DeductStock(ctx context.Context, orderID int64) erro
 	})
 }
 
-func (uc *InventoryUsecase) HandleProductCreated(ctx context.Context) error {
-	return uc.subscriber.SubscribeProductCreated(ctx, func(skuIDs []uuid.UUID) error {
-		// TODO(1): retrying topic.
-		_, err := uc.repo.BatchCreateInventoris(ctx, skuIDs)
-		if err != nil {
-			return err
-		}
+func (uc *InventoryUsecase) HandleKafkaMessages(ctx context.Context) error {
+	uc.subscriber.RegisterHandler(KafkaTopicProductCreated, uc.handleProductCreated)
+	uc.subscriber.RegisterHandler(KafkaTopicOrderCreated, uc.handleOrderCreated)
+	uc.subscriber.RegisterHandler(KafkaTopicPaymentStatus, uc.handlePaymentStatus)
+	return uc.subscriber.Subscribe(ctx)
+}
+
+func (uc *InventoryUsecase) handleProductCreated(ctx context.Context, bytes []byte) error {
+	var msg ProductCreatedMessage
+	if err := json.Unmarshal(bytes, &msg); err != nil {
 		return err
-	})
+	}
+	// TODO(1): retrying topic.
+	_, err := uc.repo.BatchCreateInventoris(ctx, msg.SkuIDs)
+	return err
 }
 
-func (uc *InventoryUsecase) HandleOrderCreated(ctx context.Context) error {
-	return uc.subscriber.SubscribeOrderCreated(ctx, func(orderID int64, orderItems []*OrderItem) error {
-		// TODO(1): add retry for transient failures
-		return uc.ReserveStock(ctx, orderID, orderItems)
-	})
+func (uc *InventoryUsecase) handleOrderCreated(ctx context.Context, bytes []byte) error {
+	var msg OrderCreatedMessage
+	if err := json.Unmarshal(bytes, &msg); err != nil {
+		return err
+	}
+	var orderItems []*OrderItem
+	for _, orderItem := range msg.OrderItems {
+		orderItems = append(orderItems, &OrderItem{
+			SkuID:    orderItem.SkuID,
+			Quantity: orderItem.Quantity,
+		})
+	}
+	// TODO(1): add retry for transient failures
+	return uc.ReserveStock(ctx, msg.OrderID, orderItems)
 }
 
-func (uc *InventoryUsecase) HandlePaymentStatus(ctx context.Context) error {
-	return uc.subscriber.SubscribePaymentStatus(ctx, func(orderID int64, success bool) error {
-		// ignore failed payment message.
-		if !success {
-			return nil
-		}
-		return uc.DeductStock(ctx, orderID)
-	})
+func (uc *InventoryUsecase) handlePaymentStatus(ctx context.Context, bytes []byte) error {
+	var msg PaymentStatusMessage
+	if err := json.Unmarshal(bytes, &msg); err != nil {
+		return err
+	}
+	if msg.Status != PaymentStatusPaid {
+		return nil
+	}
+	return uc.DeductStock(ctx, msg.OrderID)
 }

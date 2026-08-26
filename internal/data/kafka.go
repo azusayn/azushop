@@ -60,12 +60,11 @@ func NewConsumerGroup(brokerAddrs []string, groupID string) (sarama.ConsumerGrou
 }
 
 type ConsumerHandler struct {
-	handler func([]byte) error
+	handlers map[string]func(context.Context, []byte) error
 }
 
-// TODO(1):refactor it.
-func NewConsumerHandler(handler func([]byte) error) sarama.ConsumerGroupHandler {
-	return &ConsumerHandler{handler: handler}
+func NewConsumerHandler(handlers map[string]func(context.Context, []byte) error) sarama.ConsumerGroupHandler {
+	return &ConsumerHandler{handlers: handlers}
 }
 
 func (c *ConsumerHandler) Setup(sarama.ConsumerGroupSession) error {
@@ -82,43 +81,12 @@ func (c *ConsumerHandler) ConsumeClaim(session sarama.ConsumerGroupSession, clai
 		case <-session.Context().Done():
 			return nil
 		case msg, ok := <-claim.Messages():
-			if !ok {
+			if !ok || msg == nil {
 				return nil
 			}
-			if err := c.handler(msg.Value); err != nil {
-				slog.Warn(err.Error())
-			}
-			session.MarkMessage(msg, "")
-		}
-	}
-}
-
-type ConsumerHandlerV2 struct {
-	handlers map[string]func(context.Context, []byte) error
-}
-
-func NewConsumerHandlerV2(handlers map[string]func(context.Context, []byte) error) sarama.ConsumerGroupHandler {
-	return &ConsumerHandlerV2{handlers: handlers}
-}
-
-func (c *ConsumerHandlerV2) Setup(sarama.ConsumerGroupSession) error {
-	return nil
-}
-
-func (c *ConsumerHandlerV2) Cleanup(sarama.ConsumerGroupSession) error {
-	return nil
-}
-
-func (c *ConsumerHandlerV2) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
-	for {
-		select {
-		case <-session.Context().Done():
-			return nil
-		case msg, ok := <-claim.Messages():
-			topic := claim.Topic()
-			handler, ok := c.handlers[topic]
-			if !ok {
-				return fmt.Errorf("handler for topic %q not found", topic)
+			handler, found := c.handlers[claim.Topic()]
+			if !found {
+				return fmt.Errorf("handler for topic %q not found", claim.Topic())
 			}
 			if err := handler(context.TODO(), msg.Value); err != nil {
 				slog.Warn(err.Error())

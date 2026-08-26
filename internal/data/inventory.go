@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/google/wire"
 	"github.com/pkg/errors"
+	"github.com/samber/lo"
 	"gorm.io/gorm"
 )
 
@@ -156,47 +157,27 @@ func (repo *InventoryRepo) BatchCreateInventoris(ctx context.Context, skuIDs []u
 }
 
 type InventorySubscriber struct {
-	orderCreatedSub   sarama.ConsumerGroup
-	productCreatedSub sarama.ConsumerGroup
-	paymentStatusSub  sarama.ConsumerGroup
+	handlers      map[string]func(context.Context, []byte) error
+	consumerGroup sarama.ConsumerGroup
 }
 
 func NewInventorySubscriber(config *conf.Data) (biz.InventorySubscriber, error) {
 	brokerAddrs := config.GetKafka().GetBrokerAddrs()
-	orderCreatedGroupID := "inventory.order.created"
-	orderCreatedSub, err := NewConsumerGroup(brokerAddrs, orderCreatedGroupID)
-	if err != nil {
-		return nil, err
-	}
-	productCreatedGroupID := "inventory.product.created"
-	productCreatedSub, err := NewConsumerGroup(brokerAddrs, productCreatedGroupID)
-	if err != nil {
-		return nil, err
-	}
-	paymentStatusGroupID := "inventory.payment.status"
-	paymentStatusSub, err := NewConsumerGroup(brokerAddrs, paymentStatusGroupID)
+	consumerGroup, err := NewConsumerGroup(brokerAddrs, config.GetAppName())
 	if err != nil {
 		return nil, err
 	}
 	return &InventorySubscriber{
-		orderCreatedSub:   orderCreatedSub,
-		productCreatedSub: productCreatedSub,
-		paymentStatusSub:  paymentStatusSub,
+		handlers:      make(map[string]func(context.Context, []byte) error),
+		consumerGroup: consumerGroup,
 	}, nil
 }
 
-// TODO(3): wrap these subscriber function.
-func (s *InventorySubscriber) SubscribeProductCreated(ctx context.Context, handler func(skuIDs []uuid.UUID) error) error {
-	topics := []string{string(biz.KafkaTopicProductCreated)}
-	consumerHandler := NewConsumerHandler(func(bytes []byte) error {
-		var msg ProductCreatedMessage
-		if err := json.Unmarshal(bytes, &msg); err != nil {
-			return err
-		}
-		return handler(msg.SkuIDs)
-	})
+func (s *InventorySubscriber) Subscribe(ctx context.Context) error {
+	consumerHandler := NewConsumerHandler(s.handlers)
+	topics := lo.Keys(s.handlers)
 	for {
-		err := s.productCreatedSub.Consume(ctx, topics, consumerHandler)
+		err := s.consumerGroup.Consume(ctx, topics, consumerHandler)
 		if err != nil {
 			return err
 		}
@@ -206,55 +187,6 @@ func (s *InventorySubscriber) SubscribeProductCreated(ctx context.Context, handl
 	}
 }
 
-func (s *InventorySubscriber) SubscribeOrderCreated(
-	ctx context.Context,
-	handler func(orderID int64, orderItems []*biz.OrderItem) error,
-) error {
-	topics := []string{string(biz.KafkaTopicOrderCreated)}
-	consumerHandler := NewConsumerHandler(func(bytes []byte) error {
-		var msg biz.OrderCreatedMessage
-		if err := json.Unmarshal(bytes, &msg); err != nil {
-			return err
-		}
-		var bizOrderItems []*biz.OrderItem
-		for _, orderItem := range msg.OrderItems {
-			bizOrderItems = append(bizOrderItems, &biz.OrderItem{
-				SkuID:    orderItem.SkuID,
-				Quantity: orderItem.Quantity,
-			})
-		}
-		return handler(msg.OrderID, bizOrderItems)
-	})
-	for {
-		err := s.orderCreatedSub.Consume(ctx, topics, consumerHandler)
-		if err != nil {
-			return err
-		}
-		if err := ctx.Err(); err != nil {
-			return err
-		}
-	}
-}
-
-func (s *InventorySubscriber) SubscribePaymentStatus(
-	ctx context.Context,
-	handler func(orderID int64, success bool) error,
-) error {
-	topics := []string{string(biz.KafkaTopicOrderCreated)}
-	consumerHandler := NewConsumerHandler(func(bytes []byte) error {
-		var msg biz.PaymentStatusMessage
-		if err := json.Unmarshal(bytes, &msg); err != nil {
-			return err
-		}
-		return handler(msg.OrderID, msg.Status == biz.PaymentStatusPaid)
-	})
-	for {
-		err := s.paymentStatusSub.Consume(ctx, topics, consumerHandler)
-		if err != nil {
-			return err
-		}
-		if err := ctx.Err(); err != nil {
-			return err
-		}
-	}
+func (s *InventorySubscriber) RegisterHandler(topic biz.KafkaTopicType, handler func(context.Context, []byte) error) {
+	s.handlers[string(topic)] = handler
 }

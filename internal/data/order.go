@@ -228,13 +228,14 @@ func NewOrderSubscriber(config *conf.Data) (biz.OrderSubscriber, error) {
 		return nil, err
 	}
 	return &OrderSubscriber{
+		handlers:      make(map[string]func(context.Context, []byte) error),
 		consumerGroup: consumerGroup,
 	}, nil
 }
 
 func (s *OrderSubscriber) Subscribe(ctx context.Context) error {
 	subscribe := func(topics []string) error {
-		consumerHandler := NewConsumerHandlerV2(s.handlers)
+		consumerHandler := NewConsumerHandler(s.handlers)
 		for {
 			err := s.consumerGroup.Consume(ctx, topics, consumerHandler)
 			if err != nil {
