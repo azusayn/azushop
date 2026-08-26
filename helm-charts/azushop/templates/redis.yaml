@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: redis
 spec:
-  replicas: {{ .Values.redis.replicas | default 1 }}
+  replicas: {{ .Values.redis.replicas }}
   selector:
     matchLabels:
       app: redis
@@ -12,13 +12,12 @@ spec:
       labels:
         app: redis
     spec:
-      terminationGracePeriodSeconds:
-        {{ .Values.redis.terminationGracePeriodSeconds }}
+      terminationGracePeriodSeconds: {{ .Values.redis.terminationGracePeriodSeconds }}
       containers:
         - name: redis
-          image: redis:8.8.0-alpine
+          image: {{ .Values.redis.image.repository }}:{{ .Values.redis.image.tag }}
           ports:
-            - containerPort: 6379
+            - containerPort: {{ .Values.redis.service.targetPort }}
           resources:
             requests:
               cpu: {{ .Values.redis.minCPU | quote }}
@@ -31,24 +30,24 @@ spec:
               command:
                 - redis-cli
                 - ping
-            initialDelaySeconds: 15
-            periodSeconds: 20
+            initialDelaySeconds: {{ .Values.redis.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.redis.livenessProbe.periodSeconds }}
           readinessProbe:
             exec:
               command:
                 - redis-cli
                 - ping
-            initialDelaySeconds: 5
-            periodSeconds: 10
+            initialDelaySeconds: {{ .Values.redis.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.redis.readinessProbe.periodSeconds }}
 
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: redis-service
+  name: {{ .Values.redis.service.name }}
 spec:
   selector:
     app: redis
   ports:
-    - port: 6379
-      targetPort: 6379
+    - port: {{ .Values.redis.service.port }}
+      targetPort: {{ .Values.redis.service.targetPort }}

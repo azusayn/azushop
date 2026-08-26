@@ -13,14 +13,14 @@ spec:
     spec:
       containers:
         - name: kafka-ui
-          image: provectuslabs/kafka-ui:latest
+          image: {{ .Values.kafkaui.image.repository }}:{{ .Values.kafkaui.image.tag }}
           ports:
-            - containerPort: 8080
+            - containerPort: {{ .Values.kafkaui.service.targetPort }}
           env:
             - name: KAFKA_CLUSTERS_0_NAME
-              value: local
+              value: {{ .Values.kafkaui.cluster.name | quote }}
             - name: KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS
-              value: kafka-service:9092
+              value: {{ .Values.kafkaui.cluster.bootstrapServers | quote }}
 ---
 apiVersion: v1
 kind: Service
@@ -30,5 +30,5 @@ spec:
   selector:
     app: kafkaui
   ports:
-    - port: 8092
-      targetPort: 8080
+    - port: {{ .Values.kafkaui.service.port }}
+      targetPort: {{ .Values.kafkaui.service.targetPort }}

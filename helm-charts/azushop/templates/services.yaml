@@ -7,6 +7,7 @@ kind: Deployment
 metadata:
   name: {{ . }}
 spec:
+  replicas: {{ $.Values.services.replicas }}
   selector:
     matchLabels:
       app: {{ . }}
@@ -18,22 +19,20 @@ spec:
       containers:
         - name: {{ . }}
           image: {{ $image }}
+          imagePullPolicy: {{ $.Values.services.imagePullPolicy }}
           command:
             - "/usr/local/bin/{{ . }}"
           env:
             - name: STRIPE_SECRET_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: stripe-secret
-                  key: STRIPE_SECRET_KEY
+              value: {{ $.Values.stripe.secretKey | quote }}
           volumeMounts:
             - name: configs-volume
-              mountPath: /app/configs
+              mountPath: {{ $.Values.services.config.mountPath }}
               readOnly: true
       volumes:
         - name: configs-volume
           secret:
-            secretName: azushop-config
+            secretName: {{ $.Values.services.config.secretName }}
 
 {{- end}}
 
@@ -45,12 +44,12 @@ kind: Service
 metadata:
   name: {{.}}
 spec:
-  type: ClusterIP
+  type: {{ $.Values.services.service.type }}
   selector:
     app: {{.}}
   ports:
-    - port: 8080
-      targetPort: 8080
+    - port: {{ $.Values.services.service.port }}
+      targetPort: {{ $.Values.services.service.targetPort }}
 {{- end}}
 
 # secrets
@@ -58,16 +57,13 @@ spec:
 apiVersion: v1
 kind: Secret
 metadata:
-  name: azushop-config
+  name: {{ .Values.services.config.secretName }}
 type: Opaque
-data: {{-  (.Files.Glob "configs/services/*").AsSecrets | nindent 2 }}
-{{- if .Values.stripe.secretKey }}
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: stripe-secret
-type: Opaque
-stringData:
-  STRIPE_SECRET_KEY: {{ .Values.stripe.secretKey | quote }}
-{{- end }}
+data:
+  auth.yaml: {{ tpl (.Files.Get "configs/services/auth.yaml") . | b64enc }}
+  inventory.yaml: {{ tpl (.Files.Get "configs/services/inventory.yaml") . | b64enc }}
+  order.yaml: {{ tpl (.Files.Get "configs/services/order.yaml") . | b64enc }}
+  payment.yaml: {{ tpl (.Files.Get "configs/services/payment.yaml") . | b64enc }}
+  product.yaml: {{ tpl (.Files.Get "configs/services/product.yaml") . | b64enc }}
+  dev.private.pem: {{ .Files.Get "configs/services/dev.private.pem" | b64enc }}
+  dev.public.pem: {{ .Files.Get "configs/services/dev.public.pem" | b64enc }}

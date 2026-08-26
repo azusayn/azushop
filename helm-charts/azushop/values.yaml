@@ -18,23 +18,116 @@ ingress:
       name: payment-service
       port: 8080
 
+postgres:
+  image:
+    repository: pgvector/pgvector
+    tag: "0.8.5-pg18-trixie"
+  auth:
+    username: postgres
+    password: "270153"
+    database: postgres
+  service:
+    name: postgres
+    type: NodePort
+    port: 5432
+    targetPort: 5432
+  persistence:
+    size: 5Gi
+    mountPath: /var/lib/postgresql
+    accessModes:
+      - ReadWriteOnce
+  hookWeight: -5
+
+migration:
+  image:
+    repository: arigaio/atlas
+    tag: latest-alpine
+  waitImage: busybox:1.36
+  hookWeight: 5
+  backoffLimit: 3
+
 redis:
+  image:
+    repository: redis
+    tag: 8.8.0-alpine
+  service:
+    name: redis-service
+    port: 6379
+    targetPort: 6379
   replicas: 1
   minCPU: "100m"
   maxCPU: "1000m"
   minMem: "100Mi"
   maxMem: "500Mi"
   terminationGracePeriodSeconds: 60
+  livenessProbe:
+    initialDelaySeconds: 15
+    periodSeconds: 20
+  readinessProbe:
+    initialDelaySeconds: 5
+    periodSeconds: 10
 
 kafka:
+  image:
+    repository: apache/kafka
+    tag: "4.3.1"
+  service:
+    name: kafka-service
+    port: 9092
+    controllerPort: 9093
   nodeID: 1
   logDirs: "/var/lib/kafka/data"
   clusterID: "MkU3OEVBNTcwNTJENDM2Qks"
   offsetsTopicReplicationFactor: 1
   transactionStateLogReplicationFactor: 1
+  processRoles: "broker,controller"
+  listeners: "PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093"
+  advertisedListeners: "PLAINTEXT://kafka-service:9092"
+  controllerListenerNames: "CONTROLLER"
+  listenerSecurityProtocolMap: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT"
+  persistence:
+    size: 1Gi
+    mountPath: /var/lib/kafka/data
+    accessModes:
+      - ReadWriteOnce
+
+kafkaui:
+  image:
+    repository: provectuslabs/kafka-ui
+    tag: latest
+  service:
+    port: 8092
+    targetPort: 8080
+  cluster:
+    name: local
+    bootstrapServers: kafka-service:9092
+
+gateway:
+  image:
+    repository: envoyproxy/envoy
+    tag: v1.38.0
+  replicas: 1
+  service:
+    name: envoy
+    port: 10000
+    targetPort: 10000
+  config:
+    mountPath: /etc/envoy
+    file: configs/infra/envoy.yaml
 
 grafana:
+  image:
+    repository: grafana/grafana
+    tag: latest
+    pullPolicy: IfNotPresent
   replicas: 1
+  adminUser: admin
+  adminPassword: admin
+  auth:
+    anonymousEnabled: true
+  service:
+    port: 3001
+    targetPort: 3000
   resources:
     requests:
       cpu: "100m"
@@ -43,8 +136,62 @@ grafana:
       cpu: "500m"
       memory: "512Mi"
 
+loki:
+  image:
+    repository: grafana/loki
+    tag: "3.7.2"
+  replicas: 1
+  securityContext:
+    fsGroup: 10001
+    runAsUser: 10001
+    runAsGroup: 10001
+  service:
+    name: loki-service
+    port: 3100
+    targetPort: 3100
+  persistence:
+    size: 1Gi
+    mountPath: /loki
+    accessModes:
+      - ReadWriteOnce
+
+tempo:
+  image:
+    repository: grafana/tempo
+    tag: latest
+  replicas: 1
+  service:
+    name: tempo-service
+    httpPort: 3200
+    otlpGrpcPort: 4317
+    otlpHttpPort: 4318
+  persistence:
+    size: 1Gi
+    mountPath: /var/tempo
+    accessModes:
+      - ReadWriteOnce
+
+otelCollector:
+  image:
+    repository: otel/opentelemetry-collector-contrib
+    tag: latest
+    pullPolicy: IfNotPresent
+  replicas: 1
+  service:
+    otlpGrpcPort: 4317
+    otlpHttpPort: 4318
+
 services:
   image: "azusaing/azushop:latest"
+  imagePullPolicy: IfNotPresent
+  replicas: 1
+  service:
+    type: ClusterIP
+    port: 8080
+    targetPort: 8080
+  config:
+    mountPath: /app/configs
+    secretName: azushop-config
   names:
     - auth
     - inventory
@@ -54,3 +201,28 @@ services:
 
 stripe:
   secretKey: "sk_test_dummy"
+
+serviceConfig:
+  otlpGrpcAddress: otel-collector:4317
+  auth:
+    issuer: azushop
+    privateKeyPath: configs/dev.private.pem
+    publicKeyPath: configs/dev.public.pem
+  redis:
+    addr: redis-service:6379
+    readTimeout: 0.2s
+    writeTimeout: 0.2s
+  kafka:
+    brokerAddrs:
+      - kafka-service:9092
+  serviceAddr:
+    product: product:8080
+    inventory: inventory:8080
+    order: order:8080
+  payment:
+    stripeSuccessUrl: "http://localhost:10000/v1/payment/callback/stripe"
+  embeddingApi:
+    endpoint: "https://ai-eslab.dgut.edu.cn/v1"
+    secret: ""
+    model: "bge-m3"
+    maxDistance: 0.8

@@ -11,8 +11,8 @@ kind: StatefulSet
 metadata:
   name: tempo
 spec:
-  serviceName: "tempo-service"
-  replicas: 1
+  serviceName: {{ .Values.tempo.service.name | quote }}
+  replicas: {{ .Values.tempo.replicas }}
   selector:
     matchLabels:
       app: tempo
@@ -23,18 +23,18 @@ spec:
     spec:
       containers:
         - name: tempo
-          image: grafana/tempo:latest
+          image: {{ .Values.tempo.image.repository }}:{{ .Values.tempo.image.tag }}
           args: ["-config.file=/etc/tempo/config/tempo.yaml"]
           ports:
-            - containerPort: 3200
+            - containerPort: {{ .Values.tempo.service.httpPort }}
               name: http
-            - containerPort: 4317
+            - containerPort: {{ .Values.tempo.service.otlpGrpcPort }}
               name: otlp-grpc
-            - containerPort: 4318
+            - containerPort: {{ .Values.tempo.service.otlpHttpPort }}
               name: otlp-http
           volumeMounts:
             - name: tempo-data
-              mountPath: /var/tempo
+              mountPath: {{ .Values.tempo.persistence.mountPath }}
             - name: config-volume
               mountPath: /etc/tempo/config
       volumes:
@@ -45,25 +45,25 @@ spec:
     - metadata:
         name: tempo-data
       spec:
-        accessModes: ["ReadWriteOnce"]
+        accessModes: {{ toYaml .Values.tempo.persistence.accessModes | nindent 8 }}
         resources:
           requests:
-            storage: "1Gi"
+            storage: {{ .Values.tempo.persistence.size }}
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: tempo-service
+  name: {{ .Values.tempo.service.name }}
 spec:
   selector:
     app: tempo
   ports:
-    - port: 3200
-      targetPort: 3200
+    - port: {{ .Values.tempo.service.httpPort }}
+      targetPort: {{ .Values.tempo.service.httpPort }}
       name: http
-    - port: 4317
-      targetPort: 4317
+    - port: {{ .Values.tempo.service.otlpGrpcPort }}
+      targetPort: {{ .Values.tempo.service.otlpGrpcPort }}
       name: otlp-grpc
-    - port: 4318
-      targetPort: 4318
+    - port: {{ .Values.tempo.service.otlpHttpPort }}
+      targetPort: {{ .Values.tempo.service.otlpHttpPort }}
       name: otlp-http

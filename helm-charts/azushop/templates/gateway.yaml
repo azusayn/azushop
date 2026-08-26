@@ -4,32 +4,32 @@ metadata:
   name: envoy-config
 data:
   envoy.yaml: |
-{{ .Files.Get "configs/infra/envoy.yaml" | indent 4 }}
+{{ .Files.Get .Values.gateway.config.file | indent 4 }}
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: envoy
+  name: {{ .Values.gateway.service.name }}
 spec:
-  replicas: 1
+  replicas: {{ .Values.gateway.replicas }}
   selector:
     matchLabels:
-      app: envoy
+      app: {{ .Values.gateway.service.name }}
   template:
     metadata:
       labels:
-        app: envoy
+        app: {{ .Values.gateway.service.name }}
     spec:
       containers:
         - name: envoy
-          image: envoyproxy/envoy:v1.38.0
-          args: ["-c", "/etc/envoy/envoy.yaml"]
+          image: {{ .Values.gateway.image.repository }}:{{ .Values.gateway.image.tag }}
+          args: ["-c", "{{ .Values.gateway.config.mountPath }}/envoy.yaml"]
           ports:
-            - containerPort: 10000
+            - containerPort: {{ .Values.gateway.service.targetPort }}
               name: http
           volumeMounts:
             - name: config-volume
-              mountPath: /etc/envoy
+              mountPath: {{ .Values.gateway.config.mountPath }}
               readOnly: true
       volumes:
         - name: config-volume
@@ -39,11 +39,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: envoy
+  name: {{ .Values.gateway.service.name }}
 spec:
   selector:
-    app: envoy
+    app: {{ .Values.gateway.service.name }}
   ports:
-    - port: 10000
-      targetPort: 10000
+    - port: {{ .Values.gateway.service.port }}
+      targetPort: {{ .Values.gateway.service.targetPort }}
       name: http

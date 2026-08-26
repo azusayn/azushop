@@ -1,59 +1,57 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: postgres
+  name: {{ .Values.postgres.service.name }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "{{ .Values.postgres.hookWeight }}"
 spec:
   selector:
     matchLabels:
-      app: postgres
-  serviceName: postgres
+      app: {{ .Values.postgres.service.name }}
+  serviceName: {{ .Values.postgres.service.name }}
   template:
     metadata:
       labels:
-        app: postgres
+        app: {{ .Values.postgres.service.name }}
     spec:
       containers:
         - name: postgres
-          image: pgvector/pgvector:0.8.5-pg18-trixie
+          image: {{ .Values.postgres.image.repository }}:{{ .Values.postgres.image.tag }}
           env:
+            - name: POSTGRES_USER
+              value: {{ .Values.postgres.auth.username | quote }}
             - name: POSTGRES_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: postgres-secret
-                  key: password
+              value: {{ .Values.postgres.auth.password | quote }}
+            - name: POSTGRES_DB
+              value: {{ .Values.postgres.auth.database | quote }}
           ports:
-            - containerPort: 5432
+            - containerPort: {{ .Values.postgres.service.targetPort }}
               name: postgres
           volumeMounts:
             - name: pg-data
-              mountPath: /var/lib/postgresql
+              mountPath: {{ .Values.postgres.persistence.mountPath }}
   volumeClaimTemplates:
     - metadata:
         name: pg-data
       spec:
-        accessModes: ["ReadWriteOnce"]
+        accessModes: {{ toYaml .Values.postgres.persistence.accessModes | nindent 8 }}
         resources:
           requests:
-            storage: 5Gi
+            storage: {{ .Values.postgres.persistence.size }}
 
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: postgres
+  name: {{ .Values.postgres.service.name }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "{{ .Values.postgres.hookWeight }}"
 spec:
-  type: NodePort
+  type: {{ .Values.postgres.service.type }}
   selector:
-    app: postgres
+    app: {{ .Values.postgres.service.name }}
   ports:
-    - port: 5432
-      targetPort: 5432
-
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: postgres-secret
-type: Opaque
-stringData:
-  password: "270153"
+    - port: {{ .Values.postgres.service.port }}
+      targetPort: {{ .Values.postgres.service.targetPort }}

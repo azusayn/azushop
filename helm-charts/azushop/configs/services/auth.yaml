@@ -1,13 +1,13 @@
 server:
   http:
-    addr: 0.0.0.0:8080
+    addr: 0.0.0.0:{{ .Values.services.service.targetPort }}
     timeout: 1s
 data:
   app_name: "azushop.auth"
   database:
     driver: pgx
-    source: postgres://postgres:270153@postgres:5432/postgres?sslmode=disable
+    source: postgres://{{ .Values.postgres.auth.username }}:{{ .Values.postgres.auth.password }}@{{ .Values.postgres.service.name }}:{{ .Values.postgres.service.port }}/{{ .Values.postgres.auth.database }}?sslmode=disable
   auth:
-    issuer: azushop
-    private_key_path: "configs/dev.private.pem"
-  otlp_grpc_address: "otel-collector:4317"
+    issuer: {{ .Values.serviceConfig.auth.issuer | quote }}
+    private_key_path: {{ .Values.serviceConfig.auth.privateKeyPath | quote }}
+  otlp_grpc_address: {{ .Values.serviceConfig.otlpGrpcAddress | quote }}

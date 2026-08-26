@@ -11,8 +11,8 @@ kind: StatefulSet
 metadata:
   name: loki
 spec:
-  serviceName: "loki-service"
-  replicas: 1
+  serviceName: {{ .Values.loki.service.name | quote }}
+  replicas: {{ .Values.loki.replicas }}
   selector:
     matchLabels:
       app: loki
@@ -22,19 +22,19 @@ spec:
         app: loki
     spec:
       securityContext:
-        fsGroup: 10001
-        runAsUser: 10001
-        runAsGroup: 10001
+        fsGroup: {{ .Values.loki.securityContext.fsGroup }}
+        runAsUser: {{ .Values.loki.securityContext.runAsUser }}
+        runAsGroup: {{ .Values.loki.securityContext.runAsGroup }}
       containers:
         - name: loki
-          image: grafana/loki:3.7.2
+          image: {{ .Values.loki.image.repository }}:{{ .Values.loki.image.tag }}
           args: ["-config.file=/etc/loki/config/loki.yaml"]
           ports:
-            - containerPort: 3100
+            - containerPort: {{ .Values.loki.service.targetPort }}
               name: http
           volumeMounts:
             - name: loki-data
-              mountPath: /loki
+              mountPath: {{ .Values.loki.persistence.mountPath }}
             - name: config-volume
               mountPath: /etc/loki/config
       volumes:
@@ -45,19 +45,19 @@ spec:
     - metadata:
         name: loki-data
       spec:
-        accessModes: ["ReadWriteOnce"]
+        accessModes: {{ toYaml .Values.loki.persistence.accessModes | nindent 8 }}
         resources:
           requests:
-            storage: "1Gi"
+            storage: {{ .Values.loki.persistence.size }}
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: loki-service
+  name: {{ .Values.loki.service.name }}
 spec:
   selector:
     app: loki
   ports:
-    - port: 3100
-      targetPort: 3100
+    - port: {{ .Values.loki.service.port }}
+      targetPort: {{ .Values.loki.service.targetPort }}
       name: http

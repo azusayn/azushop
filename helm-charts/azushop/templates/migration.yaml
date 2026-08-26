@@ -1,0 +1,55 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-migrations
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "{{ .Values.migration.hookWeight }}"
+    helm.sh/hook-delete-policy: before-hook-creation
+data:
+  001_init.sql: |
+{{ .Files.Get "migrations/001_init.sql" | indent 4 }}
+  atlas.sum: |
+{{ .Files.Get "migrations/atlas.sum" | indent 4 }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-migration
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "{{ .Values.migration.hookWeight }}"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: {{ .Values.migration.backoffLimit }}
+  template:
+    spec:
+      restartPolicy: Never
+      initContainers:
+        - name: wait-for-postgres
+          image: {{ .Values.migration.waitImage }}
+          command:
+            - sh
+            - -c
+            - |
+              until nc -z {{ .Values.postgres.service.name }} {{ .Values.postgres.service.port }}; do
+                echo "waiting for postgres..."
+                sleep 2
+              done
+      containers:
+        - name: atlas
+          image: {{ .Values.migration.image.repository }}:{{ .Values.migration.image.tag }}
+          args:
+            - migrate
+            - apply
+            - --dir
+            - file:///migrations
+            - --url
+            - {{ printf "postgres://%s:%s@%s:%v/%s?sslmode=disable" .Values.postgres.auth.username .Values.postgres.auth.password .Values.postgres.service.name .Values.postgres.service.port .Values.postgres.auth.database | quote }}
+          volumeMounts:
+            - name: migrations
+              mountPath: /migrations
+      volumes:
+        - name: migrations
+          configMap:
+            name: {{ .Release.Name }}-migrations

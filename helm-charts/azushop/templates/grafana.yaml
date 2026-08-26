@@ -22,17 +22,17 @@ spec:
     spec:
       containers:
         - name: grafana
-          image: grafana/grafana:latest
-          imagePullPolicy: IfNotPresent
+          image: {{ .Values.grafana.image.repository }}:{{ .Values.grafana.image.tag }}
+          imagePullPolicy: {{ .Values.grafana.image.pullPolicy }}
           ports:
-            - containerPort: 3000
+            - containerPort: {{ .Values.grafana.service.targetPort }}
           env:
             - name: GF_SECURITY_ADMIN_USER
-              value: "admin"
+              value: {{ .Values.grafana.adminUser | quote }}
             - name: GF_SECURITY_ADMIN_PASSWORD
-              value: "admin"
+              value: {{ .Values.grafana.adminPassword | quote }}
             - name: GF_AUTH_ANONYMOUS_ENABLED
-              value: "true"
+              value: {{ .Values.grafana.auth.anonymousEnabled | quote }}
           resources:
             {{- toYaml .Values.grafana.resources | nindent 12 }}
           volumeMounts:
@@ -53,5 +53,5 @@ spec:
   selector:
     app: grafana
   ports:
-    - port: 3001
-      targetPort: 3000
+    - port: {{ .Values.grafana.service.port }}
+      targetPort: {{ .Values.grafana.service.targetPort }}

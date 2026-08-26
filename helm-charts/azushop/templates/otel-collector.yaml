@@ -11,7 +11,7 @@ kind: Deployment
 metadata:
   name: otel-collector
 spec:
-  replicas: 1
+  replicas: {{ .Values.otelCollector.replicas }}
   selector:
     matchLabels:
       app: otel-collector
@@ -22,13 +22,13 @@ spec:
     spec:
       containers:
         - name: otel-collector
-          image: otel/opentelemetry-collector-contrib:latest
-          imagePullPolicy: IfNotPresent
+          image: {{ .Values.otelCollector.image.repository }}:{{ .Values.otelCollector.image.tag }}
+          imagePullPolicy: {{ .Values.otelCollector.image.pullPolicy }}
           args: ["--config=/etc/otelcol/config.yml"]
           ports:
-            - containerPort: 4317
+            - containerPort: {{ .Values.otelCollector.service.otlpGrpcPort }}
               name: otlp-grpc
-            - containerPort: 4318
+            - containerPort: {{ .Values.otelCollector.service.otlpHttpPort }}
               name: otlp-http
           volumeMounts:
             - name: config-volume
@@ -47,9 +47,9 @@ spec:
   selector:
     app: otel-collector
   ports:
-    - port: 4317
-      targetPort: 4317
+    - port: {{ .Values.otelCollector.service.otlpGrpcPort }}
+      targetPort: {{ .Values.otelCollector.service.otlpGrpcPort }}
       name: otlp-grpc
-    - port: 4318
-      targetPort: 4318
+    - port: {{ .Values.otelCollector.service.otlpHttpPort }}
+      targetPort: {{ .Values.otelCollector.service.otlpHttpPort }}
       name: otlp-http

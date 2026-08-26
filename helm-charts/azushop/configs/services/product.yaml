@@ -1,25 +1,27 @@
 server:
   http:
-    addr: 0.0.0.0:8080
+    addr: 0.0.0.0:{{ .Values.services.service.targetPort }}
     timeout: 1s
 data:
   app_name: "azushop.product"
   database:
     driver: pgx
-    source: postgres://postgres:270153@postgres:5432/postgres?sslmode=disable
+    source: postgres://{{ .Values.postgres.auth.username }}:{{ .Values.postgres.auth.password }}@{{ .Values.postgres.service.name }}:{{ .Values.postgres.service.port }}/{{ .Values.postgres.auth.database }}?sslmode=disable
   redis:
-    addr: redis-service:6379
-    read_timeout: 0.2s
-    write_timeout: 0.2s
+    addr: {{ .Values.serviceConfig.redis.addr | quote }}
+    read_timeout: {{ .Values.serviceConfig.redis.readTimeout | quote }}
+    write_timeout: {{ .Values.serviceConfig.redis.writeTimeout | quote }}
   kafka:
     broker_addrs:
-      - "kafka-service:9092"
+{{- range .Values.serviceConfig.kafka.brokerAddrs }}
+      - {{ . | quote }}
+{{- end }}
   auth:
-    issuer: azushop
-    public_key_path: "configs/dev.public.pem"
+    issuer: {{ .Values.serviceConfig.auth.issuer | quote }}
+    public_key_path: {{ .Values.serviceConfig.auth.publicKeyPath | quote }}
   embedding_api:
-    endpoint: "https://ai-eslab.dgut.edu.cn/v1"
-    secret: ""
-    model: "bge-m3"
-    max_distance: 0.8
-  otlp_grpc_address: "otel-collector:4317"
+    endpoint: {{ .Values.serviceConfig.embeddingApi.endpoint | quote }}
+    secret: {{ .Values.serviceConfig.embeddingApi.secret | quote }}
+    model: {{ .Values.serviceConfig.embeddingApi.model | quote }}
+    max_distance: {{ .Values.serviceConfig.embeddingApi.maxDistance }}
+  otlp_grpc_address: {{ .Values.serviceConfig.otlpGrpcAddress | quote }}
