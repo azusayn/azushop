@@ -101,6 +101,7 @@ func (uc *PaymentUsecase) CreatePayment(
 	}
 	_, err = uc.repo.CreatePayment(ctx, idempotencyKey, orderID, userID, total, method, PaymentStatusPending, externalID)
 	if err != nil {
+		slog.ErrorContext(ctx, "failed to create payment", slog.Any("err", err))
 		return "", err
 	}
 	return url, nil
@@ -120,8 +121,10 @@ func (uc *PaymentUsecase) Callback(ctx context.Context, method PaymentMethod, bo
 		return fmt.Errorf("unsupported payment method %q", method)
 	}
 	if err := uc.repo.UpdatePaymentStatusByOrderID(ctx, orderID, paymentStatus); err != nil {
+		slog.ErrorContext(ctx, "failed to update payment status", slog.Any("order_id", orderID))
 		return err
 	}
+	// TODO: outbox
 	return uc.publisher.PublishPaymentStatus(ctx, orderID, paymentStatus)
 }
 
@@ -161,6 +164,7 @@ func createStripePayment(
 		SuccessURL: stripe.String(successURL),
 		// TODO(3): add CancelURL for better UX.
 	}
+	// session.New(params) sends a payment request to Stripe server.
 	s, err := session.New(params)
 	if err != nil {
 		return "", "", 0, err

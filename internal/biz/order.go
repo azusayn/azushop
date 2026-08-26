@@ -214,7 +214,14 @@ func (uc *OrderUsecase) handlePaymentStatus(ctx context.Context, bytes []byte) e
 	default:
 		return fmt.Errorf("invalid status %q", msg.Status)
 	}
-	return uc.repo.UpdateOrderStatus(ctx, msg.OrderID, OrderStatusConfirmed)
+
+	if err := uc.repo.UpdateOrderStatus(ctx, msg.OrderID, OrderStatusConfirmed); err != nil {
+		return fmt.Errorf("failed to update order(%d) status: %w", msg.OrderID, err)
+	}
+
+	slog.DebugContext(ctx, "order has been confirmed", slog.Any("order_id", msg.OrderID))
+
+	return nil
 }
 
 func (uc *OrderUsecase) handleOrderCancelled(ctx context.Context, bytes []byte) error {

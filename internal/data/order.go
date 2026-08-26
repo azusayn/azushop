@@ -266,6 +266,7 @@ func (s *OrderSubscriber) Subscribe(ctx context.Context) error {
 		}
 	}
 
+	// TODO(1): distinguish recoverable errors and restart the worker when necessary.
 	g, ctx := errgroup.WithContext(ctx)
 	g.Go(func() error {
 		return subscribe(lo.Keys(s.handlers))
