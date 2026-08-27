@@ -32,7 +32,7 @@ static_resources:
                             cluster: inventory_cluster
                             timeout: 30s
                         - match:
-                            prefix: "/v1/"
+                            prefix: "/v1/product"
                           route:
                             cluster: product_cluster
                             timeout: 30s

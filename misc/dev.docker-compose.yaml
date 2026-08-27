@@ -54,29 +54,15 @@ services:
     volumes:
       - ./dev.envoy.yaml:/dev.envoy.yaml
 
-  loki:
-    image: grafana/loki:latest
-    container_name: loki
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.8
+    container_name: clickhouse
     ports:
-      - "3100:3100"
+      - "8123:8123"
+      - "9000:9000"
     volumes:
-      - ./loki-config.yml:/etc/loki/config.yml
-      - loki-data:/loki
-    command:
-      - -config.file=/etc/loki/config.yml
-      - -distributor.otlp.default_resource_attributes_as_index_labels=service.name
-    restart: unless-stopped
-
-  tempo:
-    image: grafana/tempo:latest
-    container_name: tempo
-    command:
-      - -config.file=/etc/tempo/config.yml
-    ports:
-      - "3200:3200"    # tempo HTTP API (used by Grafana)
-    volumes:
-      - ./tempo-config.yml:/etc/tempo/config.yml
-      - tempo-data:/var/tempo
+      - clickhouse-data:/var/lib/clickhouse
+      - ./clickhouse-users.xml:/etc/clickhouse-server/users.d/default-user.xml:ro
     restart: unless-stopped
 
   grafana:
@@ -88,12 +74,12 @@ services:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin
       - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_INSTALL_PLUGINS=grafana-clickhouse-datasource
     volumes:
       - grafana-data:/var/lib/grafana
       - ./grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
     depends_on:
-      - loki
-      - tempo
+      - clickhouse
     restart: unless-stopped
 
   otel-collector:
@@ -107,13 +93,11 @@ services:
     volumes:
       - ./otel-config.yml:/etc/otelcol/config.yml
     depends_on:
-      - loki
-      - tempo
+      - clickhouse
     restart: unless-stopped
 
 
 volumes:
   pgdata:
-  loki-data:
-  tempo-data:
+  clickhouse-data:
   grafana-data:

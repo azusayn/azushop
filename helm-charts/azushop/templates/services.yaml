@@ -16,15 +16,31 @@ spec:
       labels:
         app: {{ . }}
     spec:
+      initContainers:
+        - name: wait-for-dependencies
+          image: {{ $.Values.migration.waitImage }}
+          command:
+            - sh
+            - -c
+            - |
+              until {{ range $i, $dep := index $.Values.services.dependencies . }}{{ $component := index $.Values.services.dependencyComponents $dep }}{{ $svc := (index $.Values $component).service }}{{ if $i }} && {{ end }}nc -z {{ $svc.name }} {{ $svc.port }}{{ end }}; do
+                echo "waiting for dependencies..."
+                sleep 2
+              done
       containers:
         - name: {{ . }}
           image: {{ $image }}
           imagePullPolicy: {{ $.Values.services.imagePullPolicy }}
           command:
             - "/usr/local/bin/{{ . }}"
+          args:
+            - "-conf"
+            - "{{ $.Values.services.config.mountPath }}/{{ . }}.yaml"
+{{- if eq . "payment" }}
           env:
             - name: STRIPE_SECRET_KEY
               value: {{ $.Values.stripe.secretKey | quote }}
+{{- end }}
           volumeMounts:
             - name: configs-volume
               mountPath: {{ $.Values.services.config.mountPath }}

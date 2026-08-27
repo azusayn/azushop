@@ -4,7 +4,7 @@ metadata:
   name: grafana-datasources
 data:
   datasources.yml: |
-{{ .Files.Get "configs/infra/grafana-datasources.yaml" | indent 4 }}
+{{ tpl (.Files.Get "configs/infra/grafana-datasources.yaml") . | indent 4 }}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -33,6 +33,8 @@ spec:
               value: {{ .Values.grafana.adminPassword | quote }}
             - name: GF_AUTH_ANONYMOUS_ENABLED
               value: {{ .Values.grafana.auth.anonymousEnabled | quote }}
+            - name: GF_INSTALL_PLUGINS
+              value: {{ .Values.grafana.installPlugins | quote }}
           resources:
             {{- toYaml .Values.grafana.resources | nindent 12 }}
           volumeMounts:

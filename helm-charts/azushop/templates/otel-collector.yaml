@@ -4,7 +4,7 @@ metadata:
   name: otel-collector-config
 data:
   config.yml: |
-{{ .Files.Get "configs/infra/otel-collector.yaml" | indent 4 }}
+{{ tpl (.Files.Get "configs/infra/otel-collector.yaml") . | indent 4 }}
 ---
 apiVersion: apps/v1
 kind: Deployment

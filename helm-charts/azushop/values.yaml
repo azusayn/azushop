@@ -1,23 +1,3 @@
-ingress:
-  # TODO: replace it with real hostname in production.
-  host: dev.azushop.com
-  services:
-    - path: /v1/auth
-      name: auth-service
-      port: 8080
-    - path: /v1/product
-      name: product-service
-      port: 8080
-    - path: /v1/inventory
-      name: inventory-service
-      port: 8080
-    - path: /v1/order
-      name: order-service
-      port: 8080
-    - path: /v1/payment
-      name: payment-service
-      port: 8080
-
 postgres:
   image:
     repository: pgvector/pgvector
@@ -43,6 +23,7 @@ migration:
     repository: arigaio/atlas
     tag: latest-alpine
   waitImage: busybox:1.36
+  configHookWeight: 4
   hookWeight: 5
   backoffLimit: 3
 
@@ -125,6 +106,7 @@ grafana:
   adminPassword: admin
   auth:
     anonymousEnabled: true
+  installPlugins: grafana-clickhouse-datasource
   service:
     port: 3001
     targetPort: 3000
@@ -136,38 +118,22 @@ grafana:
       cpu: "500m"
       memory: "512Mi"
 
-loki:
+clickhouse:
   image:
-    repository: grafana/loki
-    tag: "3.7.2"
-  replicas: 1
-  securityContext:
-    fsGroup: 10001
-    runAsUser: 10001
-    runAsGroup: 10001
-  service:
-    name: loki-service
-    port: 3100
-    targetPort: 3100
-  persistence:
-    size: 1Gi
-    mountPath: /loki
-    accessModes:
-      - ReadWriteOnce
-
-tempo:
-  image:
-    repository: grafana/tempo
-    tag: latest
+    repository: clickhouse/clickhouse-server
+    tag: "24.8"
   replicas: 1
   service:
-    name: tempo-service
-    httpPort: 3200
-    otlpGrpcPort: 4317
-    otlpHttpPort: 4318
+    name: clickhouse-service
+    httpPort: 8123
+    nativePort: 9000
+  auth:
+    username: default
+    password: ""
+    database: default
   persistence:
-    size: 1Gi
-    mountPath: /var/tempo
+    size: 5Gi
+    mountPath: /var/lib/clickhouse
     accessModes:
       - ReadWriteOnce
 
@@ -198,6 +164,28 @@ services:
     - order
     - payment
     - product
+  dependencyComponents:
+    postgres: postgres
+    redis: redis
+    kafka: kafka
+  dependencies:
+    auth:
+      - postgres
+    inventory:
+      - postgres
+      - kafka
+    order:
+      - postgres
+      - redis
+      - kafka
+    payment:
+      - postgres
+      - redis
+      - kafka
+    product:
+      - postgres
+      - redis
+      - kafka
 
 stripe:
   secretKey: "sk_test_dummy"

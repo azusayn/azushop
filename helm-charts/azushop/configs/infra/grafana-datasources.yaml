@@ -1,16 +1,10 @@
 apiVersion: 1
 
 datasources:
-  - name: Tempo
-    type: tempo
+  - name: ClickHouse
+    type: grafana-clickhouse-datasource
     access: proxy
-    url: http://tempo-service:3200
-    isDefault: false
-    uid: tempo
-
-  - name: Loki
-    type: loki
-    access: proxy
-    url: http://loki-service:3100
+    url: http://{{ .Values.clickhouse.service.name }}:{{ .Values.clickhouse.service.httpPort }}
     isDefault: true
-    uid: loki
+    jsonData:
+      defaultDatabase: {{ .Values.clickhouse.auth.database | quote }}
