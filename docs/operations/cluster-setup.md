@@ -1,66 +1,72 @@
 # Azushop Cluster Setup
 
-Guide for installing and running the `helm-charts/azushop` chart on a local Kubernetes cluster (e.g. minikube).
+Install and operate `helm-charts/azushop` on a local Kubernetes cluster (minikube v1.38+ tested).
 
 ## Prerequisites
 
-- Kubernetes cluster (minikube v1.38+ tested)
-- `kubectl`, Helm v4+
-- [ngrok](https://ngrok.com/) account — **log in on the cluster machine before starting**
+- Kubernetes cluster, `kubectl`, Helm v4+
+- [ngrok](https://ngrok.com/) account (one-time login on the cluster machine)
 
 ```bash
-ngrok config add-authtoken <your-token>   # one-time, after signing in at ngrok.com
+ngrok config add-authtoken <your-token>
 ```
 
 ## Install
 
-Use a dedicated namespace to avoid conflicts with leftover resources:
-
 ```bash
 helm install azushop ./helm-charts/azushop -n azushop --create-namespace
-```
-
-Wait until pods are running:
-
-```bash
 kubectl get pods -n azushop
 ```
 
-On first install, Helm runs Postgres and Atlas migrations (pre-install hooks) before app pods start. Business pods use initContainers to wait for Postgres, Redis, and Kafka.
+First install runs Postgres + Atlas migrations (Helm hooks) before app pods start.
 
-## Expose the gateway (ngrok)
+## Expose the gateway
 
-The API entry point is Envoy (`svc/envoy`, port `10000`). The cluster is not reachable from the public internet by default. Use ngrok on the **same machine** that can reach the cluster.
+API entry point: Envoy `svc/envoy:10000`. The cluster is not public by default — use `kubectl port-forward` + ngrok on the machine that runs the cluster.
 
-1. Forward the gateway to localhost:
+**Windows note:** port `10000` is often taken by `YunDetectService`. Use local port `18000` instead.
 
-```bash
-kubectl port-forward -n azushop svc/envoy 10000:10000
-```
-
-2. In another terminal, start ngrok (requires prior login):
+### Manual
 
 ```bash
-ngrok http 10000
+# terminal 1
+kubectl port-forward -n azushop svc/envoy 18000:10000
+
+# terminal 2
+ngrok http 18000
 ```
 
-3. Copy the public HTTPS URL from the ngrok dashboard (e.g. `https://abcd-1234.ngrok-free.app`).
+Copy the HTTPS URL from the ngrok dashboard (e.g. `https://abcd-1234.ngrok-free.app`).
 
-This URL is used for:
+### Scripted (Windows)
 
-- **External API access** — `https://<ngrok-host>/v1/...`
-- **Stripe payment callbacks** — must be a URL Stripe can reach from the internet
+`misc/expose.ps1` restarts port-forward + ngrok and writes the public URL to `expose-result.json`:
 
-## Configure Stripe success URL
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File misc/expose.ps1
+```
 
-The default `serviceConfig.payment.stripeSuccessUrl` points at `localhost` and will not work for real Stripe callbacks. Set it to your ngrok URL after ngrok is running:
+To keep it running after SSH disconnect, register a scheduled task once:
+
+```powershell
+schtasks /Create /TN AzushopExpose `
+  /TR "powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\path\to\misc\expose.ps1" `
+  /SC ONSTART /F /RL HIGHEST
+schtasks /Run /TN AzushopExpose
+```
+
+Re-run `schtasks /Run /TN AzushopExpose` whenever the tunnel goes offline.
+
+## Configure Stripe callback
+
+After ngrok is up, point the payment callback at the public URL:
 
 ```bash
 helm upgrade azushop ./helm-charts/azushop -n azushop \
   --set serviceConfig.payment.stripeSuccessUrl="https://<ngrok-host>/v1/payment/callback/stripe"
 ```
 
-Also set a real Stripe secret if needed:
+Add a real Stripe key if needed:
 
 ```bash
 helm upgrade azushop ./helm-charts/azushop -n azushop \
@@ -68,28 +74,36 @@ helm upgrade azushop ./helm-charts/azushop -n azushop \
   --set serviceConfig.payment.stripeSuccessUrl="https://<ngrok-host>/v1/payment/callback/stripe"
 ```
 
-Restart is handled by the upgrade; payment pods pick up the new config from the rendered Secret.
+Re-run this whenever ngrok restarts and the URL changes.
 
-## Upgrade / reinstall
+## Test the API
+
+Auth uses [Connect RPC](https://connectrpc.com/), not plain REST:
 
 ```bash
-helm upgrade azushop ./helm-charts/azushop -n azushop
+curl -X POST "https://<ngrok-host>/auth.v1.AuthService/Register" \
+  -H "Content-Type: application/json" \
+  -H "Connect-Protocol-Version: 1" \
+  -H "ngrok-skip-browser-warning: true" \
+  -d '{"name":"testuser1","password":"_Aa020112"}'
 ```
 
-If ngrok restarts and the public URL changes, run `helm upgrade` again with the new `stripeSuccessUrl`.
+| Response | Meaning |
+|----------|---------|
+| `200 {}` | Registered |
+| `500 username already exists` | Name taken |
+| ngrok `ERR_NGROK_3200` | Tunnel offline — re-run expose script |
 
-## Useful commands
+Username length: 6–15 characters.
+
+## Day-to-day
 
 ```bash
-# Pod status
-kubectl get pods -n azushop
+# Upgrade chart
+helm upgrade azushop ./helm-charts/azushop -n azushop
 
 # Logs
 kubectl logs -n azushop deploy/order --tail=50
-kubectl logs -n azushop deploy/payment --tail=50
-
-# Gateway port-forward (if ngrok is not running)
-kubectl port-forward -n azushop svc/envoy 10000:10000
 
 # Uninstall
 helm uninstall azushop -n azushop
@@ -97,6 +111,6 @@ helm uninstall azushop -n azushop
 
 ## Notes
 
-- Do not install into a namespace that already has non-Helm Postgres resources with conflicting names; use `-n azushop --create-namespace` or clean up legacy resources first.
-- ngrok free URLs change on each session unless you use a reserved domain.
-- For production, replace ngrok with a stable Ingress or load balancer and set `stripeSuccessUrl` accordingly.
+- Use a dedicated namespace (`-n azushop`) to avoid conflicts with leftover Postgres resources.
+- ngrok free URLs change each session unless you use a reserved domain.
+- For production, replace ngrok with a stable Ingress or load balancer.
