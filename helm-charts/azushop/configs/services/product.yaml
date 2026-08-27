@@ -1,7 +1,6 @@
 server:
-  http:
-    addr: 0.0.0.0:{{ .Values.services.service.targetPort }}
-    timeout: 1s
+  connect_server_addr: 0.0.0.0:{{ .Values.services.service.targetPort }}
+  metrics_server_addr: 0.0.0.0:9090
 data:
   app_name: "azushop.product"
   database:

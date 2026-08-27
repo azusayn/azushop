@@ -9,7 +9,7 @@ package main
 import (
 	"github.com/azusayn/azushop/internal/biz"
 	"github.com/azusayn/azushop/internal/data"
-	"github.com/azusayn/azushop/internal/runner"
+	"github.com/azusayn/azushop/internal/server"
 	"github.com/azusayn/azushop/internal/service"
 	"github.com/azusayn/azushop/proto/conf"
 	"github.com/google/wire"
@@ -17,29 +17,32 @@ import (
 
 // Injectors from wire.go:
 
-func wireApp(serverConfig *conf.Server, dataConfig *conf.Data) (*App, func(), error) {
-	postgres, err := data.NewPostgres(dataConfig)
+func wireApp(cd *conf.Data, cs *conf.Server) (*App, func(), error) {
+	postgres, err := data.NewPostgres(cd)
 	if err != nil {
 		return nil, nil, err
 	}
 	inventoryRepo := data.NewInventoryRepo(postgres)
 	transaction := data.NewTransaction(postgres)
-	inventorySubscriber, err := data.NewInventorySubscriber(dataConfig)
+	inventorySubscriber, err := data.NewInventorySubscriber(cd)
 	if err != nil {
 		return nil, nil, err
 	}
 	inventoryUsecase := biz.NewInventoryUsecase(inventoryRepo, transaction, inventorySubscriber)
 	inventoryService := service.NewInventoryService(inventoryUsecase)
 	inventoryServiceConnectHandler := service.NewInventoryServiceConnectHandler(inventoryService)
-	inventoryRunner := runner.NewInventoryRunner(inventoryUsecase)
-	app, err := newApp(serverConfig, dataConfig, inventoryServiceConnectHandler, inventoryRunner)
+	connectServerConfig, err := newConnectServerConfig(inventoryServiceConnectHandler, cs, cd)
 	if err != nil {
 		return nil, nil, err
 	}
+	connectServer := server.NewConnectServer(connectServerConfig)
+	metricsServer := server.NewMetricsServer(cs)
+	inventoryRunner := server.NewInventoryRunner(inventoryUsecase)
+	app := newApp(connectServer, metricsServer, inventoryRunner)
 	return app, func() {
 	}, nil
 }
 
 // wire.go:
 
-var wireProviders = wire.NewSet(data.InventoryDataProviderSet, biz.NewInventoryUsecase, service.NewInventoryService, service.NewInventoryServiceConnectHandler, runner.NewInventoryRunner, newApp)
+var wireProviders = wire.NewSet(data.InventoryDataProviderSet, biz.NewInventoryUsecase, service.NewInventoryService, service.NewInventoryServiceConnectHandler, server.NewInventoryRunner, newConnectServerConfig, server.NewConnectServer, server.NewMetricsServer, newApp)

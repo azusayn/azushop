@@ -9,7 +9,7 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-func SetupLogger(serviceName string) {
+func SetupGlobalLogger(serviceName string) {
 	config := zap.NewProductionEncoderConfig()
 	config.EncodeTime = zapcore.ISO8601TimeEncoder
 	config.EncodeLevel = zapcore.CapitalLevelEncoder

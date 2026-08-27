@@ -5,28 +5,31 @@ import (
 	"os"
 
 	"github.com/azusayn/azushop/proto/conf"
+	"go.yaml.in/yaml/v2"
 	"google.golang.org/protobuf/encoding/protojson"
-	"gopkg.in/yaml.v3"
 )
 
-// LoadYAMLConfig reads a YAML config file and unmarshals it into the given protobuf message.
-// It does this by first decoding the YAML into generic types, then converting to JSON
-// and unmarshaling with protojson.
-func LoadYAMLConfig(path string, msg *conf.Bootstrap) error {
-	data, err := os.ReadFile(path)
+// LoadConfig reads a YAML config file and unmarshals it into the given protobuf message.
+func LoadConfig(path string) (*conf.Bootstrap, error) {
+	yamlBytes, err := os.ReadFile(path)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	var raw any
-	if err := yaml.Unmarshal(data, &raw); err != nil {
-		return err
+	var v any
+	if err := yaml.Unmarshal(yamlBytes, &v); err != nil {
+		return nil, err
 	}
 
-	jsonData, err := json.Marshal(raw)
+	jsonBytes, err := json.Marshal(v)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return protojson.Unmarshal(jsonData, msg)
+	var config conf.Bootstrap
+	if err := protojson.Unmarshal(jsonBytes, &config); err != nil {
+		return nil, err
+	}
+
+	return &config, nil
 }

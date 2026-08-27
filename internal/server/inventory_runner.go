@@ -1,4 +1,4 @@
-package runner
+package server
 
 import (
 	"context"
@@ -21,3 +21,5 @@ func (r *InventoryRunner) Start(ctx context.Context) error {
 func (r *InventoryRunner) Stop(ctx context.Context) error {
 	return nil
 }
+
+var _ Server = (*InventoryRunner)(nil)

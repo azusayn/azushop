@@ -9,7 +9,7 @@ package main
 import (
 	"github.com/azusayn/azushop/internal/biz"
 	"github.com/azusayn/azushop/internal/data"
-	"github.com/azusayn/azushop/internal/runner"
+	"github.com/azusayn/azushop/internal/server"
 	"github.com/azusayn/azushop/internal/service"
 	"github.com/azusayn/azushop/proto/conf"
 	"github.com/google/wire"
@@ -17,27 +17,26 @@ import (
 
 // Injectors from wire.go:
 
-func wireApp(serverConfig *conf.Server, dataConfig *conf.Data) (*App, func(), error) {
-	postgres, err := data.NewPostgres(dataConfig)
+func wireApp(cd *conf.Data, cs *conf.Server) (*App, func(), error) {
+	postgres, err := data.NewPostgres(cd)
 	if err != nil {
 		return nil, nil, err
 	}
 	userRepo := data.NewUserRepo(postgres)
 	userUsecase := biz.NewUserUsecase(userRepo)
-	authService, err := service.NewAuthService(userUsecase, dataConfig)
+	authService, err := service.NewAuthService(userUsecase, cd)
 	if err != nil {
 		return nil, nil, err
 	}
 	authServiceConnectHandler := service.NewAuthServiceConnectHandler(authService)
-	metricsRunner := runner.NewMetricsRunner()
-	app, err := newApp(serverConfig, dataConfig, authServiceConnectHandler, metricsRunner)
-	if err != nil {
-		return nil, nil, err
-	}
+	connectServerConfig := newConnectServerConfig(authServiceConnectHandler, cs)
+	connectServer := server.NewConnectServer(connectServerConfig)
+	metricsServer := server.NewMetricsServer(cs)
+	app := newApp(connectServer, metricsServer)
 	return app, func() {
 	}, nil
 }
 
 // wire.go:
 
-var wireProviders = wire.NewSet(data.AuthDataProviderSet, biz.NewUserUsecase, service.NewAuthService, service.NewAuthServiceConnectHandler, runner.NewMetricsRunner, newApp)
+var wireProviders = wire.NewSet(data.AuthDataProviderSet, biz.NewUserUsecase, service.NewAuthService, service.NewAuthServiceConnectHandler, newConnectServerConfig, server.NewConnectServer, server.NewMetricsServer, newApp)

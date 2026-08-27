@@ -9,6 +9,7 @@ package main
 import (
 	"github.com/azusayn/azushop/internal/biz"
 	"github.com/azusayn/azushop/internal/data"
+	"github.com/azusayn/azushop/internal/server"
 	"github.com/azusayn/azushop/internal/service"
 	"github.com/azusayn/azushop/proto/conf"
 	"github.com/google/wire"
@@ -16,36 +17,39 @@ import (
 
 // Injectors from wire.go:
 
-func wireApp(serverConfig *conf.Server, dataConfig *conf.Data) (*App, func(), error) {
-	postgres, err := data.NewPostgres(dataConfig)
+func wireApp(cd *conf.Data, cs *conf.Server) (*App, func(), error) {
+	postgres, err := data.NewPostgres(cd)
 	if err != nil {
 		return nil, nil, err
 	}
-	redis, err := data.NewRedis(dataConfig)
+	redis, err := data.NewRedis(cd)
 	if err != nil {
 		return nil, nil, err
 	}
 	paymentRepo := data.NewPaymentRepo(postgres, redis)
-	kafkaProducer, err := data.NewKafkaProducer(dataConfig)
+	kafkaProducer, err := data.NewKafkaProducer(cd)
 	if err != nil {
 		return nil, nil, err
 	}
 	paymentPublisher := data.NewPaymentPublisher(kafkaProducer)
 	paymentUsecase := biz.NewPaymentUsecase(paymentRepo, paymentPublisher)
-	orderServiceClient := data.NewOrderClient(dataConfig)
-	paymentService, err := service.NewPaymentService(paymentUsecase, orderServiceClient, dataConfig)
+	orderServiceClient := data.NewOrderClient(cd)
+	paymentService, err := service.NewPaymentService(paymentUsecase, orderServiceClient, cd)
 	if err != nil {
 		return nil, nil, err
 	}
 	paymentServiceConnectHandler := service.NewPaymentServiceConnectHandler(paymentService)
-	app, err := newApp(serverConfig, dataConfig, paymentServiceConnectHandler)
+	connectServerConfig, err := newConnectServerConfig(paymentServiceConnectHandler, cs, cd)
 	if err != nil {
 		return nil, nil, err
 	}
+	connectServer := server.NewConnectServer(connectServerConfig)
+	metricsServer := server.NewMetricsServer(cs)
+	app := newApp(connectServer, metricsServer)
 	return app, func() {
 	}, nil
 }
 
 // wire.go:
 
-var wireProviders = wire.NewSet(data.PaymentDataProviderSet, biz.NewPaymentUsecase, service.NewPaymentService, service.NewPaymentServiceConnectHandler, newApp)
+var wireProviders = wire.NewSet(data.PaymentDataProviderSet, biz.NewPaymentUsecase, service.NewPaymentService, service.NewPaymentServiceConnectHandler, newConnectServerConfig, server.NewConnectServer, server.NewMetricsServer, newApp)

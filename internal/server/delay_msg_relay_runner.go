@@ -1,4 +1,4 @@
-package runner
+package server
 
 import (
 	"context"
@@ -21,3 +21,5 @@ func (r *DelayMsgRelayRunner) Start(ctx context.Context) error {
 func (r *DelayMsgRelayRunner) Stop(ctx context.Context) error {
 	return nil
 }
+
+var _ Server = (*DelayMsgRelayRunner)(nil)

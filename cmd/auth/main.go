@@ -1,105 +1,54 @@
 package main
 
 import (
-	"context"
-	"errors"
 	"flag"
-	"net/http"
-	"os/signal"
-	"syscall"
 
+	"connectrpc.com/connect"
 	cfg "github.com/azusayn/azushop/internal/pkg/config"
-	"github.com/azusayn/azushop/internal/pkg/log"
 	"github.com/azusayn/azushop/internal/pkg/middleware"
-	"github.com/azusayn/azushop/internal/runner"
 	"github.com/azusayn/azushop/internal/server"
 	"github.com/azusayn/azushop/internal/service"
 	authv1connect "github.com/azusayn/azushop/proto/api/auth/v1/v1connect"
 	"github.com/azusayn/azushop/proto/conf"
-
-	"golang.org/x/sync/errgroup"
-
-	"connectrpc.com/connect"
 )
 
-var flagconf string
-
-// App holds the components for the auth service.
-type App struct {
-	Server        *http.Server
-	MetricsRunner *runner.MetricsRunner
-}
-
-// newApp creates the App from wire-injected dependencies.
-func newApp(
-	serverConfig *conf.Server,
-	config *conf.Data,
-	connectHandler *service.AuthServiceConnectHandler,
-	metricsRunner *runner.MetricsRunner,
-) (*App, error) {
+func newConnectServerConfig(connectHandler *service.AuthServiceConnectHandler, config *conf.Server) *server.ConnectServerConfig {
 	path, handler := authv1connect.NewAuthServiceHandler(
 		connectHandler,
 		connect.WithInterceptors(
 			middleware.MetricsInterceptor(),
 		),
 	)
-
-	mux := http.NewServeMux()
-	mux.Handle(path, handler)
-
-	return &App{
-		Server: &http.Server{
-			Addr:    serverConfig.Http.Addr,
-			Handler: middleware.CORSFilter(nil)(mux),
-		},
-		MetricsRunner: metricsRunner,
-	}, nil
+	return &server.ConnectServerConfig{
+		Handler: handler,
+		Address: config.GetConnectServerAddr(),
+		Path:    path,
+	}
 }
 
-func init() {
-	flag.StringVar(&flagconf, "conf", "configs/auth.yaml", "config path, eg: -conf config.yaml")
+type App struct {
+	server.Runtime
+}
+
+func newApp(connectServer *server.ConnectServer, metricsServer *server.MetricsServer) *App {
+	app := &App{}
+	app.Servers = []server.Server{connectServer, metricsServer}
+	return app
 }
 
 func main() {
-	flag.Parse()
-	log.SetupLogger("azushop.auth")
-
-	var bc conf.Bootstrap
-	if err := cfg.LoadYAMLConfig(flagconf, &bc); err != nil {
-		panic(err)
-	}
-
-	tp, tpCleanup, err := server.NewGlobalTraceProvider(bc.Data)
+	var configPath string
+	flag.StringVar(&configPath, "conf", "configs/auth.yaml", "config path, e.g. -conf config.yaml")
+	config, err := cfg.LoadConfig(configPath)
 	if err != nil {
 		panic(err)
 	}
-	defer tpCleanup()
 
-	app, cleanup, err := wireApp(bc.Server, bc.Data)
+	app, cleanup, err := wireApp(config.Data, config.Server)
 	if err != nil {
 		panic(err)
 	}
 	defer cleanup()
 
-	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer cancel()
-
-	g, egCtx := errgroup.WithContext(ctx)
-	g.Go(func() error {
-		return app.Server.ListenAndServe()
-	})
-	g.Go(func() error {
-		return app.MetricsRunner.Start(egCtx)
-	})
-	g.Go(func() error {
-		<-egCtx.Done()
-		return errors.Join(
-			tp.Shutdown(context.Background()),
-			app.MetricsRunner.Stop(context.Background()),
-			app.Server.Shutdown(context.Background()),
-		)
-	})
-	if err := g.Wait(); err != nil {
-		panic(err)
-	}
+	app.Bootstrap(config.Data)
 }

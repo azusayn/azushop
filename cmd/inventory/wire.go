@@ -6,13 +6,13 @@ package main
 import (
 	"github.com/azusayn/azushop/internal/biz"
 	"github.com/azusayn/azushop/internal/data"
-	"github.com/azusayn/azushop/internal/runner"
+	"github.com/azusayn/azushop/internal/server"
 	"github.com/azusayn/azushop/internal/service"
 	"github.com/azusayn/azushop/proto/conf"
 	"github.com/google/wire"
 )
 
-func wireApp(serverConfig *conf.Server, dataConfig *conf.Data) (*App, func(), error) {
+func wireApp(cd *conf.Data, cs *conf.Server) (*App, func(), error) {
 	panic(wire.Build(wireProviders))
 }
 
@@ -21,6 +21,9 @@ var wireProviders = wire.NewSet(
 	biz.NewInventoryUsecase,
 	service.NewInventoryService,
 	service.NewInventoryServiceConnectHandler,
-	runner.NewInventoryRunner,
+	server.NewInventoryRunner,
+	newConnectServerConfig,
+	server.NewConnectServer,
+	server.NewMetricsServer,
 	newApp,
 )

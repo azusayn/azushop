@@ -9,7 +9,7 @@ package main
 import (
 	"github.com/azusayn/azushop/internal/biz"
 	"github.com/azusayn/azushop/internal/data"
-	"github.com/azusayn/azushop/internal/runner"
+	"github.com/azusayn/azushop/internal/server"
 	"github.com/azusayn/azushop/internal/service"
 	"github.com/azusayn/azushop/proto/conf"
 	"github.com/google/wire"
@@ -17,40 +17,53 @@ import (
 
 // Injectors from wire.go:
 
-func wireApp(serverConfig *conf.Server, dataConfig *conf.Data) (*App, func(), error) {
-	postgres, err := data.NewPostgres(dataConfig)
+func wireApp(cd *conf.Data, cs *conf.Server) (*App, func(), error) {
+	postgres, err := data.NewPostgres(cd)
 	if err != nil {
 		return nil, nil, err
 	}
-	redis, err := data.NewRedis(dataConfig)
+	redis, err := data.NewRedis(cd)
 	if err != nil {
 		return nil, nil, err
 	}
 	orderRepo := data.NewOrderRepo(postgres, redis)
-	orderSubscriber, err := data.NewOrderSubscriber(dataConfig)
+	orderSubscriber, err := data.NewOrderSubscriber(cd)
 	if err != nil {
 		return nil, nil, err
 	}
-	kafkaProducer, err := data.NewKafkaProducer(dataConfig)
+	kafkaProducer, err := data.NewKafkaProducer(cd)
 	if err != nil {
 		return nil, nil, err
 	}
 	orderPublisher := data.NewOrderPublisher(kafkaProducer)
 	transaction := data.NewTransaction(postgres)
-	inventoryServiceClient := data.NewInventoryClient(dataConfig)
+	inventoryServiceClient := data.NewInventoryClient(cd)
 	orderUsecase := biz.NewOrderUsecase(orderRepo, orderSubscriber, orderPublisher, transaction, inventoryServiceClient)
-	productServiceClient := data.NewProductClient(dataConfig)
+	productServiceClient := data.NewProductClient(cd)
 	orderService := service.NewOrderService(orderUsecase, productServiceClient, inventoryServiceClient)
 	orderServiceConnectHandler := service.NewOrderServiceConnectHandler(orderService)
-	orderRunner := runner.NewOrderRunner(orderUsecase)
-	app, err := newApp(serverConfig, dataConfig, orderServiceConnectHandler, orderRunner)
+	connectServerConfig, err := newConnectServerConfig(orderServiceConnectHandler, cs, cd)
 	if err != nil {
 		return nil, nil, err
 	}
+	connectServer := server.NewConnectServer(connectServerConfig)
+	metricsServer := server.NewMetricsServer(cs)
+	orderRunner := server.NewOrderRunner(orderUsecase)
+	delayMsgRelayPublisher, err := data.NewDelayRelayPublisher(cd)
+	if err != nil {
+		return nil, nil, err
+	}
+	delayMsgRelaySubscriber, err := data.NewDelayMsgRelaySubscriber(cd)
+	if err != nil {
+		return nil, nil, err
+	}
+	delayMsgRealyUsecase := biz.NewDelayMsgRealyUsecase(delayMsgRelaySubscriber, delayMsgRelayPublisher)
+	delayMsgRelayRunner := server.NewDelayMsgRelayRunner(delayMsgRealyUsecase)
+	app := newApp(connectServer, metricsServer, orderRunner, delayMsgRelayRunner)
 	return app, func() {
 	}, nil
 }
 
 // wire.go:
 
-var wireProviders = wire.NewSet(data.OrderDataProviderSet, biz.NewOrderUsecase, service.NewOrderService, service.NewOrderServiceConnectHandler, runner.NewOrderRunner, newApp)
+var wireProviders = wire.NewSet(data.OrderDataProviderSet, data.DelayMsgRelayDataProviderSet, biz.NewOrderUsecase, biz.NewDelayMsgRealyUsecase, service.NewOrderService, service.NewOrderServiceConnectHandler, server.NewOrderRunner, server.NewDelayMsgRelayRunner, newConnectServerConfig, server.NewConnectServer, server.NewMetricsServer, newApp)

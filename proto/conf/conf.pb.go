@@ -75,11 +75,11 @@ func (x *Bootstrap) GetData() *Data {
 }
 
 type Server struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Http          *Server_HTTP           `protobuf:"bytes,1,opt,name=http,proto3" json:"http,omitempty"`
-	Grpc          *Server_GRPC           `protobuf:"bytes,2,opt,name=grpc,proto3" json:"grpc,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	ConnectServerAddr string                 `protobuf:"bytes,1,opt,name=connect_server_addr,json=connectServerAddr,proto3" json:"connect_server_addr,omitempty"`
+	MetricsServerAddr string                 `protobuf:"bytes,2,opt,name=metrics_server_addr,json=metricsServerAddr,proto3" json:"metrics_server_addr,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *Server) Reset() {
@@ -112,18 +112,18 @@ func (*Server) Descriptor() ([]byte, []int) {
 	return file_conf_conf_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *Server) GetHttp() *Server_HTTP {
+func (x *Server) GetConnectServerAddr() string {
 	if x != nil {
-		return x.Http
+		return x.ConnectServerAddr
 	}
-	return nil
+	return ""
 }
 
-func (x *Server) GetGrpc() *Server_GRPC {
+func (x *Server) GetMetricsServerAddr() string {
 	if x != nil {
-		return x.Grpc
+		return x.MetricsServerAddr
 	}
-	return nil
+	return ""
 }
 
 type Database struct {
@@ -662,145 +662,18 @@ func (x *Auth) GetPublicKeyPath() string {
 	return ""
 }
 
-type Server_HTTP struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Network       string                 `protobuf:"bytes,1,opt,name=network,proto3" json:"network,omitempty"`
-	Addr          string                 `protobuf:"bytes,2,opt,name=addr,proto3" json:"addr,omitempty"`
-	Timeout       *durationpb.Duration   `protobuf:"bytes,3,opt,name=timeout,proto3" json:"timeout,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *Server_HTTP) Reset() {
-	*x = Server_HTTP{}
-	mi := &file_conf_conf_proto_msgTypes[10]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *Server_HTTP) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Server_HTTP) ProtoMessage() {}
-
-func (x *Server_HTTP) ProtoReflect() protoreflect.Message {
-	mi := &file_conf_conf_proto_msgTypes[10]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Server_HTTP.ProtoReflect.Descriptor instead.
-func (*Server_HTTP) Descriptor() ([]byte, []int) {
-	return file_conf_conf_proto_rawDescGZIP(), []int{1, 0}
-}
-
-func (x *Server_HTTP) GetNetwork() string {
-	if x != nil {
-		return x.Network
-	}
-	return ""
-}
-
-func (x *Server_HTTP) GetAddr() string {
-	if x != nil {
-		return x.Addr
-	}
-	return ""
-}
-
-func (x *Server_HTTP) GetTimeout() *durationpb.Duration {
-	if x != nil {
-		return x.Timeout
-	}
-	return nil
-}
-
-type Server_GRPC struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Network       string                 `protobuf:"bytes,1,opt,name=network,proto3" json:"network,omitempty"`
-	Addr          string                 `protobuf:"bytes,2,opt,name=addr,proto3" json:"addr,omitempty"`
-	Timeout       *durationpb.Duration   `protobuf:"bytes,3,opt,name=timeout,proto3" json:"timeout,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *Server_GRPC) Reset() {
-	*x = Server_GRPC{}
-	mi := &file_conf_conf_proto_msgTypes[11]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *Server_GRPC) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Server_GRPC) ProtoMessage() {}
-
-func (x *Server_GRPC) ProtoReflect() protoreflect.Message {
-	mi := &file_conf_conf_proto_msgTypes[11]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Server_GRPC.ProtoReflect.Descriptor instead.
-func (*Server_GRPC) Descriptor() ([]byte, []int) {
-	return file_conf_conf_proto_rawDescGZIP(), []int{1, 1}
-}
-
-func (x *Server_GRPC) GetNetwork() string {
-	if x != nil {
-		return x.Network
-	}
-	return ""
-}
-
-func (x *Server_GRPC) GetAddr() string {
-	if x != nil {
-		return x.Addr
-	}
-	return ""
-}
-
-func (x *Server_GRPC) GetTimeout() *durationpb.Duration {
-	if x != nil {
-		return x.Timeout
-	}
-	return nil
-}
-
 var File_conf_conf_proto protoreflect.FileDescriptor
 
 const file_conf_conf_proto_rawDesc = "" +
 	"\n" +
-	"\x0fconf/conf.proto\x1a\x1egoogle/protobuf/duration.proto\"G\n" +
-	"\tBootstrap\x12\x1f\n" +
-	"\x06server\x18\x01 \x01(\v2\a.ServerR\x06server\x12\x19\n" +
-	"\x04data\x18\x02 \x01(\v2\x05.DataR\x04data\"\xa2\x02\n" +
-	"\x06Server\x12 \n" +
-	"\x04http\x18\x01 \x01(\v2\f.Server.HTTPR\x04http\x12 \n" +
-	"\x04grpc\x18\x02 \x01(\v2\f.Server.GRPCR\x04grpc\x1ai\n" +
-	"\x04HTTP\x12\x18\n" +
-	"\anetwork\x18\x01 \x01(\tR\anetwork\x12\x12\n" +
-	"\x04addr\x18\x02 \x01(\tR\x04addr\x123\n" +
-	"\atimeout\x18\x03 \x01(\v2\x19.google.protobuf.DurationR\atimeout\x1ai\n" +
-	"\x04GRPC\x12\x18\n" +
-	"\anetwork\x18\x01 \x01(\tR\anetwork\x12\x12\n" +
-	"\x04addr\x18\x02 \x01(\tR\x04addr\x123\n" +
-	"\atimeout\x18\x03 \x01(\v2\x19.google.protobuf.DurationR\atimeout\":\n" +
+	"\x0fconf/conf.proto\x12\x04conf\x1a\x1egoogle/protobuf/duration.proto\"Q\n" +
+	"\tBootstrap\x12$\n" +
+	"\x06server\x18\x01 \x01(\v2\f.conf.ServerR\x06server\x12\x1e\n" +
+	"\x04data\x18\x02 \x01(\v2\n" +
+	".conf.DataR\x04data\"h\n" +
+	"\x06Server\x12.\n" +
+	"\x13connect_server_addr\x18\x01 \x01(\tR\x11connectServerAddr\x12.\n" +
+	"\x13metrics_server_addr\x18\x02 \x01(\tR\x11metricsServerAddr\":\n" +
 	"\bDatabase\x12\x16\n" +
 	"\x06driver\x18\x01 \x01(\tR\x06driver\x12\x16\n" +
 	"\x06source\x18\x02 \x01(\tR\x06source\"\xb3\x01\n" +
@@ -824,17 +697,18 @@ const file_conf_conf_proto_rawDesc = "" +
 	"\bendpoint\x18\x01 \x01(\tR\bendpoint\x12\x16\n" +
 	"\x06secret\x18\x02 \x01(\tR\x06secret\x12\x14\n" +
 	"\x05model\x18\x03 \x01(\tR\x05model\x12!\n" +
-	"\fmax_distance\x18\x04 \x01(\x02R\vmaxDistance\"\xd4\x02\n" +
-	"\x04Data\x12%\n" +
-	"\bdatabase\x18\x01 \x01(\v2\t.DatabaseR\bdatabase\x12\x1c\n" +
-	"\x05redis\x18\x02 \x01(\v2\x06.RedisR\x05redis\x12/\n" +
-	"\fservice_addr\x18\x03 \x01(\v2\f.ServiceAddrR\vserviceAddr\x12\"\n" +
-	"\apayment\x18\x04 \x01(\v2\b.PaymentR\apayment\x12\x1c\n" +
-	"\x05kafka\x18\x05 \x01(\v2\x06.KafkaR\x05kafka\x12\x19\n" +
-	"\bapp_name\x18\x06 \x01(\tR\aappName\x12\x19\n" +
-	"\x04auth\x18\a \x01(\v2\x05.AuthR\x04auth\x12*\n" +
-	"\x11otlp_grpc_address\x18\b \x01(\tR\x0fotlpGrpcAddress\x122\n" +
-	"\rembedding_api\x18\t \x01(\v2\r.EmbeddingAPIR\fembeddingApi\"\x91\x01\n" +
+	"\fmax_distance\x18\x04 \x01(\x02R\vmaxDistance\"\xf7\x02\n" +
+	"\x04Data\x12*\n" +
+	"\bdatabase\x18\x01 \x01(\v2\x0e.conf.DatabaseR\bdatabase\x12!\n" +
+	"\x05redis\x18\x02 \x01(\v2\v.conf.RedisR\x05redis\x124\n" +
+	"\fservice_addr\x18\x03 \x01(\v2\x11.conf.ServiceAddrR\vserviceAddr\x12'\n" +
+	"\apayment\x18\x04 \x01(\v2\r.conf.PaymentR\apayment\x12!\n" +
+	"\x05kafka\x18\x05 \x01(\v2\v.conf.KafkaR\x05kafka\x12\x19\n" +
+	"\bapp_name\x18\x06 \x01(\tR\aappName\x12\x1e\n" +
+	"\x04auth\x18\a \x01(\v2\n" +
+	".conf.AuthR\x04auth\x12*\n" +
+	"\x11otlp_grpc_address\x18\b \x01(\tR\x0fotlpGrpcAddress\x127\n" +
+	"\rembedding_api\x18\t \x01(\v2\x12.conf.EmbeddingAPIR\fembeddingApi\"\x91\x01\n" +
 	"\x04Auth\x12\x16\n" +
 	"\x06issuer\x18\x01 \x01(\tR\x06issuer\x12\x1f\n" +
 	"\vkey_version\x18\x02 \x01(\tR\n" +
@@ -854,43 +728,37 @@ func file_conf_conf_proto_rawDescGZIP() []byte {
 	return file_conf_conf_proto_rawDescData
 }
 
-var file_conf_conf_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_conf_conf_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_conf_conf_proto_goTypes = []any{
-	(*Bootstrap)(nil),           // 0: Bootstrap
-	(*Server)(nil),              // 1: Server
-	(*Database)(nil),            // 2: Database
-	(*Redis)(nil),               // 3: Redis
-	(*ServiceAddr)(nil),         // 4: ServiceAddr
-	(*Payment)(nil),             // 5: Payment
-	(*Kafka)(nil),               // 6: Kafka
-	(*EmbeddingAPI)(nil),        // 7: EmbeddingAPI
-	(*Data)(nil),                // 8: Data
-	(*Auth)(nil),                // 9: Auth
-	(*Server_HTTP)(nil),         // 10: Server.HTTP
-	(*Server_GRPC)(nil),         // 11: Server.GRPC
-	(*durationpb.Duration)(nil), // 12: google.protobuf.Duration
+	(*Bootstrap)(nil),           // 0: conf.Bootstrap
+	(*Server)(nil),              // 1: conf.Server
+	(*Database)(nil),            // 2: conf.Database
+	(*Redis)(nil),               // 3: conf.Redis
+	(*ServiceAddr)(nil),         // 4: conf.ServiceAddr
+	(*Payment)(nil),             // 5: conf.Payment
+	(*Kafka)(nil),               // 6: conf.Kafka
+	(*EmbeddingAPI)(nil),        // 7: conf.EmbeddingAPI
+	(*Data)(nil),                // 8: conf.Data
+	(*Auth)(nil),                // 9: conf.Auth
+	(*durationpb.Duration)(nil), // 10: google.protobuf.Duration
 }
 var file_conf_conf_proto_depIdxs = []int32{
-	1,  // 0: Bootstrap.server:type_name -> Server
-	8,  // 1: Bootstrap.data:type_name -> Data
-	10, // 2: Server.http:type_name -> Server.HTTP
-	11, // 3: Server.grpc:type_name -> Server.GRPC
-	12, // 4: Redis.read_timeout:type_name -> google.protobuf.Duration
-	12, // 5: Redis.write_timeout:type_name -> google.protobuf.Duration
-	2,  // 6: Data.database:type_name -> Database
-	3,  // 7: Data.redis:type_name -> Redis
-	4,  // 8: Data.service_addr:type_name -> ServiceAddr
-	5,  // 9: Data.payment:type_name -> Payment
-	6,  // 10: Data.kafka:type_name -> Kafka
-	9,  // 11: Data.auth:type_name -> Auth
-	7,  // 12: Data.embedding_api:type_name -> EmbeddingAPI
-	12, // 13: Server.HTTP.timeout:type_name -> google.protobuf.Duration
-	12, // 14: Server.GRPC.timeout:type_name -> google.protobuf.Duration
-	15, // [15:15] is the sub-list for method output_type
-	15, // [15:15] is the sub-list for method input_type
-	15, // [15:15] is the sub-list for extension type_name
-	15, // [15:15] is the sub-list for extension extendee
-	0,  // [0:15] is the sub-list for field type_name
+	1,  // 0: conf.Bootstrap.server:type_name -> conf.Server
+	8,  // 1: conf.Bootstrap.data:type_name -> conf.Data
+	10, // 2: conf.Redis.read_timeout:type_name -> google.protobuf.Duration
+	10, // 3: conf.Redis.write_timeout:type_name -> google.protobuf.Duration
+	2,  // 4: conf.Data.database:type_name -> conf.Database
+	3,  // 5: conf.Data.redis:type_name -> conf.Redis
+	4,  // 6: conf.Data.service_addr:type_name -> conf.ServiceAddr
+	5,  // 7: conf.Data.payment:type_name -> conf.Payment
+	6,  // 8: conf.Data.kafka:type_name -> conf.Kafka
+	9,  // 9: conf.Data.auth:type_name -> conf.Auth
+	7,  // 10: conf.Data.embedding_api:type_name -> conf.EmbeddingAPI
+	11, // [11:11] is the sub-list for method output_type
+	11, // [11:11] is the sub-list for method input_type
+	11, // [11:11] is the sub-list for extension type_name
+	11, // [11:11] is the sub-list for extension extendee
+	0,  // [0:11] is the sub-list for field type_name
 }
 
 func init() { file_conf_conf_proto_init() }
@@ -904,7 +772,7 @@ func file_conf_conf_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_conf_conf_proto_rawDesc), len(file_conf_conf_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   12,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

@@ -10,6 +10,12 @@ import (
 
 	"github.com/azusayn/azushop/internal/biz"
 	"github.com/azusayn/azushop/proto/conf"
+	"github.com/google/wire"
+)
+
+var DelayMsgRelayDataProviderSet = wire.NewSet(
+	NewDelayRelayPublisher,
+	NewDelayMsgRelaySubscriber,
 )
 
 type DelayMsgRelayPublisher struct {

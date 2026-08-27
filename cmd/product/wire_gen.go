@@ -10,6 +10,7 @@ import (
 	"github.com/azusayn/azushop/internal/biz"
 	"github.com/azusayn/azushop/internal/data"
 	"github.com/azusayn/azushop/internal/pkg/llm"
+	"github.com/azusayn/azushop/internal/server"
 	"github.com/azusayn/azushop/internal/service"
 	"github.com/azusayn/azushop/proto/conf"
 	"github.com/google/wire"
@@ -17,33 +18,36 @@ import (
 
 // Injectors from wire.go:
 
-func wireApp(serverConfig *conf.Server, dataConfig *conf.Data) (*App, func(), error) {
-	postgres, err := data.NewPostgres(dataConfig)
+func wireApp(cd *conf.Data, cs *conf.Server) (*App, func(), error) {
+	postgres, err := data.NewPostgres(cd)
 	if err != nil {
 		return nil, nil, err
 	}
-	redis, err := data.NewRedis(dataConfig)
+	redis, err := data.NewRedis(cd)
 	if err != nil {
 		return nil, nil, err
 	}
 	productRepo := data.NewProductRepo(postgres, redis)
-	kafkaProducer, err := data.NewKafkaProducer(dataConfig)
+	kafkaProducer, err := data.NewKafkaProducer(cd)
 	if err != nil {
 		return nil, nil, err
 	}
 	productPublisher := data.NewProductPublisher(kafkaProducer)
-	openAIClient := llm.NewOpenAIClient(dataConfig)
+	openAIClient := llm.NewOpenAIClient(cd)
 	productUsecase := biz.NewProductUsecase(productRepo, productPublisher, openAIClient)
-	productService := service.NewProductService(productUsecase, dataConfig)
+	productService := service.NewProductService(productUsecase, cd)
 	productServiceConnectHandler := service.NewProductServiceConnectHandler(productService)
-	app, err := newApp(serverConfig, dataConfig, productServiceConnectHandler)
+	connectServerConfig, err := newConnectServerConfig(productServiceConnectHandler, cd, cs)
 	if err != nil {
 		return nil, nil, err
 	}
+	connectServer := server.NewConnectServer(connectServerConfig)
+	metricsServer := server.NewMetricsServer(cs)
+	app := newApp(connectServer, metricsServer)
 	return app, func() {
 	}, nil
 }
 
 // wire.go:
 
-var wireProviders = wire.NewSet(data.ProductDataProviderSet, biz.NewProductUsecase, llm.NewOpenAIClient, service.NewProductService, service.NewProductServiceConnectHandler, newApp)
+var wireProviders = wire.NewSet(data.ProductDataProviderSet, biz.NewProductUsecase, llm.NewOpenAIClient, service.NewProductService, service.NewProductServiceConnectHandler, newConnectServerConfig, server.NewConnectServer, server.NewMetricsServer, newApp)
