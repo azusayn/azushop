@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/google/uuid"
 	"github.com/google/wire"
+	"uuid"
 )
 
 var InventoryBizProviderSet = wire.NewSet(

@@ -9,11 +9,11 @@ import (
 	"github.com/azusayn/azushop/proto/conf"
 
 	"github.com/IBM/sarama"
-	"github.com/google/uuid"
 	"github.com/google/wire"
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
 	"gorm.io/gorm"
+	"uuid"
 )
 
 var InventoryDataProviderSet = wire.NewSet(

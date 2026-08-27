@@ -10,12 +10,12 @@ import (
 	"github.com/IBM/sarama"
 	"github.com/azusayn/azushop/internal/biz"
 	"github.com/azusayn/azushop/proto/conf"
-	"github.com/google/uuid"
 	"github.com/google/wire"
 	"github.com/samber/lo"
 	"github.com/shopspring/decimal"
 	"golang.org/x/sync/errgroup"
 	"gorm.io/gorm"
+	"uuid"
 )
 
 const (
@@ -161,10 +161,7 @@ func (repo *OrderRepo) CreateOutboxMessage(ctx context.Context, eventType biz.Ou
 	if client == nil {
 		client = repo.postgres.GormClient
 	}
-	id, err := uuid.NewV7()
-	if err != nil {
-		return err
-	}
+	id := uuid.NewV7()
 	outboxMsg := &biz.OrderOutboxMessage{
 		ID:        id,
 		EventType: eventType,

@@ -12,10 +12,10 @@ import (
 	"github.com/azusayn/azushop/internal/biz"
 	"github.com/azusayn/azushop/internal/pkg/str"
 	"github.com/azusayn/azutils/sql"
-	"github.com/google/uuid"
 	"github.com/google/wire"
 	"github.com/pgvector/pgvector-go"
 	"gorm.io/gorm"
+	"uuid"
 )
 
 var ProductDataProviderSet = wire.NewSet(
@@ -179,10 +179,7 @@ func (repo *ProductRepo) BatchCreateProducts(ctx context.Context, products []*bi
 	skusRowValues := make([][]any, 0)
 	for _, p := range products {
 		ss.Insert(cacheKeyProductSet(p.SellerID))
-		productID, err := uuid.NewV7()
-		if err != nil {
-			return nil, err
-		}
+		productID := uuid.NewV7()
 		p.ID = productID
 		var embeddingVal any
 		if len(p.Embedding.Slice()) > 0 {
@@ -191,10 +188,7 @@ func (repo *ProductRepo) BatchCreateProducts(ctx context.Context, products []*bi
 		}
 		productsRowValues = append(productsRowValues, []any{productID, p.ProductName, p.Description, p.SellerID, p.ProductStatus, embeddingVal})
 		for _, s := range p.Skus {
-			skuID, err := uuid.NewV7()
-			if err != nil {
-				return nil, err
-			}
+			skuID := uuid.NewV7()
 			s.ID = skuID
 			skusRowValues = append(skusRowValues, []any{s.ID, p.ID, s.Attrs, s.UnitPrice})
 		}

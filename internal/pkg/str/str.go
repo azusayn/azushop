@@ -1,6 +1,6 @@
 package str
 
-import "github.com/google/uuid"
+import "uuid"
 
 type StringSet struct {
 	seen map[string]struct{}
@@ -47,7 +47,7 @@ func (s *StringSet) Insert(value string) {
 // TODO(3): move it to a proper place.
 func ParseUUID(s string) (uuid.UUID, error) {
 	if s == "" {
-		return uuid.Nil, nil
+		return uuid.Nil(), nil
 	}
 	return uuid.Parse(s)
 }

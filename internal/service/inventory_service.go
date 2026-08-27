@@ -8,9 +8,9 @@ import (
 	"errors"
 
 	"github.com/azusayn/azushop/internal/biz"
-	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"uuid"
 
 	"connectrpc.com/connect"
 )

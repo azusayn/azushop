@@ -11,8 +11,8 @@ import (
 	"connectrpc.com/connect"
 	inventorypb "github.com/azusayn/azushop/proto/api/inventory/v1"
 	inventoryv1connect "github.com/azusayn/azushop/proto/api/inventory/v1/v1connect"
-	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
+	"uuid"
 )
 
 const (

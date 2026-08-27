@@ -8,10 +8,10 @@ import (
 
 	"github.com/azusayn/azushop/internal/pkg/llm"
 	"github.com/azusayn/azutils/validate"
-	"github.com/google/uuid"
 	"github.com/pgvector/pgvector-go"
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
+	"uuid"
 )
 
 type ProductStatus string
