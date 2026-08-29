@@ -1,0 +1,227 @@
+# Local gateway for misc/dev.docker-compose.yaml.
+# Upstream business services run on the host (see configs/*.yaml):
+#   auth 8000 | product 8001 | inventory 8002 | order 8003 | payment 8004
+# Grafana runs in compose on :3000.
+
+admin:
+  address:
+    socket_address:
+      address: 0.0.0.0
+      port_value: 9901
+
+static_resources:
+  listeners:
+    - name: azushop_listener
+      address:
+        socket_address:
+          address: 0.0.0.0
+          port_value: 10000
+      filter_chains:
+        - filters:
+            - name: envoy.filters.network.http_connection_manager
+              typed_config:
+                "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+                stat_prefix: azushop_gateway
+                codec_type: AUTO
+                http_protocol_options: {}
+                http2_protocol_options: {}
+                route_config:
+                  name: azushop_routes
+                  virtual_hosts:
+                    - name: azushop
+                      domains: ["*"]
+                      routes:
+                        # Connect / legacy HTTP path prefixes
+                        - match:
+                            prefix: "/v1/auth"
+                          route:
+                            cluster: auth_cluster
+                            timeout: 30s
+                        - match:
+                            prefix: "/v1/inventory"
+                          route:
+                            cluster: inventory_cluster
+                            timeout: 30s
+                        - match:
+                            prefix: "/v1/product"
+                          route:
+                            cluster: product_cluster
+                            timeout: 30s
+                        - match:
+                            prefix: "/v1/orders"
+                          route:
+                            cluster: order_cluster
+                            timeout: 30s
+                        - match:
+                            prefix: "/v1/payment"
+                          route:
+                            cluster: payment_cluster
+                            timeout: 30s
+                        - match:
+                            prefix: "/grafana"
+                          route:
+                            cluster: grafana_cluster
+                            timeout: 30s
+                        # Connect / gRPC service paths
+                        - match:
+                            prefix: "/auth.v1.AuthService"
+                          route:
+                            cluster: auth_cluster
+                            timeout: 30s
+                        - match:
+                            prefix: "/inventory.v1.InventoryService"
+                          route:
+                            cluster: inventory_cluster
+                            timeout: 30s
+                        - match:
+                            prefix: "/product.v1.ProductService"
+                          route:
+                            cluster: product_cluster
+                            timeout: 30s
+                        - match:
+                            prefix: "/order.v1.OrderService"
+                          route:
+                            cluster: order_cluster
+                            timeout: 30s
+                        - match:
+                            prefix: "/payment.v1.PaymentService"
+                          route:
+                            cluster: payment_cluster
+                            timeout: 30s
+                      cors:
+                        allow_origin_string_match:
+                          - safe_regex:
+                              regex: ".*"
+                        allow_methods: "GET, POST, PUT, DELETE, PATCH, OPTIONS"
+                        allow_headers: "content-type, authorization, x-requested-with, connect-protocol-version, connect-timeout-ms, grpc-timeout, grpc-encoding, grpc-accept-encoding, te, user-agent"
+                        expose_headers: "content-length, content-type, grpc-status, grpc-message"
+                        max_age: "86400"
+                http_filters:
+                  - name: envoy.filters.http.cors
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.cors.v3.Cors
+                  - name: envoy.filters.http.router
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+
+  clusters:
+    # Host-process Connect servers (HTTP/1.x + HTTP/2). Follow downstream protocol.
+    - name: auth_cluster
+      connect_timeout: 1s
+      type: LOGICAL_DNS
+      dns_lookup_family: V4_ONLY
+      lb_policy: ROUND_ROBIN
+      typed_extension_protocol_options:
+        envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
+          "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
+          use_downstream_protocol_config:
+            http_protocol_options: {}
+            http2_protocol_options: {}
+      load_assignment:
+        cluster_name: auth_cluster
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: host.docker.internal
+                      port_value: 8000
+
+    - name: product_cluster
+      connect_timeout: 1s
+      type: LOGICAL_DNS
+      dns_lookup_family: V4_ONLY
+      lb_policy: ROUND_ROBIN
+      typed_extension_protocol_options:
+        envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
+          "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
+          use_downstream_protocol_config:
+            http_protocol_options: {}
+            http2_protocol_options: {}
+      load_assignment:
+        cluster_name: product_cluster
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: host.docker.internal
+                      port_value: 8001
+
+    - name: inventory_cluster
+      connect_timeout: 1s
+      type: LOGICAL_DNS
+      dns_lookup_family: V4_ONLY
+      lb_policy: ROUND_ROBIN
+      typed_extension_protocol_options:
+        envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
+          "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
+          use_downstream_protocol_config:
+            http_protocol_options: {}
+            http2_protocol_options: {}
+      load_assignment:
+        cluster_name: inventory_cluster
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: host.docker.internal
+                      port_value: 8002
+
+    - name: order_cluster
+      connect_timeout: 1s
+      type: LOGICAL_DNS
+      dns_lookup_family: V4_ONLY
+      lb_policy: ROUND_ROBIN
+      typed_extension_protocol_options:
+        envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
+          "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
+          use_downstream_protocol_config:
+            http_protocol_options: {}
+            http2_protocol_options: {}
+      load_assignment:
+        cluster_name: order_cluster
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: host.docker.internal
+                      port_value: 8003
+
+    - name: payment_cluster
+      connect_timeout: 1s
+      type: LOGICAL_DNS
+      dns_lookup_family: V4_ONLY
+      lb_policy: ROUND_ROBIN
+      typed_extension_protocol_options:
+        envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
+          "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
+          use_downstream_protocol_config:
+            http_protocol_options: {}
+            http2_protocol_options: {}
+      load_assignment:
+        cluster_name: payment_cluster
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: host.docker.internal
+                      port_value: 8004
+
+    - name: grafana_cluster
+      connect_timeout: 1s
+      type: STRICT_DNS
+      dns_lookup_family: V4_ONLY
+      lb_policy: ROUND_ROBIN
+      load_assignment:
+        cluster_name: grafana_cluster
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: grafana
+                      port_value: 3000

@@ -47,12 +47,19 @@ services:
 
   envoy:
     image: envoyproxy/envoy:v1.38.0
-    command: -c /dev.envoy.yaml
+    container_name: envoy
+    command: ["-c", "/etc/envoy/dev.envoy.yaml", "--log-level", "info"]
     ports:
       - "9901:9901"
       - "10000:10000"
     volumes:
-      - ./dev.envoy.yaml:/dev.envoy.yaml
+      - ./dev.envoy.yaml:/etc/envoy/dev.envoy.yaml:ro
+    extra_hosts:
+      # Reach host-process services (configs/*.yaml ports 8000–8004).
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - grafana
+    restart: unless-stopped
 
   clickhouse:
     image: clickhouse/clickhouse-server:24.8
@@ -81,6 +88,8 @@ services:
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_INSTALL_PLUGINS=grafana-clickhouse-datasource
       - GF_PLUGINS_DISABLE=grafana-exploretraces-app
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
+      - GF_SERVER_ROOT_URL=/grafana/
     volumes:
       - grafana-data:/var/lib/grafana
       - ../helm-charts/azushop/configs/infra/grafana-datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yml:ro
