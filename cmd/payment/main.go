@@ -24,6 +24,7 @@ func newConnectServerConfig(connectHandler *service.PaymentServiceConnectHandler
 		connect.WithInterceptors(
 			middleware.AuthInterceptor(publicKey, dataConfig.GetAuth().GetIssuer(), false),
 			middleware.MetricsInterceptor(),
+			middleware.IdempotencyInterceptor(),
 		),
 	)
 	return &server.ConnectServerConfig{
