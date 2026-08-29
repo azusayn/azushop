@@ -8,12 +8,13 @@ import (
 	"github.com/azusayn/azushop/internal/biz"
 	"github.com/azusayn/azushop/proto/conf"
 
+	"uuid"
+
 	"github.com/IBM/sarama"
 	"github.com/google/wire"
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
 	"gorm.io/gorm"
-	"uuid"
 )
 
 var InventoryDataProviderSet = wire.NewSet(
@@ -117,7 +118,7 @@ func (repo *InventoryRepo) CreateInventoryLock(
 		Payload: payload,
 		Status:  status,
 	}
-	return gormClient.WithContext(ctx).Table("inventory_lock").Create(lock).Error
+	return gormClient.WithContext(ctx).Table("inventory_locks").Create(lock).Error
 }
 
 func (repo *InventoryRepo) UpdateInventoryLock(ctx context.Context, inventoryLocks []*biz.InventoryLock, paths []string) error {
