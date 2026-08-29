@@ -20,9 +20,10 @@ func newConnectServerConfig(connectHandler *service.AuthServiceConnectHandler, c
 		),
 	)
 	return &server.ConnectServerConfig{
-		Handler: handler,
-		Address: config.GetConnectServerAddr(),
-		Path:    path,
+		ServiceName: authv1connect.AuthServiceName,
+		Handler:     handler,
+		Address:     config.GetConnectServerAddr(),
+		Path:        path,
 	}
 }
 

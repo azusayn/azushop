@@ -27,9 +27,10 @@ func newConnectServerConfig(connectHandler *service.PaymentServiceConnectHandler
 		),
 	)
 	return &server.ConnectServerConfig{
-		Handler: handler,
-		Address: serverConfig.GetConnectServerAddr(),
-		Path:    path,
+		ServiceName: paymentv1connect.PaymentServiceName,
+		Handler:     handler,
+		Address:     serverConfig.GetConnectServerAddr(),
+		Path:        path,
 	}, nil
 }
 

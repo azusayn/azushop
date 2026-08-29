@@ -4,6 +4,7 @@ go 1.27
 
 require (
 	connectrpc.com/connect v1.20.0
+	connectrpc.com/grpcreflect v1.3.0
 	github.com/IBM/sarama v1.47.0
 	github.com/azusayn/azutils v0.0.3
 	github.com/golang-jwt/jwt/v5 v5.3.1
@@ -28,7 +29,7 @@ require (
 	golang.org/x/sync v0.21.0
 	google.golang.org/genproto/googleapis/api v0.0.0-20260622175928-b703f567277d
 	google.golang.org/grpc v1.82.0
-	google.golang.org/protobuf v1.36.11
+	google.golang.org/protobuf v1.36.12
 	gorm.io/driver/postgres v1.6.0
 	gorm.io/gorm v1.31.1
 )

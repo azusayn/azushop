@@ -27,9 +27,10 @@ func newConnectServerConfig(connectHandler *service.ProductServiceConnectHandler
 		),
 	)
 	return &server.ConnectServerConfig{
-		Handler: handler,
-		Address: config.GetConnectServerAddr(),
-		Path:    path,
+		ServiceName: productv1connect.ProductServiceName,
+		Handler:     handler,
+		Address:     config.GetConnectServerAddr(),
+		Path:        path,
 	}, nil
 }
 

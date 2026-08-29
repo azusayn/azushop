@@ -31,9 +31,10 @@ func newConnectServerConfig(
 		),
 	)
 	return &server.ConnectServerConfig{
-		Handler: handler,
-		Address: serverConfig.GetConnectServerAddr(),
-		Path:    path,
+		ServiceName: inventoryv1connect.InventoryServiceName,
+		Handler:     handler,
+		Address:     serverConfig.GetConnectServerAddr(),
+		Path:        path,
 	}, nil
 }
 
