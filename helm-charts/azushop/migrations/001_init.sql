@@ -114,7 +114,6 @@ CREATE TYPE payment_status AS ENUM (
 
 CREATE TABLE payments (
   id BIGSERIAL NOT NULL PRIMARY KEY,
-  idempotency_key TEXT NOT NULL,
   -- id from payment provider.
   external_id TEXT NOT NULL,
   order_id BIGINT NOT NULL,
