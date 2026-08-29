@@ -8,11 +8,12 @@ import (
 	"log/slog"
 	"time"
 
+	"uuid"
+
 	"connectrpc.com/connect"
 	inventorypb "github.com/azusayn/azushop/proto/api/inventory/v1"
 	inventoryv1connect "github.com/azusayn/azushop/proto/api/inventory/v1/v1connect"
 	"github.com/shopspring/decimal"
-	"uuid"
 )
 
 const (
@@ -103,7 +104,7 @@ type OrderOutboxMessage struct {
 	Payload    json.RawMessage `gorm:"column:payload"`
 	RetryCount int             `gorm:"column:retry_count"`
 	CreatedAt  time.Time       `gorm:"column:created_at"`
-	SentAt     time.Time       `gorm:"column:sent_at"`
+	SentAt     *time.Time      `gorm:"column:sent_at"`
 }
 
 // retrieves orders by user ID, filtered by order status.
