@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"time"
 
+	"uuid"
+
 	"github.com/IBM/sarama"
 	"github.com/azusayn/azushop/internal/biz"
 	"github.com/azusayn/azushop/proto/conf"
@@ -15,7 +17,6 @@ import (
 	"github.com/shopspring/decimal"
 	"golang.org/x/sync/errgroup"
 	"gorm.io/gorm"
-	"uuid"
 )
 
 const (

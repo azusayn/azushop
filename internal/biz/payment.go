@@ -139,8 +139,6 @@ func createStripePayment(
 		if err := json.Unmarshal(item.Attr, &metadata); err != nil {
 			return "", "", 0, err
 		}
-		metadata["user_id"] = strconv.FormatInt(int64(userID), 10)
-		metadata["order_id"] = strconv.FormatInt(orderID, 10)
 
 		lineItemParams = append(lineItemParams, &stripe.CheckoutSessionLineItemParams{
 			PriceData: &stripe.CheckoutSessionLineItemPriceDataParams{
@@ -155,23 +153,26 @@ func createStripePayment(
 			Metadata: metadata,
 		})
 	}
+
 	params := &stripe.CheckoutSessionParams{
 		Mode:       stripe.String(string(stripe.CheckoutSessionModePayment)),
 		LineItems:  lineItemParams,
 		SuccessURL: stripe.String(successURL),
 		// TODO(3): add CancelURL for better UX.
+		Metadata: map[string]string{
+			"user_id":  strconv.FormatInt(int64(userID), 10),
+			"order_id": strconv.FormatInt(orderID, 10),
+		},
 	}
 	s, err := session.New(params)
 	if err != nil {
 		return "", "", 0, err
 	}
-	if s.PaymentIntent == nil {
-		return "", "", 0, errors.New("missing payment intent")
-	}
-	return s.PaymentIntent.ID, s.URL, s.AmountTotal, nil
+
+	return s.ID, s.URL, s.AmountTotal, nil
 }
 
-// processes callback from payment Stripe's server and
+// handleStripeCallback processes callback from payment Stripe's server and
 // returns order ID and payment status.
 func handleStripeCallback(body []byte) (int64, PaymentStatus, error) {
 	var event stripe.Event
