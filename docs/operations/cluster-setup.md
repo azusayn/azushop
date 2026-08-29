@@ -5,7 +5,7 @@ Install and operate `helm-charts/azushop` on a local Kubernetes cluster (minikub
 ## Prerequisites
 
 - Kubernetes cluster, `kubectl`, Helm v4+
-- [ngrok](https://ngrok.com/) account (one-time login on the cluster machine)
+- [ngrok](https://ngrok.com/) authtoken on the machine that runs the cluster
 
 ```bash
 ngrok config add-authtoken <your-token>
@@ -22,51 +22,61 @@ First install runs Postgres + Atlas migrations (Helm hooks) before app pods star
 
 ## Expose the gateway
 
-API entry point: Envoy `svc/envoy:10000`. The cluster is not public by default — use `kubectl port-forward` + ngrok on the machine that runs the cluster.
+API entry: Envoy `svc/envoy:10000`. The cluster is not public — tunnel from the host that runs the cluster.
 
-**Windows note:** port `10000` is often taken by `YunDetectService`. Use local port `18000` instead.
+**Windows:** host port `10000` is often taken (`YunDetectService`). Map local `18000` → Envoy `10000`.
 
-### Manual
+### Flow
 
-```bash
-# terminal 1
-kubectl port-forward -n azushop svc/envoy 18000:10000
+1. Stop any old `ngrok` and Envoy `port-forward` processes.
+2. Start port-forward (keep the process alive; SSH sessions kill it on disconnect):
 
-# terminal 2
-ngrok http 18000
-```
+   ```bash
+   kubectl port-forward -n azushop svc/envoy 18000:10000
+   ```
 
-Copy the HTTPS URL from the ngrok dashboard (e.g. `https://abcd-1234.ngrok-free.app`).
+3. Start ngrok against the local port:
 
-### Scripted (Windows)
+   ```bash
+   ngrok http 18000
+   ```
 
-`misc/expose.ps1` restarts port-forward + ngrok and writes the public URL to `expose-result.json`:
+4. Read the HTTPS URL from the ngrok UI (`http://127.0.0.1:4040`) or API:
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File misc/expose.ps1
-```
+   ```bash
+   # example: https://abcd-1234.ngrok-free.app
+   curl -s http://127.0.0.1:4040/api/tunnels
+   ```
 
-To keep it running after SSH disconnect, register a scheduled task once:
+5. Sync Stripe callback when the URL changes:
 
-```powershell
-schtasks /Create /TN AzushopExpose `
-  /TR "powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\path\to\misc\expose.ps1" `
-  /SC ONSTART /F /RL HIGHEST
-schtasks /Run /TN AzushopExpose
-```
+   ```bash
+   helm upgrade azushop ./helm-charts/azushop -n azushop --reuse-values \
+     --set serviceConfig.payment.stripeSuccessUrl="https://<ngrok-host>/v1/payment/callback/stripe"
+   ```
 
-Re-run `schtasks /Run /TN AzushopExpose` whenever the tunnel goes offline.
+### Persist across SSH (Windows)
 
-## Configure Stripe callback
+`port-forward` / ngrok started under SSH die when the session ends. Run them via a scheduled task or an interactive desktop session on the host, then `schtasks /Run` (or equivalent) to restart after `ERR_NGROK_3200`.
 
-After ngrok is up, point the payment callback at the public URL:
+## Grafana
 
-```bash
-helm upgrade azushop ./helm-charts/azushop -n azushop \
-  --set serviceConfig.payment.stripeSuccessUrl="https://<ngrok-host>/v1/payment/callback/stripe"
-```
+Grafana is behind Envoy at `/grafana/` (path forwarded as-is; no prefix rewrite).
 
-Add a real Stripe key if needed:
+| Item | Value |
+|------|--------|
+| URL | `http(s)://<host>/grafana/` |
+| Login | `admin` / `admin` (or anonymous if enabled) |
+| Traces / logs | Explore → **ClickHouse** → query type Traces / Logs |
+| Tables | `otel_traces`, `otel_logs` |
+
+`GF_SERVER_ROOT_URL=/grafana/` + `serve_from_sub_path` is the reverse-proxy subpath setup: no hardcoded scheme. Local `http://localhost:18000/grafana/` and public `https://…/grafana/` both work; the browser URL supplies the scheme.
+
+**Do not use Traces Drilldown** (`grafana-exploretraces-app`): it requires Tempo. Traces live in ClickHouse.
+
+Browser may show ngrok’s interstitial once — click Visit Site, or send `ngrok-skip-browser-warning: true` for API clients.
+
+## Stripe key (optional)
 
 ```bash
 helm upgrade azushop ./helm-charts/azushop -n azushop \
@@ -74,11 +84,9 @@ helm upgrade azushop ./helm-charts/azushop -n azushop \
   --set serviceConfig.payment.stripeSuccessUrl="https://<ngrok-host>/v1/payment/callback/stripe"
 ```
 
-Re-run this whenever ngrok restarts and the URL changes.
-
 ## Test the API
 
-Auth uses [Connect RPC](https://connectrpc.com/), not plain REST:
+Auth is [Connect RPC](https://connectrpc.com/), not plain REST:
 
 ```bash
 curl -X POST "https://<ngrok-host>/auth.v1.AuthService/Register" \
@@ -92,25 +100,35 @@ curl -X POST "https://<ngrok-host>/auth.v1.AuthService/Register" \
 |----------|---------|
 | `200 {}` | Registered |
 | `500 username already exists` | Name taken |
-| ngrok `ERR_NGROK_3200` | Tunnel offline — re-run expose script |
+| ngrok `ERR_NGROK_3200` | Tunnel offline — restart expose flow |
 
 Username length: 6–15 characters.
+
+## List traces (ClickHouse)
+
+```bash
+kubectl exec -n azushop clickhouse-service-0 -- clickhouse-client -q "
+SELECT TraceId, any(ServiceName), min(Timestamp), count() AS spans
+FROM otel_traces
+GROUP BY TraceId
+ORDER BY min(Timestamp) DESC
+LIMIT 50
+FORMAT PrettyCompact
+"
+```
+
+Current instrumentation emits mainly DB spans (`db.Query`, …); Connect/HTTP handlers are not wrapped, so traces are often single-span.
 
 ## Day-to-day
 
 ```bash
-# Upgrade chart
 helm upgrade azushop ./helm-charts/azushop -n azushop
-
-# Logs
 kubectl logs -n azushop deploy/order --tail=50
-
-# Uninstall
 helm uninstall azushop -n azushop
 ```
 
 ## Notes
 
-- Use a dedicated namespace (`-n azushop`) to avoid conflicts with leftover Postgres resources.
-- ngrok free URLs change each session unless you use a reserved domain.
-- For production, replace ngrok with a stable Ingress or load balancer.
+- Prefer namespace `azushop` to avoid leftover Postgres conflicts.
+- Free ngrok URLs change each session unless you reserve a domain.
+- Production: replace ngrok with Ingress or a load balancer.

@@ -4,7 +4,7 @@ metadata:
   name: grafana-datasources
 data:
   datasources.yml: |
-{{ tpl (.Files.Get "configs/infra/grafana-datasources.yaml") . | indent 4 }}
+{{ .Files.Get "configs/infra/grafana-datasources.yaml" | indent 4 }}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -35,6 +35,14 @@ spec:
               value: {{ .Values.grafana.auth.anonymousEnabled | quote }}
             - name: GF_INSTALL_PLUGINS
               value: {{ .Values.grafana.installPlugins | quote }}
+            - name: GF_PLUGINS_DISABLE
+              value: grafana-exploretraces-app
+            # Subpath behind Envoy (/grafana). Path-only root_url so HTTP or HTTPS
+            # both work: scheme/host come from the browser request (and X-Forwarded-* if set).
+            - name: GF_SERVER_SERVE_FROM_SUB_PATH
+              value: "true"
+            - name: GF_SERVER_ROOT_URL
+              value: "/grafana/"
           resources:
             {{- toYaml .Values.grafana.resources | nindent 12 }}
           volumeMounts:

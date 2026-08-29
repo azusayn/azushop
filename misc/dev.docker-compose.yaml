@@ -63,6 +63,11 @@ services:
     volumes:
       - clickhouse-data:/var/lib/clickhouse
       - ./clickhouse-users.xml:/etc/clickhouse-server/users.d/default-user.xml:ro
+    networks:
+      default:
+        aliases:
+          # Match helm default clickhouse.service.name so compose can mount the chart datasource file.
+          - clickhouse-service
     restart: unless-stopped
 
   grafana:
@@ -75,9 +80,10 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=admin
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_INSTALL_PLUGINS=grafana-clickhouse-datasource
+      - GF_PLUGINS_DISABLE=grafana-exploretraces-app
     volumes:
       - grafana-data:/var/lib/grafana
-      - ./grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+      - ../helm-charts/azushop/configs/infra/grafana-datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yml:ro
     depends_on:
       - clickhouse
     restart: unless-stopped
