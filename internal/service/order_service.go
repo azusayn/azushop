@@ -12,13 +12,14 @@ import (
 	"errors"
 	"fmt"
 
+	"uuid"
+
 	"github.com/samber/lo"
 	"github.com/shopspring/decimal"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
-	"uuid"
 
 	"connectrpc.com/connect"
 
@@ -246,10 +247,11 @@ func convertToPbOrder(order *biz.Order) (*pb.Order, error) {
 			return nil, err
 		}
 		pbOrderItems = append(pbOrderItems, &pb.OrderItem{
-			SkuId:     item.SkuID.String(),
-			Quantity:  item.Quantity,
-			UnitPrice: &unitPriceStr,
-			Attrs:     &attrs,
+			ProductName: &item.ProductName,
+			SkuId:       item.SkuID.String(),
+			Quantity:    item.Quantity,
+			UnitPrice:   &unitPriceStr,
+			Attrs:       &attrs,
 		})
 	}
 	return &pb.Order{
