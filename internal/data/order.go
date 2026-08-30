@@ -15,7 +15,6 @@ import (
 	"github.com/google/wire"
 	"github.com/samber/lo"
 	"github.com/shopspring/decimal"
-	"golang.org/x/sync/errgroup"
 	"gorm.io/gorm"
 )
 
@@ -154,7 +153,12 @@ func (repo *OrderRepo) UpdateOrderStatus(ctx context.Context, orderID int64, sta
 	if client == nil {
 		client = repo.postgres.GormClient
 	}
-	return client.WithContext(ctx).Model(&biz.Order{}).Where("id = ?", orderID).Update("status", status).Error
+
+	return client.
+		WithContext(ctx).
+		Model(&biz.Order{}).
+		Where("id = ?", orderID).
+		Update("status", status).Error
 }
 
 func (repo *OrderRepo) CreateOutboxMessage(ctx context.Context, eventType biz.OutboxEventType, payload json.RawMessage) error {
@@ -239,8 +243,7 @@ type OrderSubscriber struct {
 }
 
 func NewOrderSubscriber(config *conf.Data) (biz.OrderSubscriber, error) {
-	brokerAddrs := config.GetKafka().GetBrokerAddrs()
-	consumerGroup, err := NewConsumerGroup(brokerAddrs, config.GetAppName())
+	consumerGroup, err := NewConsumerGroup(config.GetKafka().GetBrokerAddrs(), config.GetAppName())
 	if err != nil {
 		return nil, err
 	}
@@ -251,28 +254,17 @@ func NewOrderSubscriber(config *conf.Data) (biz.OrderSubscriber, error) {
 }
 
 func (s *OrderSubscriber) Subscribe(ctx context.Context) error {
-	subscribe := func(topics []string) error {
-		consumerHandler := NewConsumerHandler(s.handlers)
-		for {
-			err := s.consumerGroup.Consume(ctx, topics, consumerHandler)
-			if err != nil {
-				return err
-			}
-			if err := ctx.Err(); err != nil {
-				return err
-			}
+	consumerHandler := NewConsumerHandler(s.handlers)
+	topics := lo.Keys(s.handlers)
+	for {
+		err := s.consumerGroup.Consume(ctx, topics, consumerHandler)
+		if err != nil {
+			return err
+		}
+		if err := ctx.Err(); err != nil {
+			return err
 		}
 	}
-
-	g, ctx := errgroup.WithContext(ctx)
-	g.Go(func() error {
-		return subscribe(lo.Keys(s.handlers))
-	})
-	g.Go(func() error {
-		return subscribe([]string{string(biz.KafkaTopicRetryQueue)})
-	})
-
-	return g.Wait()
 }
 
 func (s *OrderSubscriber) RegisterHandler(topic biz.KafkaTopicType, handler func(context.Context, []byte) error) {
