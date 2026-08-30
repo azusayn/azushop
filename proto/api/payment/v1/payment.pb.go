@@ -7,7 +7,6 @@
 package v1
 
 import (
-	_ "google.golang.org/genproto/googleapis/api/httpbody"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -175,7 +174,7 @@ var File_api_payment_v1_payment_proto protoreflect.FileDescriptor
 const file_api_payment_v1_payment_proto_rawDesc = "" +
 	"\n" +
 	"\x1capi/payment/v1/payment.proto\x12\n" +
-	"payment.v1\x1a\x19google/api/httpbody.proto\"s\n" +
+	"payment.v1\"s\n" +
 	"\x14CreatePaymentRequest\x12\x19\n" +
 	"\border_id\x18\x01 \x01(\x03R\aorderId\x12@\n" +
 	"\x0epayment_method\x18\x02 \x01(\x0e2\x19.payment.v1.PaymentMethodR\rpaymentMethod\")\n" +

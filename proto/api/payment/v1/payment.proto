@@ -2,8 +2,6 @@ syntax = "proto3";
 
 package payment.v1;
 
-import "google/api/httpbody.proto";
-
 option go_package = "github.com/azusayn/azushop/proto/api/payment/v1;v1";
 
 // PaymentService.

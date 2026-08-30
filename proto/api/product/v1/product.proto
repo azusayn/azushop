@@ -26,15 +26,14 @@ service ProductService {
 }
 
 message SearchProductsRequest {
-    string page_token = 1;
-    int32 page_size = 2;
-    string keyword = 3;
+  string page_token = 1;
+  int32 page_size = 2;
+  string keyword = 3;
 }
 
 message SearchProductsResponse {
-    repeated Product products = 3;
+  repeated Product products = 3;
 }
-
 
 enum ProductStatus {
   PRODUCT_STATUS_UNSPECIFIED = 0;
@@ -90,7 +89,7 @@ message BatchUpdateProductRequest {
 // TODO(2): update strategy and update results.
 message BatchUpdateProductResponse {}
 
-message BatchGetSkusRequest{
+message BatchGetSkusRequest {
   // use "" for the first request.
   string page_token = 1;
   // max 100
@@ -103,7 +102,7 @@ message SkuDetail {
   string product_name = 2;
 }
 
-message BatchGetSkusResponse{
+message BatchGetSkusResponse {
   repeated SkuDetail sku_details = 1;
   string next_page_token = 2;
 }
