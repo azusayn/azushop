@@ -7,7 +7,7 @@
 package v1
 
 import (
-	httpbody "google.golang.org/genproto/googleapis/api/httpbody"
+	_ "google.golang.org/genproto/googleapis/api/httpbody"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -170,94 +170,6 @@ func (x *CreatePaymentResponse) GetUrl() string {
 	return ""
 }
 
-type CallbackRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Raw           *httpbody.HttpBody     `protobuf:"bytes,1,opt,name=raw,proto3" json:"raw,omitempty"`
-	Provider      string                 `protobuf:"bytes,2,opt,name=provider,proto3" json:"provider,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *CallbackRequest) Reset() {
-	*x = CallbackRequest{}
-	mi := &file_api_payment_v1_payment_proto_msgTypes[2]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *CallbackRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*CallbackRequest) ProtoMessage() {}
-
-func (x *CallbackRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_payment_v1_payment_proto_msgTypes[2]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use CallbackRequest.ProtoReflect.Descriptor instead.
-func (*CallbackRequest) Descriptor() ([]byte, []int) {
-	return file_api_payment_v1_payment_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *CallbackRequest) GetRaw() *httpbody.HttpBody {
-	if x != nil {
-		return x.Raw
-	}
-	return nil
-}
-
-func (x *CallbackRequest) GetProvider() string {
-	if x != nil {
-		return x.Provider
-	}
-	return ""
-}
-
-type CallbackResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *CallbackResponse) Reset() {
-	*x = CallbackResponse{}
-	mi := &file_api_payment_v1_payment_proto_msgTypes[3]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *CallbackResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*CallbackResponse) ProtoMessage() {}
-
-func (x *CallbackResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_payment_v1_payment_proto_msgTypes[3]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use CallbackResponse.ProtoReflect.Descriptor instead.
-func (*CallbackResponse) Descriptor() ([]byte, []int) {
-	return file_api_payment_v1_payment_proto_rawDescGZIP(), []int{3}
-}
-
 var File_api_payment_v1_payment_proto protoreflect.FileDescriptor
 
 const file_api_payment_v1_payment_proto_rawDesc = "" +
@@ -268,19 +180,14 @@ const file_api_payment_v1_payment_proto_rawDesc = "" +
 	"\border_id\x18\x01 \x01(\x03R\aorderId\x12@\n" +
 	"\x0epayment_method\x18\x02 \x01(\x0e2\x19.payment.v1.PaymentMethodR\rpaymentMethod\")\n" +
 	"\x15CreatePaymentResponse\x12\x10\n" +
-	"\x03url\x18\x01 \x01(\tR\x03url\"U\n" +
-	"\x0fCallbackRequest\x12&\n" +
-	"\x03raw\x18\x01 \x01(\v2\x14.google.api.HttpBodyR\x03raw\x12\x1a\n" +
-	"\bprovider\x18\x02 \x01(\tR\bprovider\"\x12\n" +
-	"\x10CallbackResponse*\x80\x01\n" +
+	"\x03url\x18\x01 \x01(\tR\x03url*\x80\x01\n" +
 	"\rPaymentMethod\x12\x1e\n" +
 	"\x1aPAYMENT_METHOD_UNSPECIFIED\x10\x00\x12\x19\n" +
 	"\x15PAYMENT_METHOD_STRIPE\x10\x01\x12\x19\n" +
 	"\x15PAYMENT_METHOD_ALIPAY\x10\x02\x12\x19\n" +
-	"\x15PAYMENT_METHOD_WECHAT\x10\x032\xad\x01\n" +
+	"\x15PAYMENT_METHOD_WECHAT\x10\x032f\n" +
 	"\x0ePaymentService\x12T\n" +
-	"\rCreatePayment\x12 .payment.v1.CreatePaymentRequest\x1a!.payment.v1.CreatePaymentResponse\x12E\n" +
-	"\bCallback\x12\x1b.payment.v1.CallbackRequest\x1a\x1c.payment.v1.CallbackResponseB4Z2github.com/azusayn/azushop/proto/api/payment/v1;v1b\x06proto3"
+	"\rCreatePayment\x12 .payment.v1.CreatePaymentRequest\x1a!.payment.v1.CreatePaymentResponseB4Z2github.com/azusayn/azushop/proto/api/payment/v1;v1b\x06proto3"
 
 var (
 	file_api_payment_v1_payment_proto_rawDescOnce sync.Once
@@ -295,27 +202,21 @@ func file_api_payment_v1_payment_proto_rawDescGZIP() []byte {
 }
 
 var file_api_payment_v1_payment_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_api_payment_v1_payment_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_api_payment_v1_payment_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_api_payment_v1_payment_proto_goTypes = []any{
 	(PaymentMethod)(0),            // 0: payment.v1.PaymentMethod
 	(*CreatePaymentRequest)(nil),  // 1: payment.v1.CreatePaymentRequest
 	(*CreatePaymentResponse)(nil), // 2: payment.v1.CreatePaymentResponse
-	(*CallbackRequest)(nil),       // 3: payment.v1.CallbackRequest
-	(*CallbackResponse)(nil),      // 4: payment.v1.CallbackResponse
-	(*httpbody.HttpBody)(nil),     // 5: google.api.HttpBody
 }
 var file_api_payment_v1_payment_proto_depIdxs = []int32{
 	0, // 0: payment.v1.CreatePaymentRequest.payment_method:type_name -> payment.v1.PaymentMethod
-	5, // 1: payment.v1.CallbackRequest.raw:type_name -> google.api.HttpBody
-	1, // 2: payment.v1.PaymentService.CreatePayment:input_type -> payment.v1.CreatePaymentRequest
-	3, // 3: payment.v1.PaymentService.Callback:input_type -> payment.v1.CallbackRequest
-	2, // 4: payment.v1.PaymentService.CreatePayment:output_type -> payment.v1.CreatePaymentResponse
-	4, // 5: payment.v1.PaymentService.Callback:output_type -> payment.v1.CallbackResponse
-	4, // [4:6] is the sub-list for method output_type
-	2, // [2:4] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	1, // 1: payment.v1.PaymentService.CreatePayment:input_type -> payment.v1.CreatePaymentRequest
+	2, // 2: payment.v1.PaymentService.CreatePayment:output_type -> payment.v1.CreatePaymentResponse
+	2, // [2:3] is the sub-list for method output_type
+	1, // [1:2] is the sub-list for method input_type
+	1, // [1:1] is the sub-list for extension type_name
+	1, // [1:1] is the sub-list for extension extendee
+	0, // [0:1] is the sub-list for field type_name
 }
 
 func init() { file_api_payment_v1_payment_proto_init() }
@@ -329,7 +230,7 @@ func file_api_payment_v1_payment_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_payment_v1_payment_proto_rawDesc), len(file_api_payment_v1_payment_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   4,
+			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

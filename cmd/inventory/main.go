@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"net/http"
 
 	"connectrpc.com/connect"
 	cfg "github.com/azusayn/azushop/internal/pkg/config"
@@ -32,9 +33,10 @@ func newConnectServerConfig(
 	)
 	return &server.ConnectServerConfig{
 		ServiceName: inventoryv1connect.InventoryServiceName,
-		Handler:     handler,
-		Address:     serverConfig.GetConnectServerAddr(),
-		Path:        path,
+		Handlers: map[string]http.Handler{
+			path: handler,
+		},
+		Address: serverConfig.GetConnectServerAddr(),
 	}, nil
 }
 

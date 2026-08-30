@@ -80,7 +80,12 @@ func (repo *PaymentRepo) UpdatePaymentStatusByOrderID(ctx context.Context, order
 	if client == nil {
 		client = repo.postgres.GormClient.WithContext(ctx)
 	}
-	return client.Where("order_id = ?", orderID).Where("status = ?", biz.PaymentStatusPending).Update("status", status).Error
+	return client.
+		WithContext(ctx).
+		Model(&biz.Payment{}).
+		Where("order_id = ?", orderID).
+		Where("status = ?", biz.PaymentStatusPending).
+		Update("status", status).Error
 }
 
 func (repo *PaymentRepo) UpdatePaymentByID(ctx context.Context, payment *biz.Payment, paths []string) error {

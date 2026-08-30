@@ -39,7 +39,8 @@ func wireApp(cd *conf.Data, cs *conf.Server) (*App, func(), error) {
 		return nil, nil, err
 	}
 	paymentServiceConnectHandler := service.NewPaymentServiceConnectHandler(paymentService)
-	connectServerConfig, err := newConnectServerConfig(paymentServiceConnectHandler, cs, cd)
+	paymentCallbackHandler := service.NewPaymentCallbackHandler(paymentUsecase)
+	connectServerConfig, err := newConnectServerConfig(paymentServiceConnectHandler, paymentCallbackHandler, cs, cd)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -52,4 +53,4 @@ func wireApp(cd *conf.Data, cs *conf.Server) (*App, func(), error) {
 
 // wire.go:
 
-var wireProviders = wire.NewSet(data.PaymentDataProviderSet, biz.NewPaymentUsecase, service.NewPaymentService, service.NewPaymentServiceConnectHandler, newConnectServerConfig, server.NewConnectServer, server.NewMetricsServer, newApp)
+var wireProviders = wire.NewSet(data.PaymentDataProviderSet, biz.NewPaymentUsecase, service.NewPaymentService, service.NewPaymentServiceConnectHandler, service.NewPaymentCallbackHandler, newConnectServerConfig, server.NewConnectServer, server.NewMetricsServer, newApp)

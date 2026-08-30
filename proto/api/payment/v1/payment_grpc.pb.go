@@ -20,7 +20,6 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	PaymentService_CreatePayment_FullMethodName = "/payment.v1.PaymentService/CreatePayment"
-	PaymentService_Callback_FullMethodName      = "/payment.v1.PaymentService/Callback"
 )
 
 // PaymentServiceClient is the client API for PaymentService service.
@@ -31,9 +30,6 @@ const (
 type PaymentServiceClient interface {
 	// pays order for given order_id.
 	CreatePayment(ctx context.Context, in *CreatePaymentRequest, opts ...grpc.CallOption) (*CreatePaymentResponse, error)
-	// callback API for external payment providers.
-	// currently only support stripe as the provider.
-	Callback(ctx context.Context, in *CallbackRequest, opts ...grpc.CallOption) (*CallbackResponse, error)
 }
 
 type paymentServiceClient struct {
@@ -54,16 +50,6 @@ func (c *paymentServiceClient) CreatePayment(ctx context.Context, in *CreatePaym
 	return out, nil
 }
 
-func (c *paymentServiceClient) Callback(ctx context.Context, in *CallbackRequest, opts ...grpc.CallOption) (*CallbackResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(CallbackResponse)
-	err := c.cc.Invoke(ctx, PaymentService_Callback_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // PaymentServiceServer is the server API for PaymentService service.
 // All implementations must embed UnimplementedPaymentServiceServer
 // for forward compatibility.
@@ -72,9 +58,6 @@ func (c *paymentServiceClient) Callback(ctx context.Context, in *CallbackRequest
 type PaymentServiceServer interface {
 	// pays order for given order_id.
 	CreatePayment(context.Context, *CreatePaymentRequest) (*CreatePaymentResponse, error)
-	// callback API for external payment providers.
-	// currently only support stripe as the provider.
-	Callback(context.Context, *CallbackRequest) (*CallbackResponse, error)
 	mustEmbedUnimplementedPaymentServiceServer()
 }
 
@@ -87,9 +70,6 @@ type UnimplementedPaymentServiceServer struct{}
 
 func (UnimplementedPaymentServiceServer) CreatePayment(context.Context, *CreatePaymentRequest) (*CreatePaymentResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CreatePayment not implemented")
-}
-func (UnimplementedPaymentServiceServer) Callback(context.Context, *CallbackRequest) (*CallbackResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method Callback not implemented")
 }
 func (UnimplementedPaymentServiceServer) mustEmbedUnimplementedPaymentServiceServer() {}
 func (UnimplementedPaymentServiceServer) testEmbeddedByValue()                        {}
@@ -130,24 +110,6 @@ func _PaymentService_CreatePayment_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
-func _PaymentService_Callback_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CallbackRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(PaymentServiceServer).Callback(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: PaymentService_Callback_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PaymentServiceServer).Callback(ctx, req.(*CallbackRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // PaymentService_ServiceDesc is the grpc.ServiceDesc for PaymentService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -158,10 +120,6 @@ var PaymentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CreatePayment",
 			Handler:    _PaymentService_CreatePayment_Handler,
-		},
-		{
-			MethodName: "Callback",
-			Handler:    _PaymentService_Callback_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

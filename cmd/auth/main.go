@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"net/http"
 
 	"connectrpc.com/connect"
 	cfg "github.com/azusayn/azushop/internal/pkg/config"
@@ -21,9 +22,10 @@ func newConnectServerConfig(connectHandler *service.AuthServiceConnectHandler, c
 	)
 	return &server.ConnectServerConfig{
 		ServiceName: authv1connect.AuthServiceName,
-		Handler:     handler,
-		Address:     config.GetConnectServerAddr(),
-		Path:        path,
+		Handlers: map[string]http.Handler{
+			path: handler,
+		},
+		Address: config.GetConnectServerAddr(),
 	}
 }
 

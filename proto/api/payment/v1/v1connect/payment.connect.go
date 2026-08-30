@@ -36,17 +36,12 @@ const (
 	// PaymentServiceCreatePaymentProcedure is the fully-qualified name of the PaymentService's
 	// CreatePayment RPC.
 	PaymentServiceCreatePaymentProcedure = "/payment.v1.PaymentService/CreatePayment"
-	// PaymentServiceCallbackProcedure is the fully-qualified name of the PaymentService's Callback RPC.
-	PaymentServiceCallbackProcedure = "/payment.v1.PaymentService/Callback"
 )
 
 // PaymentServiceClient is a client for the payment.v1.PaymentService service.
 type PaymentServiceClient interface {
 	// pays order for given order_id.
 	CreatePayment(context.Context, *connect.Request[v1.CreatePaymentRequest]) (*connect.Response[v1.CreatePaymentResponse], error)
-	// callback API for external payment providers.
-	// currently only support stripe as the provider.
-	Callback(context.Context, *connect.Request[v1.CallbackRequest]) (*connect.Response[v1.CallbackResponse], error)
 }
 
 // NewPaymentServiceClient constructs a client for the payment.v1.PaymentService service. By
@@ -66,19 +61,12 @@ func NewPaymentServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(paymentServiceMethods.ByName("CreatePayment")),
 			connect.WithClientOptions(opts...),
 		),
-		callback: connect.NewClient[v1.CallbackRequest, v1.CallbackResponse](
-			httpClient,
-			baseURL+PaymentServiceCallbackProcedure,
-			connect.WithSchema(paymentServiceMethods.ByName("Callback")),
-			connect.WithClientOptions(opts...),
-		),
 	}
 }
 
 // paymentServiceClient implements PaymentServiceClient.
 type paymentServiceClient struct {
 	createPayment *connect.Client[v1.CreatePaymentRequest, v1.CreatePaymentResponse]
-	callback      *connect.Client[v1.CallbackRequest, v1.CallbackResponse]
 }
 
 // CreatePayment calls payment.v1.PaymentService.CreatePayment.
@@ -86,18 +74,10 @@ func (c *paymentServiceClient) CreatePayment(ctx context.Context, req *connect.R
 	return c.createPayment.CallUnary(ctx, req)
 }
 
-// Callback calls payment.v1.PaymentService.Callback.
-func (c *paymentServiceClient) Callback(ctx context.Context, req *connect.Request[v1.CallbackRequest]) (*connect.Response[v1.CallbackResponse], error) {
-	return c.callback.CallUnary(ctx, req)
-}
-
 // PaymentServiceHandler is an implementation of the payment.v1.PaymentService service.
 type PaymentServiceHandler interface {
 	// pays order for given order_id.
 	CreatePayment(context.Context, *connect.Request[v1.CreatePaymentRequest]) (*connect.Response[v1.CreatePaymentResponse], error)
-	// callback API for external payment providers.
-	// currently only support stripe as the provider.
-	Callback(context.Context, *connect.Request[v1.CallbackRequest]) (*connect.Response[v1.CallbackResponse], error)
 }
 
 // NewPaymentServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -113,18 +93,10 @@ func NewPaymentServiceHandler(svc PaymentServiceHandler, opts ...connect.Handler
 		connect.WithSchema(paymentServiceMethods.ByName("CreatePayment")),
 		connect.WithHandlerOptions(opts...),
 	)
-	paymentServiceCallbackHandler := connect.NewUnaryHandler(
-		PaymentServiceCallbackProcedure,
-		svc.Callback,
-		connect.WithSchema(paymentServiceMethods.ByName("Callback")),
-		connect.WithHandlerOptions(opts...),
-	)
 	return "/payment.v1.PaymentService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case PaymentServiceCreatePaymentProcedure:
 			paymentServiceCreatePaymentHandler.ServeHTTP(w, r)
-		case PaymentServiceCallbackProcedure:
-			paymentServiceCallbackHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -136,8 +108,4 @@ type UnimplementedPaymentServiceHandler struct{}
 
 func (UnimplementedPaymentServiceHandler) CreatePayment(context.Context, *connect.Request[v1.CreatePaymentRequest]) (*connect.Response[v1.CreatePaymentResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("payment.v1.PaymentService.CreatePayment is not implemented"))
-}
-
-func (UnimplementedPaymentServiceHandler) Callback(context.Context, *connect.Request[v1.CallbackRequest]) (*connect.Response[v1.CallbackResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("payment.v1.PaymentService.Callback is not implemented"))
 }

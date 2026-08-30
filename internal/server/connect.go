@@ -11,15 +11,15 @@ import (
 
 type ConnectServer struct {
 	HTTPServer *http.Server
-	Path       string
+	BasePath   string
 }
 
 type ConnectServerConfig struct {
 	// ServiceName is used for gRPC reflection.
 	ServiceName string
-	Handler     http.Handler
 	Address     string
-	Path        string
+	// Handlers is a map from serveMux pattern to http.Handler.
+	Handlers map[string]http.Handler
 }
 
 func NewConnectServer(config *ConnectServerConfig) *ConnectServer {
@@ -30,8 +30,11 @@ func NewConnectServer(config *ConnectServerConfig) *ConnectServer {
 		mux.Handle(grpcreflect.NewHandlerV1(reflector))
 	}
 
-	mux.Handle(config.Path, config.Handler)
-	config.Handler = middleware.CORSFilter(nil)(mux)
+	var entryPointHandler http.Handler
+	for pattern, handler := range config.Handlers {
+		mux.Handle(pattern, handler)
+	}
+	entryPointHandler = middleware.CORSFilter(nil)(mux)
 
 	// enable HTTP/1.x and unencrypted HTTP/2.
 	// Ref: https://pkg.go.dev/golang.org/x/net/http2/h2c#pkg-overview
@@ -41,10 +44,9 @@ func NewConnectServer(config *ConnectServerConfig) *ConnectServer {
 	return &ConnectServer{
 		HTTPServer: &http.Server{
 			Addr:      config.Address,
-			Handler:   config.Handler,
+			Handler:   entryPointHandler,
 			Protocols: protocol,
 		},
-		Path: config.Path,
 	}
 }
 

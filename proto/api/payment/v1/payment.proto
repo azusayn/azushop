@@ -10,10 +10,6 @@ option go_package = "github.com/azusayn/azushop/proto/api/payment/v1;v1";
 service PaymentService {
   // pays order for given order_id.
   rpc CreatePayment(CreatePaymentRequest) returns (CreatePaymentResponse);
-
-  // callback API for external payment providers.
-  // currently only support stripe as the provider.
-  rpc Callback(CallbackRequest) returns (CallbackResponse);
 }
 
 enum PaymentMethod {
@@ -31,10 +27,3 @@ message CreatePaymentRequest {
 message CreatePaymentResponse {
   string url = 1;
 }
-
-message CallbackRequest {
-  google.api.HttpBody raw = 1;
-  string provider = 2;
-}
-
-message CallbackResponse {}

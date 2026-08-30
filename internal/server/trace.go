@@ -2,6 +2,8 @@ package server
 
 import (
 	"context"
+	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/pkg/errors"
@@ -13,7 +15,7 @@ import (
 
 const (
 	TracerProviderInitTimeout    time.Duration = time.Second * 3
-	TracerProviderCleanupTimeout time.Duration = time.Second * 5
+	TracerProviderCleanupTimeout time.Duration = time.Second * 2
 )
 
 func NewGlobalTraceProvider(serviceName string, gRPCAddress string) (*sdktrace.TracerProvider, func(), error) {
@@ -40,6 +42,7 @@ func NewGlobalTraceProvider(serviceName string, gRPCAddress string) (*sdktrace.T
 
 	cleanup := func() {
 		ctx, cancel := context.WithTimeout(context.Background(), TracerProviderCleanupTimeout)
+		slog.Info(fmt.Sprintf("global tracer provider will shutdown in %.1f second(s)", TracerProviderCleanupTimeout.Seconds()))
 		defer cancel()
 		_ = tp.ForceFlush(ctx)
 		_ = tp.Shutdown(ctx)

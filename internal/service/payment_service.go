@@ -1,6 +1,10 @@
 package service
 
 import (
+	"io"
+	"log/slog"
+	"net/http"
+
 	"github.com/azusayn/azushop/internal/common"
 
 	pb "github.com/azusayn/azushop/proto/api/payment/v1"
@@ -23,6 +27,10 @@ import (
 
 	orderpb "github.com/azusayn/azushop/proto/api/order/v1"
 	orderv1connect "github.com/azusayn/azushop/proto/api/order/v1/v1connect"
+)
+
+const (
+	PaymentProviderPathValue = "provider"
 )
 
 type PaymentService struct {
@@ -107,16 +115,49 @@ func (h *PaymentServiceConnectHandler) CreatePayment(ctx context.Context, req *c
 	return connect.NewResponse(&pb.CreatePaymentResponse{Url: url}), nil
 }
 
-func (h *PaymentServiceConnectHandler) Callback(ctx context.Context, req *connect.Request[pb.CallbackRequest]) (*connect.Response[pb.CallbackResponse], error) {
-	r := req.Msg
-	paymentMethod, err := convertProviderToBizPaymentMethod(r.Provider)
-	if err != nil {
-		return nil, err
+func NewPaymentCallbackHandler(uc *biz.PaymentUsecase) *PaymentCallbackHandler {
+	return &PaymentCallbackHandler{uc: uc}
+}
+
+type PaymentCallbackHandler struct {
+	uc *biz.PaymentUsecase
+}
+
+func (h *PaymentCallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	f := func() error {
+		if r == nil {
+			return errors.New("empty request")
+		}
+
+		// TODO(3): payment success page.
+		if r.Method != http.MethodPost {
+			return nil
+		}
+
+		provider := r.PathValue(PaymentProviderPathValue)
+		if provider == "" {
+			return errors.New("empty provider")
+		}
+		paymentMethod, err := convertProviderToBizPaymentMethod(provider)
+		if err != nil {
+			return err
+		}
+		bytes, err := io.ReadAll(r.Body)
+		if err != nil {
+			return err
+		}
+		if err := h.uc.Callback(r.Context(), paymentMethod, bytes); err != nil {
+			return err
+		}
+		return nil
 	}
-	if err := h.paymentService.uc.Callback(ctx, paymentMethod, r.GetRaw().GetData()); err != nil {
-		return nil, status.Error(codes.Internal, codes.Internal.String())
+
+	if err := f(); err != nil {
+		slog.ErrorContext(r.Context(), "failed to process provider callback", slog.Any("err", err))
+		return
 	}
-	return connect.NewResponse(&pb.CallbackResponse{}), status.Error(codes.OK, codes.OK.String())
+
+	w.WriteHeader(http.StatusOK)
 }
 
 func convertToPaymentItems(orderItems []*orderpb.OrderItem) ([]*biz.PaymentItem, error) {

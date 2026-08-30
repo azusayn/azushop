@@ -2,6 +2,9 @@ package main
 
 import (
 	"flag"
+	"fmt"
+	"net/http"
+	"strings"
 
 	"connectrpc.com/connect"
 	cfg "github.com/azusayn/azushop/internal/pkg/config"
@@ -13,13 +16,18 @@ import (
 	"github.com/azusayn/azushop/proto/conf"
 )
 
-func newConnectServerConfig(connectHandler *service.PaymentServiceConnectHandler, serverConfig *conf.Server, dataConfig *conf.Data) (*server.ConnectServerConfig, error) {
+func newConnectServerConfig(
+	connectHandler *service.PaymentServiceConnectHandler,
+	paymentCallbackHandler *service.PaymentCallbackHandler,
+	serverConfig *conf.Server,
+	dataConfig *conf.Data,
+) (*server.ConnectServerConfig, error) {
 	publicKey, err := crypto.LoadEd25519PublicKey(dataConfig.GetAuth().GetPublicKeyPath())
 	if err != nil {
 		return nil, err
 	}
 
-	path, handler := paymentv1connect.NewPaymentServiceHandler(
+	paymentServicePath, handler := paymentv1connect.NewPaymentServiceHandler(
 		connectHandler,
 		connect.WithInterceptors(
 			middleware.AuthInterceptor(publicKey, dataConfig.GetAuth().GetIssuer(), false),
@@ -27,11 +35,20 @@ func newConnectServerConfig(connectHandler *service.PaymentServiceConnectHandler
 			middleware.IdempotencyInterceptor(),
 		),
 	)
+
+	paymentCallbackPattern := fmt.Sprintf(
+		"%s/{%s}/callback",
+		strings.TrimRight(paymentServicePath, "/"),
+		service.PaymentProviderPathValue,
+	)
+
 	return &server.ConnectServerConfig{
 		ServiceName: paymentv1connect.PaymentServiceName,
-		Handler:     handler,
-		Address:     serverConfig.GetConnectServerAddr(),
-		Path:        path,
+		Handlers: map[string]http.Handler{
+			paymentServicePath:     handler,
+			paymentCallbackPattern: paymentCallbackHandler,
+		},
+		Address: serverConfig.GetConnectServerAddr(),
 	}, nil
 }
 
