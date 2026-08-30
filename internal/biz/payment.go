@@ -72,7 +72,7 @@ type PaymentItem struct {
 	Attr      json.RawMessage
 }
 
-// CreatePayment creates a payemnt and returns a successURL from the payment provider.
+// CreatePayment creates a payemnt and returns a payment link from the payment provider.
 func (uc *PaymentUsecase) CreatePayment(
 	ctx context.Context,
 	idempotencyKey string,
