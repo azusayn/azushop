@@ -11,6 +11,7 @@ import (
 
 	"github.com/IBM/sarama"
 	"github.com/azusayn/azushop/internal/biz"
+	"github.com/azusayn/azushop/internal/pkg/telemetry"
 	"github.com/azusayn/azushop/proto/conf"
 	"github.com/google/wire"
 	"github.com/samber/lo"
@@ -166,11 +167,18 @@ func (repo *OrderRepo) CreateOutboxMessage(ctx context.Context, eventType biz.Ou
 	if client == nil {
 		client = repo.postgres.GormClient
 	}
+
+	traceBytes, err := telemetry.ExtractTraceHeaderBytes(ctx)
+	if err != nil {
+		return err
+	}
+
 	id := uuid.NewV7()
 	outboxMsg := &biz.OrderOutboxMessage{
 		ID:        id,
 		EventType: eventType,
 		Payload:   payload,
+		Headers:   traceBytes,
 	}
 	return client.WithContext(ctx).Create(outboxMsg).Error
 }

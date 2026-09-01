@@ -94,6 +94,7 @@ CREATE TABLE order_outbox_messages (
   payload JSON NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   retry_count INT NOT NULL DEFAULT 0,
+  headers JSONB,
   sent_at TIMESTAMPTZ
 );
 

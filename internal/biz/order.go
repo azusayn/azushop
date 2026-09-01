@@ -11,6 +11,7 @@ import (
 	"uuid"
 
 	"connectrpc.com/connect"
+	"github.com/azusayn/azushop/internal/pkg/telemetry"
 	inventorypb "github.com/azusayn/azushop/proto/api/inventory/v1"
 	inventoryv1connect "github.com/azusayn/azushop/proto/api/inventory/v1/v1connect"
 	"github.com/shopspring/decimal"
@@ -104,6 +105,7 @@ type OrderOutboxMessage struct {
 	Payload    json.RawMessage `gorm:"column:payload"`
 	RetryCount int             `gorm:"column:retry_count"`
 	CreatedAt  time.Time       `gorm:"column:created_at"`
+	Headers    json.RawMessage `gorm:"column:headers"`
 	SentAt     *time.Time      `gorm:"column:sent_at"`
 }
 
@@ -238,10 +240,17 @@ func (uc *OrderUsecase) ProcessOutboxMessages(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+
 	sentIDs := make([]uuid.UUID, 0)
 	failedIDs := make([]uuid.UUID, 0)
 
 	for _, message := range messages {
+		ctx, err := telemetry.InjectTraceHeaderBytes(ctx, message.Headers)
+		if err != nil {
+			slog.ErrorContext(ctx, "failed to inject headers into context", slog.Any("message_id", message.ID))
+			failedIDs = append(failedIDs, message.ID)
+			return err
+		}
 		if err := uc.dispatchOutboxMessage(ctx, message); err != nil {
 			slog.ErrorContext(ctx, "failed to send outbox message", slog.Any("msg", message), slog.Any("err", err))
 			failedIDs = append(failedIDs, message.ID)
