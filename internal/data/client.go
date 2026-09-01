@@ -3,6 +3,8 @@ package data
 import (
 	"net/http"
 
+	"connectrpc.com/connect"
+	"connectrpc.com/otelconnect"
 	"github.com/azusayn/azushop/internal/pkg/middleware"
 	"github.com/azusayn/azushop/proto/conf"
 
@@ -11,59 +13,92 @@ import (
 	orderv1connect "github.com/azusayn/azushop/proto/api/order/v1/v1connect"
 	paymentv1connect "github.com/azusayn/azushop/proto/api/payment/v1/v1connect"
 	productv1connect "github.com/azusayn/azushop/proto/api/product/v1/v1connect"
-
-	"connectrpc.com/connect"
 )
 
 func newHTTPClient() *http.Client {
 	return &http.Client{}
 }
 
-func NewInventoryClient(config *conf.Data) inventoryv1connect.InventoryServiceClient {
-	addr := config.GetServiceAddr().GetInventory()
-	return inventoryv1connect.NewInventoryServiceClient(
-		newHTTPClient(),
-		"http://"+addr,
-		connect.WithInterceptors(middleware.AuthClientInterceptor()),
+func newAuthenticatedClientOptions() ([]connect.ClientOption, error) {
+	otelInterceptor, err := otelconnect.NewInterceptor()
+	if err != nil {
+		return nil, err
+	}
+	return []connect.ClientOption{
+		connect.WithInterceptors(
+			otelInterceptor,
+			middleware.AuthClientInterceptor(),
+		),
 		connect.WithGRPC(),
-	)
+	}, nil
 }
 
-func NewProductClient(config *conf.Data) productv1connect.ProductServiceClient {
-	addr := config.GetServiceAddr().GetProduct()
-	return productv1connect.NewProductServiceClient(
-		newHTTPClient(),
-		"http://"+addr,
-		connect.WithInterceptors(middleware.AuthClientInterceptor()),
-		connect.WithGRPC(),
-	)
+func newServiceClient[T any](
+	newFn func(connect.HTTPClient, string, ...connect.ClientOption) T,
+	addr string,
+	opts []connect.ClientOption,
+) T {
+	return newFn(newHTTPClient(), "http://"+addr, opts...)
 }
 
-func NewOrderClient(config *conf.Data) orderv1connect.OrderServiceClient {
-	addr := config.GetServiceAddr().GetOrder()
-	return orderv1connect.NewOrderServiceClient(
-		newHTTPClient(),
-		"http://"+addr,
-		connect.WithInterceptors(middleware.AuthClientInterceptor()),
-		connect.WithGRPC(),
-	)
+func NewInventoryClient(config *conf.Data) (inventoryv1connect.InventoryServiceClient, error) {
+	opts, err := newAuthenticatedClientOptions()
+	if err != nil {
+		return nil, err
+	}
+	return newServiceClient(
+		inventoryv1connect.NewInventoryServiceClient,
+		config.GetServiceAddr().GetInventory(),
+		opts,
+	), nil
 }
 
-func NewAuthClient(config *conf.Data) authv1connect.AuthServiceClient {
+func NewProductClient(config *conf.Data) (productv1connect.ProductServiceClient, error) {
+	opts, err := newAuthenticatedClientOptions()
+	if err != nil {
+		return nil, err
+	}
+	return newServiceClient(
+		productv1connect.NewProductServiceClient,
+		config.GetServiceAddr().GetProduct(),
+		opts,
+	), nil
+}
+
+func NewOrderClient(config *conf.Data) (orderv1connect.OrderServiceClient, error) {
+	opts, err := newAuthenticatedClientOptions()
+	if err != nil {
+		return nil, err
+	}
+	return newServiceClient(
+		orderv1connect.NewOrderServiceClient,
+		config.GetServiceAddr().GetOrder(),
+		opts,
+	), nil
+}
+
+func NewAuthClient(config *conf.Data) (authv1connect.AuthServiceClient, error) {
+	otelInterceptor, err := otelconnect.NewInterceptor()
+	if err != nil {
+		return nil, err
+	}
 	addr := config.GetServiceAddr().GetAuth()
 	return authv1connect.NewAuthServiceClient(
 		newHTTPClient(),
 		"http://"+addr,
+		connect.WithInterceptors(otelInterceptor),
 		connect.WithGRPC(),
-	)
+	), nil
 }
 
-func NewPaymentClient(config *conf.Data) paymentv1connect.PaymentServiceClient {
-	addr := config.GetServiceAddr().GetPayment()
-	return paymentv1connect.NewPaymentServiceClient(
-		newHTTPClient(),
-		"http://"+addr,
-		connect.WithInterceptors(middleware.AuthClientInterceptor()),
-		connect.WithGRPC(),
-	)
+func NewPaymentClient(config *conf.Data) (paymentv1connect.PaymentServiceClient, error) {
+	opts, err := newAuthenticatedClientOptions()
+	if err != nil {
+		return nil, err
+	}
+	return newServiceClient(
+		paymentv1connect.NewPaymentServiceClient,
+		config.GetServiceAddr().GetPayment(),
+		opts,
+	), nil
 }

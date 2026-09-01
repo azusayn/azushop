@@ -33,7 +33,10 @@ func wireApp(cd *conf.Data, cs *conf.Server) (*App, func(), error) {
 	}
 	paymentPublisher := data.NewPaymentPublisher(kafkaProducer)
 	paymentUsecase := biz.NewPaymentUsecase(paymentRepo, paymentPublisher)
-	orderServiceClient := data.NewOrderClient(cd)
+	orderServiceClient, err := data.NewOrderClient(cd)
+	if err != nil {
+		return nil, nil, err
+	}
 	paymentService, err := service.NewPaymentService(paymentUsecase, orderServiceClient, cd)
 	if err != nil {
 		return nil, nil, err

@@ -37,9 +37,15 @@ func wireApp(cd *conf.Data, cs *conf.Server) (*App, func(), error) {
 	}
 	orderPublisher := data.NewOrderPublisher(kafkaProducer)
 	transaction := data.NewTransaction(postgres)
-	inventoryServiceClient := data.NewInventoryClient(cd)
+	inventoryServiceClient, err := data.NewInventoryClient(cd)
+	if err != nil {
+		return nil, nil, err
+	}
 	orderUsecase := biz.NewOrderUsecase(orderRepo, orderSubscriber, orderPublisher, transaction, inventoryServiceClient)
-	productServiceClient := data.NewProductClient(cd)
+	productServiceClient, err := data.NewProductClient(cd)
+	if err != nil {
+		return nil, nil, err
+	}
 	orderService := service.NewOrderService(orderUsecase, productServiceClient, inventoryServiceClient)
 	orderServiceConnectHandler := service.NewOrderServiceConnectHandler(orderService)
 	connectServerConfig, err := newConnectServerConfig(orderServiceConnectHandler, cs, cd)

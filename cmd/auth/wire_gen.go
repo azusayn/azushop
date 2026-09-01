@@ -29,7 +29,10 @@ func wireApp(cd *conf.Data, cs *conf.Server) (*App, func(), error) {
 		return nil, nil, err
 	}
 	authServiceConnectHandler := service.NewAuthServiceConnectHandler(authService)
-	connectServerConfig := newConnectServerConfig(authServiceConnectHandler, cs)
+	connectServerConfig, err := newConnectServerConfig(authServiceConnectHandler, cs)
+	if err != nil {
+		return nil, nil, err
+	}
 	connectServer := server.NewConnectServer(connectServerConfig)
 	metricsServer := server.NewMetricsServer(cs)
 	app := newApp(connectServer, metricsServer)

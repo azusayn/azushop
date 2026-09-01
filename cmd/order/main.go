@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"connectrpc.com/connect"
+	"connectrpc.com/otelconnect"
 	cfg "github.com/azusayn/azushop/internal/pkg/config"
 	"github.com/azusayn/azushop/internal/pkg/crypto"
 	"github.com/azusayn/azushop/internal/pkg/middleware"
@@ -24,9 +25,14 @@ func newConnectServerConfig(
 		return nil, err
 	}
 
+	connectInterceptor, err := otelconnect.NewInterceptor()
+	if err != nil {
+		return nil, err
+	}
 	path, handler := orderv1connect.NewOrderServiceHandler(
 		connectHandler,
 		connect.WithInterceptors(
+			connectInterceptor,
 			middleware.AuthInterceptor(publicKey, dataConfig.GetAuth().GetIssuer(), false),
 			middleware.MetricsInterceptor(),
 			middleware.IdempotencyInterceptor(),

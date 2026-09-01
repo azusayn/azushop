@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"connectrpc.com/connect"
+	"connectrpc.com/otelconnect"
 	cfg "github.com/azusayn/azushop/internal/pkg/config"
 	"github.com/azusayn/azushop/internal/pkg/middleware"
 	"github.com/azusayn/azushop/internal/server"
@@ -13,10 +14,15 @@ import (
 	"github.com/azusayn/azushop/proto/conf"
 )
 
-func newConnectServerConfig(connectHandler *service.AuthServiceConnectHandler, config *conf.Server) *server.ConnectServerConfig {
+func newConnectServerConfig(connectHandler *service.AuthServiceConnectHandler, config *conf.Server) (*server.ConnectServerConfig, error) {
+	connectInterceptor, err := otelconnect.NewInterceptor()
+	if err != nil {
+		return nil, err
+	}
 	path, handler := authv1connect.NewAuthServiceHandler(
 		connectHandler,
 		connect.WithInterceptors(
+			connectInterceptor,
 			middleware.MetricsInterceptor(),
 		),
 	)
@@ -26,7 +32,7 @@ func newConnectServerConfig(connectHandler *service.AuthServiceConnectHandler, c
 			path: handler,
 		},
 		Address: config.GetConnectServerAddr(),
-	}
+	}, nil
 }
 
 type App struct {
