@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/IBM/sarama"
+	"github.com/dnwe/otelsarama"
 
 	"github.com/azusayn/azushop/internal/biz"
 	"github.com/azusayn/azushop/proto/conf"
@@ -82,10 +83,11 @@ type DelayConsumerHandler struct {
 }
 
 func NewDelayConsumerHandler(consumer sarama.ConsumerGroup, handler func(orderID int64) error) sarama.ConsumerGroupHandler {
-	return &DelayConsumerHandler{
+	h := &DelayConsumerHandler{
 		handler:  handler,
 		consumer: consumer,
 	}
+	return otelsarama.WrapConsumerGroupHandler(h)
 }
 
 func (c *DelayConsumerHandler) Setup(sarama.ConsumerGroupSession) error {

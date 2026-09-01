@@ -7,6 +7,7 @@ import (
 
 	"github.com/IBM/sarama"
 	"github.com/azusayn/azushop/proto/conf"
+	"github.com/dnwe/otelsarama"
 	"github.com/pkg/errors"
 )
 
@@ -42,7 +43,13 @@ func NewSyncProducer(brokerAddrs []string) (sarama.SyncProducer, error) {
 	kafkaConfig := sarama.NewConfig()
 	kafkaConfig.Producer.RequiredAcks = sarama.WaitForAll
 	kafkaConfig.Producer.Return.Successes = true
-	return sarama.NewSyncProducer(brokerAddrs, kafkaConfig)
+
+	producer, err := sarama.NewSyncProducer(brokerAddrs, kafkaConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return otelsarama.WrapSyncProducer(kafkaConfig, producer), nil
 }
 
 func NewConsumerGroup(brokerAddrs []string, groupID string) (sarama.ConsumerGroup, error) {
@@ -64,7 +71,8 @@ type ConsumerHandler struct {
 }
 
 func NewConsumerHandler(handlers map[string]func(context.Context, []byte) error) sarama.ConsumerGroupHandler {
-	return &ConsumerHandler{handlers: handlers}
+	h := &ConsumerHandler{handlers: handlers}
+	return otelsarama.WrapConsumerGroupHandler(h)
 }
 
 func (c *ConsumerHandler) Setup(sarama.ConsumerGroupSession) error {
