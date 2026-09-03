@@ -248,7 +248,6 @@ func (uc *OrderUsecase) ProcessOutboxMessages(ctx context.Context) error {
 		ctx, err := telemetry.InjectTraceHeaderBytes(ctx, message.Headers)
 		if err != nil {
 			slog.ErrorContext(ctx, "failed to inject headers into context", slog.Any("message_id", message.ID))
-			failedIDs = append(failedIDs, message.ID)
 			return err
 		}
 		if err := uc.dispatchOutboxMessage(ctx, message); err != nil {

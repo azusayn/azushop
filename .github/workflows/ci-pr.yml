@@ -49,6 +49,8 @@ jobs:
           lint: true
           format: false
           breaking: false
+          # Workflow only has contents:read; commenting needs pull-requests:write.
+          pr_comment: false
 
   go-test:
     name: go-test
