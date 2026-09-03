@@ -6,12 +6,13 @@ import (
 	"fmt"
 	"log/slog"
 
+	"uuid"
+
 	"github.com/azusayn/azushop/internal/pkg/llm"
 	"github.com/azusayn/azutils/validate"
 	"github.com/pgvector/pgvector-go"
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
-	"uuid"
 )
 
 type ProductStatus string

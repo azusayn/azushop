@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"uuid"
+
 	"github.com/IBM/sarama"
 	"github.com/azusayn/azushop/internal/biz"
 	"github.com/azusayn/azushop/internal/pkg/str"
@@ -15,7 +17,6 @@ import (
 	"github.com/google/wire"
 	"github.com/pgvector/pgvector-go"
 	"gorm.io/gorm"
-	"uuid"
 )
 
 var ProductDataProviderSet = wire.NewSet(
