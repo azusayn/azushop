@@ -1,0 +1,158 @@
+# Deploy azushop on the self-hosted Windows runner that already has the cluster.
+# No host/SSH details live in this workflow.
+# Callable from CD after image build, or manually via workflow_dispatch.
+name: CD Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      runner:
+        description: 'Runner that can reach the target cluster (Windows self-hosted)'
+        required: true
+        default: 'self-hosted'
+        type: choice
+        options:
+          - self-hosted
+      image_tag:
+        description: 'Image tag (short git SHA). Empty = resolve from checked-out ref.'
+        required: false
+        type: string
+        default: ''
+      ref:
+        description: 'Git ref/SHA for helm chart checkout (empty = default branch SHA)'
+        required: false
+        type: string
+        default: ''
+      release_name:
+        description: 'Helm release name'
+        required: false
+        type: string
+        default: 'azushop'
+      namespace:
+        description: 'Kubernetes namespace'
+        required: false
+        type: string
+        default: 'azushop'
+      no_hooks:
+        description: 'Disable helm hooks (image-only rollouts; set false to run migrations)'
+        required: false
+        type: boolean
+        default: true
+  workflow_call:
+    inputs:
+      runner:
+        description: 'Runner that can reach the target cluster (Windows self-hosted)'
+        required: false
+        type: string
+        default: 'self-hosted'
+      image_tag:
+        description: 'Image tag (short git SHA)'
+        required: true
+        type: string
+      ref:
+        description: 'Git ref/SHA for helm chart checkout'
+        required: false
+        type: string
+        default: ''
+      release_name:
+        description: 'Helm release name'
+        required: false
+        type: string
+        default: 'azushop'
+      namespace:
+        description: 'Kubernetes namespace'
+        required: false
+        type: string
+        default: 'azushop'
+      no_hooks:
+        description: 'Disable helm hooks (image-only rollouts; Helm v4 --no-hooks)'
+        required: false
+        type: boolean
+        default: true
+
+jobs:
+  deploy:
+    name: helm-deploy
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 30
+    defaults:
+      run:
+        # Windows self-hosted runner (PowerShell 5.1+).
+        shell: powershell
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.ref != '' && inputs.ref || github.sha }}
+
+      - name: Resolve image tag
+        id: meta
+        env:
+          INPUT_IMAGE_TAG: ${{ inputs.image_tag }}
+          INPUT_NO_HOOKS: ${{ inputs.no_hooks }}
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+        run: |
+          if ($env:INPUT_IMAGE_TAG) {
+            $tag = $env:INPUT_IMAGE_TAG
+          } else {
+            $tag = (git rev-parse --short HEAD).Trim()
+          }
+          $image = "$($env:DOCKER_USERNAME)/azushop:$tag"
+          $noHooksFlag = ""
+          if ($env:INPUT_NO_HOOKS -eq "true") {
+            $noHooksFlag = "--no-hooks"
+          }
+          # Windows PowerShell redirects can write UTF-16; append UTF-8 for GITHUB_OUTPUT.
+          [System.IO.File]::AppendAllText($env:GITHUB_OUTPUT, "image_tag=$tag$([Environment]::NewLine)")
+          [System.IO.File]::AppendAllText($env:GITHUB_OUTPUT, "image=$image$([Environment]::NewLine)")
+          [System.IO.File]::AppendAllText($env:GITHUB_OUTPUT, "helm_no_hooks_flag=$noHooksFlag$([Environment]::NewLine)")
+          Write-Host "Deploying $image on runner=${{ inputs.runner }} (no_hooks=$($env:INPUT_NO_HOOKS))"
+
+      - name: Pull image into minikube
+        env:
+          IMAGE: ${{ steps.meta.outputs.image }}
+        run: |
+          minikube image pull $env:IMAGE
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Helm upgrade --install
+        env:
+          IMAGE: ${{ steps.meta.outputs.image }}
+          RELEASE: ${{ inputs.release_name }}
+          NAMESPACE: ${{ inputs.namespace }}
+          NO_HOOKS: ${{ steps.meta.outputs.helm_no_hooks_flag }}
+        run: |
+          $helmArgs = @(
+            "upgrade", "--install", $env:RELEASE, "./helm-charts/azushop",
+            "-n", $env:NAMESPACE,
+            "--create-namespace",
+            "--reuse-values",
+            "--set", "services.image=$($env:IMAGE)",
+            "--set", "services.imagePullPolicy=IfNotPresent"
+          )
+          if ($env:NO_HOOKS) {
+            $helmArgs += $env:NO_HOOKS
+          }
+          & helm @helmArgs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Wait for business deployments
+        env:
+          NAMESPACE: ${{ inputs.namespace }}
+        run: |
+          foreach ($svc in @("auth", "inventory", "order", "payment", "product")) {
+            Write-Host "=== rollout status $svc ==="
+            kubectl rollout status "deploy/$svc" -n $env:NAMESPACE --timeout=300s
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+
+      - name: Show deploy status
+        env:
+          NAMESPACE: ${{ inputs.namespace }}
+          IMAGE: ${{ steps.meta.outputs.image }}
+        run: |
+          Write-Host "Image: $($env:IMAGE)"
+          helm list -n $env:NAMESPACE
+          kubectl get pods -n $env:NAMESPACE
+          kubectl get deploy -n $env:NAMESPACE auth inventory order payment product -o wide
