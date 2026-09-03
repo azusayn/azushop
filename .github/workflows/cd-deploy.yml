@@ -109,6 +109,15 @@ jobs:
           [System.IO.File]::AppendAllText($env:GITHUB_OUTPUT, "helm_no_hooks_flag=$noHooksFlag$([Environment]::NewLine)")
           Write-Host "Deploying $image on runner=${{ inputs.runner }} (no_hooks=$($env:INPUT_NO_HOOKS))"
 
+      - name: Ensure minikube is running
+        run: |
+          minikube status
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "minikube not ready; starting..."
+            minikube start
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+
       - name: Pull image into minikube
         env:
           IMAGE: ${{ steps.meta.outputs.image }}
