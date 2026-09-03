@@ -131,6 +131,8 @@ jobs:
           RELEASE: ${{ inputs.release_name }}
           NAMESPACE: ${{ inputs.namespace }}
           NO_HOOKS: ${{ steps.meta.outputs.helm_no_hooks_flag }}
+          ESLAB_API_ENDPOINT: ${{ secrets.ESLAB_API_ENDPOINT }}
+          ESLAB_API_SECRET_KEY: ${{ secrets.ESLAB_API_SECRET_KEY }}
         run: |
           $helmArgs = @(
             "upgrade", "--install", $env:RELEASE, "./helm-charts/azushop",
@@ -140,11 +142,29 @@ jobs:
             "--set", "services.image=$($env:IMAGE)",
             "--set", "services.imagePullPolicy=IfNotPresent"
           )
+          if ($env:ESLAB_API_ENDPOINT) {
+            $endpoint = $env:ESLAB_API_ENDPOINT.Trim().TrimEnd('/')
+            if (-not $endpoint.EndsWith('/v1')) {
+              $endpoint = "$endpoint/v1"
+            }
+            $helmArgs += "--set-string"
+            $helmArgs += "serviceConfig.embeddingApi.endpoint=$endpoint"
+          }
+          if ($env:ESLAB_API_SECRET_KEY) {
+            $helmArgs += "--set-string"
+            $helmArgs += "serviceConfig.embeddingApi.secret=$($env:ESLAB_API_SECRET_KEY)"
+          }
           if ($env:NO_HOOKS) {
             $helmArgs += $env:NO_HOOKS
           }
           & helm @helmArgs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if ($env:ESLAB_API_SECRET_KEY) {
+            Write-Host "Restarting product to pick up embedding API config..."
+            kubectl rollout restart deployment/product -n $env:NAMESPACE
+            kubectl rollout status deployment/product -n $env:NAMESPACE --timeout=300s
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
 
       - name: Wait for business deployments
         env:
