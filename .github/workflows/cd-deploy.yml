@@ -159,6 +159,12 @@ jobs:
           }
           & helm @helmArgs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if ($env:ESLAB_API_SECRET_KEY) {
+            Write-Host "Restarting product to pick up embedding API config..."
+            kubectl rollout restart deployment/product -n $env:NAMESPACE
+            kubectl rollout status deployment/product -n $env:NAMESPACE --timeout=300s
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
 
       - name: Wait for business deployments
         env:
