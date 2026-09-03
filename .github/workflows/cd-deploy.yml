@@ -143,8 +143,12 @@ jobs:
             "--set", "services.imagePullPolicy=IfNotPresent"
           )
           if ($env:ESLAB_API_ENDPOINT) {
+            $endpoint = $env:ESLAB_API_ENDPOINT.Trim().TrimEnd('/')
+            if (-not $endpoint.EndsWith('/v1')) {
+              $endpoint = "$endpoint/v1"
+            }
             $helmArgs += "--set-string"
-            $helmArgs += "serviceConfig.embeddingApi.endpoint=$($env:ESLAB_API_ENDPOINT)"
+            $helmArgs += "serviceConfig.embeddingApi.endpoint=$endpoint"
           }
           if ($env:ESLAB_API_SECRET_KEY) {
             $helmArgs += "--set-string"
