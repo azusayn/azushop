@@ -39,6 +39,9 @@ jobs:
     name: proto-lint
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - uses: actions/checkout@v6
 
@@ -49,8 +52,6 @@ jobs:
           lint: true
           format: false
           breaking: false
-          # Workflow only has contents:read; commenting needs pull-requests:write.
-          pr_comment: false
 
   go-test:
     name: go-test
