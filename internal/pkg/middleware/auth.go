@@ -3,7 +3,6 @@ package middleware
 import (
 	"context"
 	"crypto/ed25519"
-	"errors"
 	"strconv"
 	"strings"
 
@@ -66,10 +65,9 @@ func AuthInterceptor(publicKey ed25519.PublicKey, issuer string, verify bool) co
 				}
 			}
 
-			ctx = context.WithValue(ctx, common.UserIDCtxKey, userID)
-			ctx = context.WithValue(ctx, common.UserRoleCtxKey, role)
+			common.WithUserInfo(&ctx, userID, role)
 			bearerToken := auth.HttpHeaderBearer + " " + jwToken
-			ctx = context.WithValue(ctx, common.ServiceInnerTokenKey, bearerToken)
+			common.WithServiceInnerToken(&ctx, bearerToken)
 			return next(ctx, req)
 		}
 	}
@@ -80,7 +78,7 @@ func AuthInterceptor(publicKey ed25519.PublicKey, issuer string, verify bool) co
 func AuthClientInterceptor() connect.UnaryInterceptorFunc {
 	return func(next connect.UnaryFunc) connect.UnaryFunc {
 		return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
-			token, err := extractServiceInnerToken(ctx)
+			token, err := common.ExtractServiceInnerToken(ctx)
 			if err != nil {
 				return nil, err
 			}
@@ -88,15 +86,4 @@ func AuthClientInterceptor() connect.UnaryInterceptorFunc {
 			return next(ctx, req)
 		}
 	}
-}
-
-func extractServiceInnerToken(ctx context.Context) (string, error) {
-	if ctx == nil {
-		return "", errors.New("missing context")
-	}
-	token, ok := ctx.Value(common.ServiceInnerTokenKey).(string)
-	if !ok || token == "" {
-		return "", errors.New("missing inner token")
-	}
-	return token, nil
 }
