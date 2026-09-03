@@ -247,8 +247,9 @@ func (uc *OrderUsecase) ProcessOutboxMessages(ctx context.Context) error {
 	for _, message := range messages {
 		ctx, err := telemetry.InjectTraceHeaderBytes(ctx, message.Headers)
 		if err != nil {
-			slog.ErrorContext(ctx, "failed to inject headers into context", slog.Any("message_id", message.ID))
-			return err
+			slog.ErrorContext(ctx, "failed to inject headers into context", slog.Any("message_id", message.ID), slog.Any("err", err))
+			failedIDs = append(failedIDs, message.ID)
+			continue
 		}
 		if err := uc.dispatchOutboxMessage(ctx, message); err != nil {
 			slog.ErrorContext(ctx, "failed to send outbox message", slog.Any("msg", message), slog.Any("err", err))
