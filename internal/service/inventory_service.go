@@ -7,10 +7,11 @@ import (
 	"context"
 	"errors"
 
+	"uuid"
+
 	"github.com/azusayn/azushop/internal/biz"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"uuid"
 
 	"connectrpc.com/connect"
 )

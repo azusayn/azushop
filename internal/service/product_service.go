@@ -13,11 +13,12 @@ import (
 
 	"github.com/azusayn/azushop/internal/pkg/str"
 
+	"uuid"
+
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
-	"uuid"
 
 	"connectrpc.com/connect"
 )

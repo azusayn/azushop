@@ -1,6 +1,7 @@
 # Runs only when a pull request is merged into main.
 # Direct pushes to main do not start this workflow.
-# Runner is ubuntu for now. Switch to self-hosted later when this job also drives cluster deploys.
+# 1) Build/push image on ubuntu (:latest + :<short-sha>)
+# 2) Helm upgrade --install on the self-hosted cluster runner (cd-deploy.yml)
 name: CD
 
 on:
@@ -25,4 +26,15 @@ jobs:
     secrets: inherit
     with:
       runner: ubuntu-24.04
+      ref: ${{ github.event.pull_request.merge_commit_sha }}
+
+  deploy:
+    name: deploy
+    needs: docker-build
+    if: github.event.pull_request.merged == true
+    uses: ./.github/workflows/cd-deploy.yml
+    secrets: inherit
+    with:
+      runner: self-hosted
+      image_tag: ${{ needs.docker-build.outputs.image_tag }}
       ref: ${{ github.event.pull_request.merge_commit_sha }}
