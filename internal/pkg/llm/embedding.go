@@ -2,12 +2,14 @@ package llm
 
 import (
 	"context"
+	"net/http"
 
 	"github.com/azusayn/azushop/proto/conf"
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/option"
 	"github.com/pgvector/pgvector-go"
 	"github.com/samber/lo"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 const (
@@ -24,10 +26,14 @@ type OpenAIClient struct {
 
 func NewOpenAIClient(cd *conf.Data) *OpenAIClient {
 	embeddingAPI := cd.GetEmbeddingApi()
+	httpClient := &http.Client{
+		Transport: otelhttp.NewTransport(http.DefaultTransport),
+	}
 	client := openai.NewClient(
 		option.WithAPIKey(embeddingAPI.GetSecret()),
 		// e.g. https://example.ai.com/v1
 		option.WithBaseURL(embeddingAPI.GetEndpoint()),
+		option.WithHTTPClient(httpClient),
 	)
 	return &OpenAIClient{
 		embeddingModel: embeddingAPI.GetModel(),

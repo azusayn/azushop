@@ -9,8 +9,10 @@ import (
 
 	"github.com/IBM/sarama"
 	"github.com/azusayn/azushop/internal/biz"
+	"github.com/dnwe/otelsarama"
 	"github.com/google/wire"
 	"github.com/shopspring/decimal"
+	"go.opentelemetry.io/otel"
 	"gorm.io/gorm"
 )
 
@@ -126,6 +128,7 @@ func (p *PaymentPublisher) PublishPaymentStatus(ctx context.Context, orderID int
 		Topic: string(biz.KafkaTopicPaymentStatus),
 		Value: sarama.ByteEncoder(bytes),
 	}
+	otel.GetTextMapPropagator().Inject(ctx, otelsarama.NewProducerMessageCarrier(msg))
 	_, _, err = producer.SendMessage(msg)
 	return err
 }
