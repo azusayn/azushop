@@ -5,7 +5,7 @@ import (
 )
 
 type DelayMsgRelaySubscriber interface {
-	SubscribeDelayMessage(ctx context.Context, handler func(orderID int64) error) error
+	SubscribeDelayMessage(ctx context.Context, handler func(ctx context.Context, orderID int64) error) error
 }
 
 type DelayMsgRelayPublisher interface {
@@ -28,7 +28,7 @@ func NewDelayMsgRealyUsecase(
 }
 
 func (uc *DelayMsgRealyUsecase) HandleDelayMessage(ctx context.Context) error {
-	return uc.subscriber.SubscribeDelayMessage(ctx, func(orderID int64) error {
-		return uc.publisher.PublishOrderCancelled(ctx, orderID)
+	return uc.subscriber.SubscribeDelayMessage(ctx, func(msgCtx context.Context, orderID int64) error {
+		return uc.publisher.PublishOrderCancelled(msgCtx, orderID)
 	})
 }

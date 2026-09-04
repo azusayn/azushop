@@ -13,9 +13,11 @@ import (
 	"github.com/azusayn/azushop/internal/biz"
 	"github.com/azusayn/azushop/internal/pkg/telemetry"
 	"github.com/azusayn/azushop/proto/conf"
+	"github.com/dnwe/otelsarama"
 	"github.com/google/wire"
 	"github.com/samber/lo"
 	"github.com/shopspring/decimal"
+	"go.opentelemetry.io/otel"
 	"gorm.io/gorm"
 )
 
@@ -299,6 +301,7 @@ func (p *OrderPublisher) SendMessagaes(ctx context.Context, messages []*biz.Kafk
 			Topic: string(message.Topic),
 			Value: sarama.ByteEncoder(bytes),
 		}
+		otel.GetTextMapPropagator().Inject(ctx, otelsarama.NewProducerMessageCarrier(prodMsg))
 		prodMsgs = append(prodMsgs, prodMsg)
 	}
 

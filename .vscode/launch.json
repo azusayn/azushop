@@ -25,5 +25,13 @@
             "program": "${workspaceFolder}/cmd/payment",
             "cwd": "${workspaceFolder}",
         },
+        {
+            "name": "Launch Product Service",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/cmd/product",
+            "cwd": "${workspaceFolder}",
+        },
     ]
 }

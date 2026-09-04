@@ -8,6 +8,7 @@ import (
 
 	"github.com/IBM/sarama"
 	"github.com/dnwe/otelsarama"
+	"go.opentelemetry.io/otel"
 
 	"github.com/azusayn/azushop/internal/biz"
 	"github.com/azusayn/azushop/proto/conf"
@@ -44,6 +45,7 @@ func (p *DelayMsgRelayPublisher) PublishOrderCancelled(ctx context.Context, orde
 		Topic: string(biz.KafkaTopicOrderCancelled),
 		Value: sarama.ByteEncoder(payload),
 	}
+	otel.GetTextMapPropagator().Inject(ctx, otelsarama.NewProducerMessageCarrier(&prodMsg))
 	_, _, err = producer.SendMessage(&prodMsg)
 	return err
 }
@@ -60,12 +62,10 @@ func NewDelayMsgRelaySubscriber(config *conf.Data) (biz.DelayMsgRelaySubscriber,
 	return &DelayMsgRelaySubscriber{delayMessageRelaySub: sub}, nil
 }
 
-func (s *DelayMsgRelaySubscriber) SubscribeDelayMessage(ctx context.Context, handler func(orderID int64) error) error {
+func (s *DelayMsgRelaySubscriber) SubscribeDelayMessage(ctx context.Context, handler func(context.Context, int64) error) error {
 	topics := []string{string(biz.KafkaTopicOrderCancelledDelay)}
 	consumer := s.delayMessageRelaySub
-	consumerHandler := NewDelayConsumerHandler(consumer, func(orderID int64) error {
-		return handler(orderID)
-	})
+	consumerHandler := NewDelayConsumerHandler(consumer, handler)
 	for {
 		err := s.delayMessageRelaySub.Consume(ctx, topics, consumerHandler)
 		if err != nil {
@@ -78,11 +78,11 @@ func (s *DelayMsgRelaySubscriber) SubscribeDelayMessage(ctx context.Context, han
 }
 
 type DelayConsumerHandler struct {
-	handler  func(orderID int64) error
+	handler  func(context.Context, int64) error
 	consumer sarama.ConsumerGroup
 }
 
-func NewDelayConsumerHandler(consumer sarama.ConsumerGroup, handler func(orderID int64) error) sarama.ConsumerGroupHandler {
+func NewDelayConsumerHandler(consumer sarama.ConsumerGroup, handler func(context.Context, int64) error) sarama.ConsumerGroupHandler {
 	h := &DelayConsumerHandler{
 		handler:  handler,
 		consumer: consumer,
@@ -122,7 +122,11 @@ func (c *DelayConsumerHandler) ConsumeClaim(session sarama.ConsumerGroupSession,
 				c.consumer.Pause(m)
 				continue
 			}
-			if err := c.handler(orderCancelMsg.OrderID); err != nil {
+			ctx := otel.GetTextMapPropagator().Extract(
+				session.Context(),
+				otelsarama.NewConsumerMessageCarrier(msg),
+			)
+			if err := c.handler(ctx, orderCancelMsg.OrderID); err != nil {
 				slog.Warn(err.Error())
 			}
 			session.MarkMessage(msg, "")

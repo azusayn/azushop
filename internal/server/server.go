@@ -47,9 +47,8 @@ func (r *Runtime) Bootstrap(config *conf.Data) {
 		otel.SetTracerProvider(tp)
 		defer tpCleanup()
 	}
-	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(
-		propagation.TraceContext{},
-	))
+	// TODO: DI
+	otel.SetTextMapPropagator(propagation.TraceContext{})
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
