@@ -9,6 +9,7 @@ import (
 	"github.com/azusayn/azushop/proto/conf"
 	"github.com/dnwe/otelsarama"
 	"github.com/pkg/errors"
+	"go.opentelemetry.io/otel"
 )
 
 type PaymentStatus string
@@ -96,7 +97,11 @@ func (c *ConsumerHandler) ConsumeClaim(session sarama.ConsumerGroupSession, clai
 			if !found {
 				return fmt.Errorf("handler for topic %q not found", claim.Topic())
 			}
-			if err := handler(context.TODO(), msg.Value); err != nil {
+			ctx := otel.GetTextMapPropagator().Extract(
+				session.Context(),
+				otelsarama.NewConsumerMessageCarrier(msg),
+			)
+			if err := handler(ctx, msg.Value); err != nil {
 				slog.Warn(err.Error())
 			}
 			session.MarkMessage(msg, "")

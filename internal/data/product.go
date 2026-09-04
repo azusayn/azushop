@@ -14,8 +14,10 @@ import (
 	"github.com/azusayn/azushop/internal/biz"
 	"github.com/azusayn/azushop/internal/pkg/str"
 	"github.com/azusayn/azutils/sql"
+	"github.com/dnwe/otelsarama"
 	"github.com/google/wire"
 	"github.com/pgvector/pgvector-go"
+	"go.opentelemetry.io/otel"
 	"gorm.io/gorm"
 )
 
@@ -377,6 +379,7 @@ func (p *ProductPublisher) PublishProductCreated(ctx context.Context, skuIDs []u
 		Topic: string(biz.KafkaTopicProductCreated),
 		Value: sarama.ByteEncoder(bytes),
 	}
+	otel.GetTextMapPropagator().Inject(ctx, otelsarama.NewProducerMessageCarrier(prodMsg))
 	_, _, err = producer.SendMessage(prodMsg)
 	return err
 }

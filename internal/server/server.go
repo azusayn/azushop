@@ -13,6 +13,7 @@ import (
 	"github.com/azusayn/azushop/internal/pkg/log"
 	"github.com/azusayn/azushop/proto/conf"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/propagation"
 )
 
 const (
@@ -46,6 +47,9 @@ func (r *Runtime) Bootstrap(config *conf.Data) {
 		otel.SetTracerProvider(tp)
 		defer tpCleanup()
 	}
+	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(
+		propagation.TraceContext{},
+	))
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
