@@ -6,8 +6,8 @@ connectrpc.com/otelconnect v0.9.0 h1:NggB3pzRC3pukQWaYbRHJulxuXvmCKCKkQ9hbrHAWoA
 connectrpc.com/otelconnect v0.9.0/go.mod h1:AEkVLjCPXra+ObGFCOClcJkNjS7zPaQSqvO0lCyjfZc=
 github.com/IBM/sarama v1.60.2 h1:T/HyMhOJMyH/BgkBLCiuTDH8EJAEf32eDbNldlKOWIg=
 github.com/IBM/sarama v1.60.2/go.mod h1:fZRPG+DZm8DM9WpmslgMiVErD46mmYAYBiFWC8XKkes=
-github.com/azusayn/azutils v0.0.3 h1:GsRQSyVbaNdpdsd42wLX7VVhmrhhUCibszICBpraiso=
-github.com/azusayn/azutils v0.0.3/go.mod h1:TGUkBNFpp24NPGVC9tYtx3L90lseGcFPVf66B7BuRJQ=
+github.com/azusayn/azutils v0.0.5 h1:M8uJPmx9WGmXDU8rvq9+L4zibhy6HtMaRCXNrPOgpkE=
+github.com/azusayn/azutils v0.0.5/go.mod h1:R+L5uxMugnN2fPqBjXKIwV3D4uQY0WYdorT8tdPNyKw=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
 github.com/beorn7/perks v1.0.1/go.mod h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6rlkpw=
 github.com/bsm/ginkgo/v2 v2.12.0 h1:Ny8MWAHyOepLGlLKYmXG4IEkioBysk6GpaRTLC8zwWs=
