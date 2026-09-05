@@ -182,6 +182,10 @@ func (repo *OrderRepo) CreateOutboxMessage(ctx context.Context, eventType biz.Ou
 		Payload:   payload,
 		Headers:   traceBytes,
 	}
+
+	// TODO(4): metrics.
+	ctx = telemetry.WithUnsampledSpanContext(ctx)
+
 	return client.WithContext(ctx).Create(outboxMsg).Error
 }
 
@@ -191,6 +195,10 @@ func (repo *OrderRepo) ListOutboxMessages(ctx context.Context, limit int) ([]*bi
 	if client == nil {
 		client = repo.postgres.GormClient
 	}
+
+	// TODO(4): metrics.
+	ctx = telemetry.WithUnsampledSpanContext(ctx)
+
 	// TODO(4): composite index?
 	var messages []*biz.OrderOutboxMessage
 	if err := client.
