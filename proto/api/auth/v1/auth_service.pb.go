@@ -9,6 +9,7 @@ package v1
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -21,17 +22,486 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type RegisterRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Password      string                 `protobuf:"bytes,2,opt,name=password,proto3" json:"password,omitempty"`
+type IdentityProvider int32
+
+const (
+	IdentityProvider_PROVIDER_UNSPECIFIED IdentityProvider = 0
+	IdentityProvider_PROVIDER_LOCAL       IdentityProvider = 1
+	IdentityProvider_PROVIDER_GOOGLE      IdentityProvider = 2
+	IdentityProvider_PROVIDER_GITHUB      IdentityProvider = 3
+)
+
+// Enum value maps for IdentityProvider.
+var (
+	IdentityProvider_name = map[int32]string{
+		0: "PROVIDER_UNSPECIFIED",
+		1: "PROVIDER_LOCAL",
+		2: "PROVIDER_GOOGLE",
+		3: "PROVIDER_GITHUB",
+	}
+	IdentityProvider_value = map[string]int32{
+		"PROVIDER_UNSPECIFIED": 0,
+		"PROVIDER_LOCAL":       1,
+		"PROVIDER_GOOGLE":      2,
+		"PROVIDER_GITHUB":      3,
+	}
+)
+
+func (x IdentityProvider) Enum() *IdentityProvider {
+	p := new(IdentityProvider)
+	*p = x
+	return p
+}
+
+func (x IdentityProvider) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (IdentityProvider) Descriptor() protoreflect.EnumDescriptor {
+	return file_api_auth_v1_auth_service_proto_enumTypes[0].Descriptor()
+}
+
+func (IdentityProvider) Type() protoreflect.EnumType {
+	return &file_api_auth_v1_auth_service_proto_enumTypes[0]
+}
+
+func (x IdentityProvider) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use IdentityProvider.Descriptor instead.
+func (IdentityProvider) EnumDescriptor() ([]byte, []int) {
+	return file_api_auth_v1_auth_service_proto_rawDescGZIP(), []int{0}
+}
+
+type IdentityProviderContext struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to Context:
+	//
+	//	*IdentityProviderContext_PasswordContext
+	//	*IdentityProviderContext_Oauth2Context
+	//	*IdentityProviderContext_OtpContext
+	//	*IdentityProviderContext_OidcContext
+	Context       isIdentityProviderContext_Context `protobuf_oneof:"context"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
+func (x *IdentityProviderContext) Reset() {
+	*x = IdentityProviderContext{}
+	mi := &file_api_auth_v1_auth_service_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *IdentityProviderContext) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*IdentityProviderContext) ProtoMessage() {}
+
+func (x *IdentityProviderContext) ProtoReflect() protoreflect.Message {
+	mi := &file_api_auth_v1_auth_service_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use IdentityProviderContext.ProtoReflect.Descriptor instead.
+func (*IdentityProviderContext) Descriptor() ([]byte, []int) {
+	return file_api_auth_v1_auth_service_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *IdentityProviderContext) GetContext() isIdentityProviderContext_Context {
+	if x != nil {
+		return x.Context
+	}
+	return nil
+}
+
+func (x *IdentityProviderContext) GetPasswordContext() *PasswordContext {
+	if x != nil {
+		if x, ok := x.Context.(*IdentityProviderContext_PasswordContext); ok {
+			return x.PasswordContext
+		}
+	}
+	return nil
+}
+
+func (x *IdentityProviderContext) GetOauth2Context() *OAuth2Context {
+	if x != nil {
+		if x, ok := x.Context.(*IdentityProviderContext_Oauth2Context); ok {
+			return x.Oauth2Context
+		}
+	}
+	return nil
+}
+
+func (x *IdentityProviderContext) GetOtpContext() *OTPContext {
+	if x != nil {
+		if x, ok := x.Context.(*IdentityProviderContext_OtpContext); ok {
+			return x.OtpContext
+		}
+	}
+	return nil
+}
+
+func (x *IdentityProviderContext) GetOidcContext() *OIDCContext {
+	if x != nil {
+		if x, ok := x.Context.(*IdentityProviderContext_OidcContext); ok {
+			return x.OidcContext
+		}
+	}
+	return nil
+}
+
+type isIdentityProviderContext_Context interface {
+	isIdentityProviderContext_Context()
+}
+
+type IdentityProviderContext_PasswordContext struct {
+	PasswordContext *PasswordContext `protobuf:"bytes,1,opt,name=password_context,json=passwordContext,proto3,oneof"`
+}
+
+type IdentityProviderContext_Oauth2Context struct {
+	Oauth2Context *OAuth2Context `protobuf:"bytes,2,opt,name=oauth2_context,json=oauth2Context,proto3,oneof"`
+}
+
+type IdentityProviderContext_OtpContext struct {
+	OtpContext *OTPContext `protobuf:"bytes,3,opt,name=otp_context,json=otpContext,proto3,oneof"`
+}
+
+type IdentityProviderContext_OidcContext struct {
+	OidcContext *OIDCContext `protobuf:"bytes,4,opt,name=oidc_context,json=oidcContext,proto3,oneof"`
+}
+
+func (*IdentityProviderContext_PasswordContext) isIdentityProviderContext_Context() {}
+
+func (*IdentityProviderContext_Oauth2Context) isIdentityProviderContext_Context() {}
+
+func (*IdentityProviderContext_OtpContext) isIdentityProviderContext_Context() {}
+
+func (*IdentityProviderContext_OidcContext) isIdentityProviderContext_Context() {}
+
+type LocalIdentityContext struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to Context:
+	//
+	//	*LocalIdentityContext_PasswordContext
+	//	*LocalIdentityContext_OtpContext
+	Context       isLocalIdentityContext_Context `protobuf_oneof:"context"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LocalIdentityContext) Reset() {
+	*x = LocalIdentityContext{}
+	mi := &file_api_auth_v1_auth_service_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LocalIdentityContext) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LocalIdentityContext) ProtoMessage() {}
+
+func (x *LocalIdentityContext) ProtoReflect() protoreflect.Message {
+	mi := &file_api_auth_v1_auth_service_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LocalIdentityContext.ProtoReflect.Descriptor instead.
+func (*LocalIdentityContext) Descriptor() ([]byte, []int) {
+	return file_api_auth_v1_auth_service_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *LocalIdentityContext) GetContext() isLocalIdentityContext_Context {
+	if x != nil {
+		return x.Context
+	}
+	return nil
+}
+
+func (x *LocalIdentityContext) GetPasswordContext() *PasswordContext {
+	if x != nil {
+		if x, ok := x.Context.(*LocalIdentityContext_PasswordContext); ok {
+			return x.PasswordContext
+		}
+	}
+	return nil
+}
+
+func (x *LocalIdentityContext) GetOtpContext() *OTPContext {
+	if x != nil {
+		if x, ok := x.Context.(*LocalIdentityContext_OtpContext); ok {
+			return x.OtpContext
+		}
+	}
+	return nil
+}
+
+type isLocalIdentityContext_Context interface {
+	isLocalIdentityContext_Context()
+}
+
+type LocalIdentityContext_PasswordContext struct {
+	PasswordContext *PasswordContext `protobuf:"bytes,1,opt,name=password_context,json=passwordContext,proto3,oneof"`
+}
+
+type LocalIdentityContext_OtpContext struct {
+	OtpContext *OTPContext `protobuf:"bytes,2,opt,name=otp_context,json=otpContext,proto3,oneof"`
+}
+
+func (*LocalIdentityContext_PasswordContext) isLocalIdentityContext_Context() {}
+
+func (*LocalIdentityContext_OtpContext) isLocalIdentityContext_Context() {}
+
+type PasswordContext struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to Name:
+	//
+	//	*PasswordContext_Email
+	//	*PasswordContext_Username
+	Name          isPasswordContext_Name `protobuf_oneof:"name"`
+	Password      string                 `protobuf:"bytes,3,opt,name=password,proto3" json:"password,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PasswordContext) Reset() {
+	*x = PasswordContext{}
+	mi := &file_api_auth_v1_auth_service_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PasswordContext) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PasswordContext) ProtoMessage() {}
+
+func (x *PasswordContext) ProtoReflect() protoreflect.Message {
+	mi := &file_api_auth_v1_auth_service_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PasswordContext.ProtoReflect.Descriptor instead.
+func (*PasswordContext) Descriptor() ([]byte, []int) {
+	return file_api_auth_v1_auth_service_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *PasswordContext) GetName() isPasswordContext_Name {
+	if x != nil {
+		return x.Name
+	}
+	return nil
+}
+
+func (x *PasswordContext) GetEmail() string {
+	if x != nil {
+		if x, ok := x.Name.(*PasswordContext_Email); ok {
+			return x.Email
+		}
+	}
+	return ""
+}
+
+func (x *PasswordContext) GetUsername() string {
+	if x != nil {
+		if x, ok := x.Name.(*PasswordContext_Username); ok {
+			return x.Username
+		}
+	}
+	return ""
+}
+
+func (x *PasswordContext) GetPassword() string {
+	if x != nil {
+		return x.Password
+	}
+	return ""
+}
+
+type isPasswordContext_Name interface {
+	isPasswordContext_Name()
+}
+
+type PasswordContext_Email struct {
+	Email string `protobuf:"bytes,1,opt,name=email,proto3,oneof"`
+}
+
+type PasswordContext_Username struct {
+	Username string `protobuf:"bytes,2,opt,name=username,proto3,oneof"`
+}
+
+func (*PasswordContext_Email) isPasswordContext_Name() {}
+
+func (*PasswordContext_Username) isPasswordContext_Name() {}
+
+type OAuth2Context struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Code          string                 `protobuf:"bytes,1,opt,name=code,proto3" json:"code,omitempty"`
+	CodeVerifier  string                 `protobuf:"bytes,2,opt,name=code_verifier,json=codeVerifier,proto3" json:"code_verifier,omitempty"`
+	State         string                 `protobuf:"bytes,3,opt,name=state,proto3" json:"state,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *OAuth2Context) Reset() {
+	*x = OAuth2Context{}
+	mi := &file_api_auth_v1_auth_service_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OAuth2Context) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OAuth2Context) ProtoMessage() {}
+
+func (x *OAuth2Context) ProtoReflect() protoreflect.Message {
+	mi := &file_api_auth_v1_auth_service_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OAuth2Context.ProtoReflect.Descriptor instead.
+func (*OAuth2Context) Descriptor() ([]byte, []int) {
+	return file_api_auth_v1_auth_service_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *OAuth2Context) GetCode() string {
+	if x != nil {
+		return x.Code
+	}
+	return ""
+}
+
+func (x *OAuth2Context) GetCodeVerifier() string {
+	if x != nil {
+		return x.CodeVerifier
+	}
+	return ""
+}
+
+func (x *OAuth2Context) GetState() string {
+	if x != nil {
+		return x.State
+	}
+	return ""
+}
+
+type OTPContext struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *OTPContext) Reset() {
+	*x = OTPContext{}
+	mi := &file_api_auth_v1_auth_service_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OTPContext) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OTPContext) ProtoMessage() {}
+
+func (x *OTPContext) ProtoReflect() protoreflect.Message {
+	mi := &file_api_auth_v1_auth_service_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OTPContext.ProtoReflect.Descriptor instead.
+func (*OTPContext) Descriptor() ([]byte, []int) {
+	return file_api_auth_v1_auth_service_proto_rawDescGZIP(), []int{4}
+}
+
+type OIDCContext struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *OIDCContext) Reset() {
+	*x = OIDCContext{}
+	mi := &file_api_auth_v1_auth_service_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OIDCContext) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OIDCContext) ProtoMessage() {}
+
+func (x *OIDCContext) ProtoReflect() protoreflect.Message {
+	mi := &file_api_auth_v1_auth_service_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OIDCContext.ProtoReflect.Descriptor instead.
+func (*OIDCContext) Descriptor() ([]byte, []int) {
+	return file_api_auth_v1_auth_service_proto_rawDescGZIP(), []int{5}
+}
+
+type RegisterRequest struct {
+	state                protoimpl.MessageState `protogen:"open.v1"`
+	LocalIdentityContext *LocalIdentityContext  `protobuf:"bytes,1,opt,name=local_identity_context,json=localIdentityContext,proto3" json:"local_identity_context,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
+}
+
 func (x *RegisterRequest) Reset() {
 	*x = RegisterRequest{}
-	mi := &file_api_auth_v1_auth_service_proto_msgTypes[0]
+	mi := &file_api_auth_v1_auth_service_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -43,7 +513,7 @@ func (x *RegisterRequest) String() string {
 func (*RegisterRequest) ProtoMessage() {}
 
 func (x *RegisterRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auth_v1_auth_service_proto_msgTypes[0]
+	mi := &file_api_auth_v1_auth_service_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -56,21 +526,14 @@ func (x *RegisterRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RegisterRequest.ProtoReflect.Descriptor instead.
 func (*RegisterRequest) Descriptor() ([]byte, []int) {
-	return file_api_auth_v1_auth_service_proto_rawDescGZIP(), []int{0}
+	return file_api_auth_v1_auth_service_proto_rawDescGZIP(), []int{6}
 }
 
-func (x *RegisterRequest) GetName() string {
+func (x *RegisterRequest) GetLocalIdentityContext() *LocalIdentityContext {
 	if x != nil {
-		return x.Name
+		return x.LocalIdentityContext
 	}
-	return ""
-}
-
-func (x *RegisterRequest) GetPassword() string {
-	if x != nil {
-		return x.Password
-	}
-	return ""
+	return nil
 }
 
 type RegisterResponse struct {
@@ -81,7 +544,7 @@ type RegisterResponse struct {
 
 func (x *RegisterResponse) Reset() {
 	*x = RegisterResponse{}
-	mi := &file_api_auth_v1_auth_service_proto_msgTypes[1]
+	mi := &file_api_auth_v1_auth_service_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -93,7 +556,7 @@ func (x *RegisterResponse) String() string {
 func (*RegisterResponse) ProtoMessage() {}
 
 func (x *RegisterResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auth_v1_auth_service_proto_msgTypes[1]
+	mi := &file_api_auth_v1_auth_service_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -106,20 +569,20 @@ func (x *RegisterResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RegisterResponse.ProtoReflect.Descriptor instead.
 func (*RegisterResponse) Descriptor() ([]byte, []int) {
-	return file_api_auth_v1_auth_service_proto_rawDescGZIP(), []int{1}
+	return file_api_auth_v1_auth_service_proto_rawDescGZIP(), []int{7}
 }
 
 type LoginRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Password      string                 `protobuf:"bytes,2,opt,name=password,proto3" json:"password,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                   protoimpl.MessageState   `protogen:"open.v1"`
+	IdentityProvider        IdentityProvider         `protobuf:"varint,1,opt,name=identity_provider,json=identityProvider,proto3,enum=auth.v1.IdentityProvider" json:"identity_provider,omitempty"`
+	IdentityProviderContext *IdentityProviderContext `protobuf:"bytes,2,opt,name=identity_provider_context,json=identityProviderContext,proto3" json:"identity_provider_context,omitempty"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *LoginRequest) Reset() {
 	*x = LoginRequest{}
-	mi := &file_api_auth_v1_auth_service_proto_msgTypes[2]
+	mi := &file_api_auth_v1_auth_service_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -131,7 +594,7 @@ func (x *LoginRequest) String() string {
 func (*LoginRequest) ProtoMessage() {}
 
 func (x *LoginRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auth_v1_auth_service_proto_msgTypes[2]
+	mi := &file_api_auth_v1_auth_service_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -144,33 +607,34 @@ func (x *LoginRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoginRequest.ProtoReflect.Descriptor instead.
 func (*LoginRequest) Descriptor() ([]byte, []int) {
-	return file_api_auth_v1_auth_service_proto_rawDescGZIP(), []int{2}
+	return file_api_auth_v1_auth_service_proto_rawDescGZIP(), []int{8}
 }
 
-func (x *LoginRequest) GetName() string {
+func (x *LoginRequest) GetIdentityProvider() IdentityProvider {
 	if x != nil {
-		return x.Name
+		return x.IdentityProvider
 	}
-	return ""
+	return IdentityProvider_PROVIDER_UNSPECIFIED
 }
 
-func (x *LoginRequest) GetPassword() string {
+func (x *LoginRequest) GetIdentityProviderContext() *IdentityProviderContext {
 	if x != nil {
-		return x.Password
+		return x.IdentityProviderContext
 	}
-	return ""
+	return nil
 }
 
 type LoginResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	AccessToken   string                 `protobuf:"bytes,1,opt,name=access_token,json=accessToken,proto3" json:"access_token,omitempty"`
+	ExpiresAt     *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *LoginResponse) Reset() {
 	*x = LoginResponse{}
-	mi := &file_api_auth_v1_auth_service_proto_msgTypes[3]
+	mi := &file_api_auth_v1_auth_service_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -182,7 +646,7 @@ func (x *LoginResponse) String() string {
 func (*LoginResponse) ProtoMessage() {}
 
 func (x *LoginResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auth_v1_auth_service_proto_msgTypes[3]
+	mi := &file_api_auth_v1_auth_service_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -195,7 +659,7 @@ func (x *LoginResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoginResponse.ProtoReflect.Descriptor instead.
 func (*LoginResponse) Descriptor() ([]byte, []int) {
-	return file_api_auth_v1_auth_service_proto_rawDescGZIP(), []int{3}
+	return file_api_auth_v1_auth_service_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *LoginResponse) GetAccessToken() string {
@@ -205,20 +669,57 @@ func (x *LoginResponse) GetAccessToken() string {
 	return ""
 }
 
+func (x *LoginResponse) GetExpiresAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ExpiresAt
+	}
+	return nil
+}
+
 var File_api_auth_v1_auth_service_proto protoreflect.FileDescriptor
 
 const file_api_auth_v1_auth_service_proto_rawDesc = "" +
 	"\n" +
-	"\x1eapi/auth/v1/auth_service.proto\x12\aauth.v1\"A\n" +
-	"\x0fRegisterRequest\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1a\n" +
-	"\bpassword\x18\x02 \x01(\tR\bpassword\"\x12\n" +
-	"\x10RegisterResponse\">\n" +
-	"\fLoginRequest\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1a\n" +
-	"\bpassword\x18\x02 \x01(\tR\bpassword\"2\n" +
+	"\x1eapi/auth/v1/auth_service.proto\x12\aauth.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x9f\x02\n" +
+	"\x17IdentityProviderContext\x12E\n" +
+	"\x10password_context\x18\x01 \x01(\v2\x18.auth.v1.PasswordContextH\x00R\x0fpasswordContext\x12?\n" +
+	"\x0eoauth2_context\x18\x02 \x01(\v2\x16.auth.v1.OAuth2ContextH\x00R\roauth2Context\x126\n" +
+	"\votp_context\x18\x03 \x01(\v2\x13.auth.v1.OTPContextH\x00R\n" +
+	"otpContext\x129\n" +
+	"\foidc_context\x18\x04 \x01(\v2\x14.auth.v1.OIDCContextH\x00R\voidcContextB\t\n" +
+	"\acontext\"\xa0\x01\n" +
+	"\x14LocalIdentityContext\x12E\n" +
+	"\x10password_context\x18\x01 \x01(\v2\x18.auth.v1.PasswordContextH\x00R\x0fpasswordContext\x126\n" +
+	"\votp_context\x18\x02 \x01(\v2\x13.auth.v1.OTPContextH\x00R\n" +
+	"otpContextB\t\n" +
+	"\acontext\"k\n" +
+	"\x0fPasswordContext\x12\x16\n" +
+	"\x05email\x18\x01 \x01(\tH\x00R\x05email\x12\x1c\n" +
+	"\busername\x18\x02 \x01(\tH\x00R\busername\x12\x1a\n" +
+	"\bpassword\x18\x03 \x01(\tR\bpasswordB\x06\n" +
+	"\x04name\"^\n" +
+	"\rOAuth2Context\x12\x12\n" +
+	"\x04code\x18\x01 \x01(\tR\x04code\x12#\n" +
+	"\rcode_verifier\x18\x02 \x01(\tR\fcodeVerifier\x12\x14\n" +
+	"\x05state\x18\x03 \x01(\tR\x05state\"\f\n" +
+	"\n" +
+	"OTPContext\"\r\n" +
+	"\vOIDCContext\"f\n" +
+	"\x0fRegisterRequest\x12S\n" +
+	"\x16local_identity_context\x18\x01 \x01(\v2\x1d.auth.v1.LocalIdentityContextR\x14localIdentityContext\"\x12\n" +
+	"\x10RegisterResponse\"\xb4\x01\n" +
+	"\fLoginRequest\x12F\n" +
+	"\x11identity_provider\x18\x01 \x01(\x0e2\x19.auth.v1.IdentityProviderR\x10identityProvider\x12\\\n" +
+	"\x19identity_provider_context\x18\x02 \x01(\v2 .auth.v1.IdentityProviderContextR\x17identityProviderContext\"m\n" +
 	"\rLoginResponse\x12!\n" +
-	"\faccess_token\x18\x01 \x01(\tR\vaccessToken2\x86\x01\n" +
+	"\faccess_token\x18\x01 \x01(\tR\vaccessToken\x129\n" +
+	"\n" +
+	"expires_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt*j\n" +
+	"\x10IdentityProvider\x12\x18\n" +
+	"\x14PROVIDER_UNSPECIFIED\x10\x00\x12\x12\n" +
+	"\x0ePROVIDER_LOCAL\x10\x01\x12\x13\n" +
+	"\x0fPROVIDER_GOOGLE\x10\x02\x12\x13\n" +
+	"\x0fPROVIDER_GITHUB\x10\x032\x86\x01\n" +
 	"\vAuthService\x126\n" +
 	"\x05Login\x12\x15.auth.v1.LoginRequest\x1a\x16.auth.v1.LoginResponse\x12?\n" +
 	"\bRegister\x12\x18.auth.v1.RegisterRequest\x1a\x19.auth.v1.RegisterResponseB1Z/github.com/azusayn/azushop/proto/api/auth/v1;v1b\x06proto3"
@@ -235,23 +736,42 @@ func file_api_auth_v1_auth_service_proto_rawDescGZIP() []byte {
 	return file_api_auth_v1_auth_service_proto_rawDescData
 }
 
-var file_api_auth_v1_auth_service_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_api_auth_v1_auth_service_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_api_auth_v1_auth_service_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_api_auth_v1_auth_service_proto_goTypes = []any{
-	(*RegisterRequest)(nil),  // 0: auth.v1.RegisterRequest
-	(*RegisterResponse)(nil), // 1: auth.v1.RegisterResponse
-	(*LoginRequest)(nil),     // 2: auth.v1.LoginRequest
-	(*LoginResponse)(nil),    // 3: auth.v1.LoginResponse
+	(IdentityProvider)(0),           // 0: auth.v1.IdentityProvider
+	(*IdentityProviderContext)(nil), // 1: auth.v1.IdentityProviderContext
+	(*LocalIdentityContext)(nil),    // 2: auth.v1.LocalIdentityContext
+	(*PasswordContext)(nil),         // 3: auth.v1.PasswordContext
+	(*OAuth2Context)(nil),           // 4: auth.v1.OAuth2Context
+	(*OTPContext)(nil),              // 5: auth.v1.OTPContext
+	(*OIDCContext)(nil),             // 6: auth.v1.OIDCContext
+	(*RegisterRequest)(nil),         // 7: auth.v1.RegisterRequest
+	(*RegisterResponse)(nil),        // 8: auth.v1.RegisterResponse
+	(*LoginRequest)(nil),            // 9: auth.v1.LoginRequest
+	(*LoginResponse)(nil),           // 10: auth.v1.LoginResponse
+	(*timestamppb.Timestamp)(nil),   // 11: google.protobuf.Timestamp
 }
 var file_api_auth_v1_auth_service_proto_depIdxs = []int32{
-	2, // 0: auth.v1.AuthService.Login:input_type -> auth.v1.LoginRequest
-	0, // 1: auth.v1.AuthService.Register:input_type -> auth.v1.RegisterRequest
-	3, // 2: auth.v1.AuthService.Login:output_type -> auth.v1.LoginResponse
-	1, // 3: auth.v1.AuthService.Register:output_type -> auth.v1.RegisterResponse
-	2, // [2:4] is the sub-list for method output_type
-	0, // [0:2] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	3,  // 0: auth.v1.IdentityProviderContext.password_context:type_name -> auth.v1.PasswordContext
+	4,  // 1: auth.v1.IdentityProviderContext.oauth2_context:type_name -> auth.v1.OAuth2Context
+	5,  // 2: auth.v1.IdentityProviderContext.otp_context:type_name -> auth.v1.OTPContext
+	6,  // 3: auth.v1.IdentityProviderContext.oidc_context:type_name -> auth.v1.OIDCContext
+	3,  // 4: auth.v1.LocalIdentityContext.password_context:type_name -> auth.v1.PasswordContext
+	5,  // 5: auth.v1.LocalIdentityContext.otp_context:type_name -> auth.v1.OTPContext
+	2,  // 6: auth.v1.RegisterRequest.local_identity_context:type_name -> auth.v1.LocalIdentityContext
+	0,  // 7: auth.v1.LoginRequest.identity_provider:type_name -> auth.v1.IdentityProvider
+	1,  // 8: auth.v1.LoginRequest.identity_provider_context:type_name -> auth.v1.IdentityProviderContext
+	11, // 9: auth.v1.LoginResponse.expires_at:type_name -> google.protobuf.Timestamp
+	9,  // 10: auth.v1.AuthService.Login:input_type -> auth.v1.LoginRequest
+	7,  // 11: auth.v1.AuthService.Register:input_type -> auth.v1.RegisterRequest
+	10, // 12: auth.v1.AuthService.Login:output_type -> auth.v1.LoginResponse
+	8,  // 13: auth.v1.AuthService.Register:output_type -> auth.v1.RegisterResponse
+	12, // [12:14] is the sub-list for method output_type
+	10, // [10:12] is the sub-list for method input_type
+	10, // [10:10] is the sub-list for extension type_name
+	10, // [10:10] is the sub-list for extension extendee
+	0,  // [0:10] is the sub-list for field type_name
 }
 
 func init() { file_api_auth_v1_auth_service_proto_init() }
@@ -259,18 +779,33 @@ func file_api_auth_v1_auth_service_proto_init() {
 	if File_api_auth_v1_auth_service_proto != nil {
 		return
 	}
+	file_api_auth_v1_auth_service_proto_msgTypes[0].OneofWrappers = []any{
+		(*IdentityProviderContext_PasswordContext)(nil),
+		(*IdentityProviderContext_Oauth2Context)(nil),
+		(*IdentityProviderContext_OtpContext)(nil),
+		(*IdentityProviderContext_OidcContext)(nil),
+	}
+	file_api_auth_v1_auth_service_proto_msgTypes[1].OneofWrappers = []any{
+		(*LocalIdentityContext_PasswordContext)(nil),
+		(*LocalIdentityContext_OtpContext)(nil),
+	}
+	file_api_auth_v1_auth_service_proto_msgTypes[2].OneofWrappers = []any{
+		(*PasswordContext_Email)(nil),
+		(*PasswordContext_Username)(nil),
+	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_auth_v1_auth_service_proto_rawDesc), len(file_api_auth_v1_auth_service_proto_rawDesc)),
-			NumEnums:      0,
-			NumMessages:   4,
+			NumEnums:      1,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_api_auth_v1_auth_service_proto_goTypes,
 		DependencyIndexes: file_api_auth_v1_auth_service_proto_depIdxs,
+		EnumInfos:         file_api_auth_v1_auth_service_proto_enumTypes,
 		MessageInfos:      file_api_auth_v1_auth_service_proto_msgTypes,
 	}.Build()
 	File_api_auth_v1_auth_service_proto = out.File
