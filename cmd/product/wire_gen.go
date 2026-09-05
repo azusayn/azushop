@@ -10,6 +10,7 @@ import (
 	"github.com/azusayn/azushop/internal/biz"
 	"github.com/azusayn/azushop/internal/data"
 	"github.com/azusayn/azushop/internal/pkg/llm"
+	"github.com/azusayn/azushop/internal/pkg/telemetry"
 	"github.com/azusayn/azushop/internal/server"
 	"github.com/azusayn/azushop/internal/service"
 	"github.com/azusayn/azushop/proto/conf"
@@ -37,7 +38,8 @@ func wireApp(cd *conf.Data, cs *conf.Server) (*App, func(), error) {
 	productUsecase := biz.NewProductUsecase(productRepo, productPublisher, openAIClient)
 	productService := service.NewProductService(productUsecase, cd)
 	productServiceConnectHandler := service.NewProductServiceConnectHandler(productService)
-	connectServerConfig, err := newConnectServerConfig(productServiceConnectHandler, cd, cs)
+	textMapPropagator := telemetry.NewTextMapPropagator()
+	connectServerConfig, err := newConnectServerConfig(productServiceConnectHandler, cd, cs, textMapPropagator)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -50,4 +52,4 @@ func wireApp(cd *conf.Data, cs *conf.Server) (*App, func(), error) {
 
 // wire.go:
 
-var wireProviders = wire.NewSet(data.ProductDataProviderSet, biz.NewProductUsecase, llm.NewOpenAIClient, service.NewProductService, service.NewProductServiceConnectHandler, newConnectServerConfig, server.NewConnectServer, server.NewMetricsServer, newApp)
+var wireProviders = wire.NewSet(telemetry.NewTextMapPropagator, data.ProductDataProviderSet, biz.NewProductUsecase, llm.NewOpenAIClient, service.NewProductService, service.NewProductServiceConnectHandler, newConnectServerConfig, server.NewConnectServer, server.NewMetricsServer, newApp)

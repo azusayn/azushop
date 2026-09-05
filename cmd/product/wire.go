@@ -7,6 +7,7 @@ import (
 	"github.com/azusayn/azushop/internal/biz"
 	"github.com/azusayn/azushop/internal/data"
 	"github.com/azusayn/azushop/internal/pkg/llm"
+	"github.com/azusayn/azushop/internal/pkg/telemetry"
 	"github.com/azusayn/azushop/internal/server"
 	"github.com/azusayn/azushop/internal/service"
 	"github.com/azusayn/azushop/proto/conf"
@@ -18,6 +19,7 @@ func wireApp(cd *conf.Data, cs *conf.Server) (*App, func(), error) {
 }
 
 var wireProviders = wire.NewSet(
+	telemetry.NewTextMapPropagator,
 	data.ProductDataProviderSet,
 	biz.NewProductUsecase,
 	llm.NewOpenAIClient,

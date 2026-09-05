@@ -9,6 +9,12 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
+func NewTextMapPropagator() propagation.TextMapPropagator {
+	p := propagation.TraceContext{}
+	otel.SetTextMapPropagator(p)
+	return p
+}
+
 func ExtractTraceHeaderBytes(ctx context.Context) ([]byte, error) {
 	carrier := make(propagation.MapCarrier)
 	otel.GetTextMapPropagator().Inject(ctx, carrier)
@@ -25,6 +31,19 @@ func InjectTraceHeaderBytes(ctx context.Context, headerBytes []byte) (context.Co
 		return context.Background(), err
 	}
 	return otel.GetTextMapPropagator().Extract(ctx, carrier), nil
+}
+
+func InjectTraceMap(ctx context.Context) map[string]string {
+	carrier := make(propagation.MapCarrier)
+	otel.GetTextMapPropagator().Inject(ctx, carrier)
+	return carrier
+}
+
+func ContextWithTraceMap(ctx context.Context, m map[string]string) context.Context {
+	if len(m) == 0 {
+		return ctx
+	}
+	return otel.GetTextMapPropagator().Extract(ctx, propagation.MapCarrier(m))
 }
 
 func WithUnsampledSpanContext(ctx context.Context) context.Context {
