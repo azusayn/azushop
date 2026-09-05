@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package auth.v1;
 
+import "google/protobuf/timestamp.proto";
+
 option go_package = "github.com/azusayn/azushop/proto/api/auth/v1;v1";
 
 // Authentication.
@@ -12,18 +14,59 @@ service AuthService {
   rpc Register(RegisterRequest) returns (RegisterResponse);
 }
 
+enum IdentityProvider {
+  PROVIDER_UNSPECIFIED = 0;
+  PROVIDER_LOCAL = 1;
+  PROVIDER_GOOGLE = 2;
+  PROVIDER_GITHUB = 3;
+}
+
+message IdentityProviderContext {
+  oneof context {
+    PasswordContext password_context = 1;
+    OAuth2Context oauth2_context = 2;
+    OTPContext otp_context = 3;
+    OIDCContext oidc_context = 4;
+  }
+}
+
+message LocalIdentityContext {
+  oneof context {
+    PasswordContext password_context = 1;
+    OTPContext otp_context = 2;
+  }
+}
+
+message PasswordContext {
+  oneof name {
+    string email = 1;
+    string username = 2;
+  }
+  string password = 3;
+}
+
+message OAuth2Context {
+  string code = 1;
+  string code_verifier = 2;
+  string state = 3;
+}
+
+message OTPContext {}
+
+message OIDCContext {}
+
 message RegisterRequest {
-  string name = 1;
-  string password = 2;
+  LocalIdentityContext local_identity_context = 1;
 }
 
 message RegisterResponse {}
 
 message LoginRequest {
-  string name = 1;
-  string password = 2;
+  IdentityProvider identity_provider = 1;
+  IdentityProviderContext identity_provider_context = 2;
 }
 
 message LoginResponse {
   string access_token = 1;
+  google.protobuf.Timestamp expires_at = 2;
 }
