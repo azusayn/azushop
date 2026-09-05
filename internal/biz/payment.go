@@ -8,10 +8,16 @@ import (
 	"log/slog"
 	"strconv"
 
+	"github.com/azusayn/azushop/internal/pkg/telemetry"
+	"github.com/azusayn/azushop/proto/conf"
 	"github.com/shopspring/decimal"
 	"github.com/stripe/stripe-go/v84"
 	"github.com/stripe/stripe-go/v84/checkout/session"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/codes"
 )
+
+const paymentCallbackSpanName = "payment.callback"
 
 type PaymentRepo interface {
 	CreatePayment(ctx context.Context, idempotencyKey string, orderID int64, userID int32, total decimal.Decimal,
@@ -27,12 +33,14 @@ type PaymentPublisher interface {
 type PaymentUsecase struct {
 	repo      PaymentRepo
 	publisher PaymentPublisher
+	appName   string
 }
 
-func NewPaymentUsecase(repo PaymentRepo, publisher PaymentPublisher) *PaymentUsecase {
+func NewPaymentUsecase(repo PaymentRepo, publisher PaymentPublisher, config *conf.Data) *PaymentUsecase {
 	return &PaymentUsecase{
 		repo:      repo,
 		publisher: publisher,
+		appName:   config.GetAppName(),
 	}
 }
 
@@ -72,6 +80,12 @@ type PaymentItem struct {
 	Attr      json.RawMessage
 }
 
+type stripeCallbackResult struct {
+	OrderID  int64
+	Status   PaymentStatus
+	TraceMap map[string]string
+}
+
 // CreatePayment creates a payemnt and returns a payment link from the payment provider.
 func (uc *PaymentUsecase) CreatePayment(
 	ctx context.Context,
@@ -91,7 +105,7 @@ func (uc *PaymentUsecase) CreatePayment(
 	switch method {
 	case PaymentMethodStripe:
 		var amountTotal int64
-		externalID, url, amountTotal, err = createStripePayment(orderID, userID, items, successURL)
+		externalID, url, amountTotal, err = createStripePayment(ctx, orderID, userID, items, successURL)
 		if err != nil {
 			return "", err
 		}
@@ -107,26 +121,44 @@ func (uc *PaymentUsecase) CreatePayment(
 }
 
 func (uc *PaymentUsecase) Callback(ctx context.Context, method PaymentMethod, body []byte) error {
-	var orderID int64
-	var paymentStatus PaymentStatus
-	var err error
+	var (
+		orderID       int64
+		paymentStatus PaymentStatus
+		err           error
+	)
 	switch method {
 	case PaymentMethodStripe:
-		orderID, paymentStatus, err = handleStripeCallback(body)
+		var result *stripeCallbackResult
+		result, err = handleStripeCallback(body)
 		if err != nil {
 			return err
 		}
+		orderID = result.OrderID
+		paymentStatus = result.Status
+		ctx = telemetry.ContextWithTraceMap(ctx, result.TraceMap)
 	default:
 		return fmt.Errorf("unsupported payment method %q", method)
 	}
+
+	ctx, span := otel.Tracer(uc.appName).Start(ctx, paymentCallbackSpanName)
+	defer span.End()
+
 	if err := uc.repo.UpdatePaymentStatusByOrderID(ctx, orderID, paymentStatus); err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return err
 	}
-	return uc.publisher.PublishPaymentStatus(ctx, orderID, paymentStatus)
+	if err := uc.publisher.PublishPaymentStatus(ctx, orderID, paymentStatus); err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return err
+	}
+	return nil
 }
 
 // createStripePayment creates a Stripe checkout session and return PaymentIntent ID, URL and AmountTotal
 func createStripePayment(
+	ctx context.Context,
 	orderID int64,
 	userID int32,
 	items []*PaymentItem,
@@ -154,15 +186,23 @@ func createStripePayment(
 		})
 	}
 
+	sessionMetadata := map[string]string{
+		"user_id":  strconv.FormatInt(int64(userID), 10),
+		"order_id": strconv.FormatInt(orderID, 10),
+	}
+	for k, v := range telemetry.InjectTraceMap(ctx) {
+		sessionMetadata[k] = v
+	}
+
 	params := &stripe.CheckoutSessionParams{
+		Params: stripe.Params{
+			Context: ctx,
+		},
 		Mode:       stripe.String(string(stripe.CheckoutSessionModePayment)),
 		LineItems:  lineItemParams,
 		SuccessURL: stripe.String(successURL),
 		// TODO(3): add CancelURL for better UX.
-		Metadata: map[string]string{
-			"user_id":  strconv.FormatInt(int64(userID), 10),
-			"order_id": strconv.FormatInt(orderID, 10),
-		},
+		Metadata: sessionMetadata,
 	}
 	s, err := session.New(params)
 	if err != nil {
@@ -172,40 +212,57 @@ func createStripePayment(
 	return s.ID, s.URL, s.AmountTotal, nil
 }
 
-// handleStripeCallback processes callback from payment Stripe's server and
-// returns order ID and payment status.
-func handleStripeCallback(body []byte) (int64, PaymentStatus, error) {
+// handleStripeCallback processes callback from payment Stripe's server.
+func handleStripeCallback(body []byte) (*stripeCallbackResult, error) {
 	var event stripe.Event
 	if err := json.Unmarshal(body, &event); err != nil {
-		return 0, PaymentStatusUnspecified, err
+		return nil, err
 	}
 	var checkoutSession stripe.CheckoutSession
 	if err := json.Unmarshal(event.Data.Raw, &checkoutSession); err != nil {
-		return 0, PaymentStatusUnspecified, err
+		return nil, err
 	}
 	orderIDStr, ok := checkoutSession.Metadata["order_id"]
 	if !ok {
-		return 0, PaymentStatusUnspecified, errors.New("failed to get order ID")
+		return nil, errors.New("failed to get order ID")
 	}
 	orderID, err := strconv.ParseInt(orderIDStr, 10, 64)
 	if err != nil {
-		return 0, PaymentStatusUnspecified, err
+		return nil, err
+	}
+
+	traceMap := make(map[string]string)
+	if v, ok := checkoutSession.Metadata["traceparent"]; ok {
+		traceMap["traceparent"] = v
+	}
+	if v, ok := checkoutSession.Metadata["tracestate"]; ok {
+		traceMap["tracestate"] = v
+	}
+
+	result := &stripeCallbackResult{
+		OrderID:  orderID,
+		TraceMap: traceMap,
 	}
 	switch event.Type {
 	case stripe.EventTypeCheckoutSessionCompleted,
 		stripe.EventTypeCheckoutSessionAsyncPaymentSucceeded:
 		if checkoutSession.PaymentStatus != stripe.CheckoutSessionPaymentStatusPaid {
 			slog.Warn("order not paid", "order_id", orderID)
-			return orderID, PaymentStatusCancelled, nil
+			result.Status = PaymentStatusCancelled
+			return result, nil
 		}
-		return orderID, PaymentStatusPaid, nil
+		result.Status = PaymentStatusPaid
+		return result, nil
 	case stripe.EventTypeCheckoutSessionAsyncPaymentFailed:
 		slog.Warn("async payment failed", "order_id", orderID)
-		return orderID, PaymentStatusCancelled, nil
+		result.Status = PaymentStatusCancelled
+		return result, nil
 	case stripe.EventTypeCheckoutSessionExpired:
 		slog.Warn("checkout session expired", "order_id", orderID)
-		return orderID, PaymentStatusCancelled, nil
+		result.Status = PaymentStatusCancelled
+		return result, nil
 	default:
 	}
-	return orderID, PaymentStatusUnspecified, fmt.Errorf("unsupported stripe event type %q", event.Type)
+	result.Status = PaymentStatusUnspecified
+	return result, fmt.Errorf("unsupported stripe event type %q", event.Type)
 }

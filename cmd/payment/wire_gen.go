@@ -33,7 +33,7 @@ func wireApp(cd *conf.Data, cs *conf.Server) (*App, func(), error) {
 		return nil, nil, err
 	}
 	paymentPublisher := data.NewPaymentPublisher(kafkaProducer)
-	paymentUsecase := biz.NewPaymentUsecase(paymentRepo, paymentPublisher)
+	paymentUsecase := biz.NewPaymentUsecase(paymentRepo, paymentPublisher, cd)
 	textMapPropagator := telemetry.NewTextMapPropagator()
 	orderServiceClient, err := data.NewOrderClient(cd, textMapPropagator)
 	if err != nil {

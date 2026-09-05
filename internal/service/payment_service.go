@@ -4,12 +4,6 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-
-	"github.com/azusayn/azushop/internal/common"
-
-	pb "github.com/azusayn/azushop/proto/api/payment/v1"
-	"github.com/azusayn/azushop/proto/conf"
-
 	"os"
 
 	"context"
@@ -17,8 +11,12 @@ import (
 	"fmt"
 
 	"github.com/azusayn/azushop/internal/biz"
+	"github.com/azusayn/azushop/internal/common"
+	pb "github.com/azusayn/azushop/proto/api/payment/v1"
+	"github.com/azusayn/azushop/proto/conf"
 	"github.com/shopspring/decimal"
 	"github.com/stripe/stripe-go/v84"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -46,7 +44,7 @@ func NewPaymentService(
 ) (*PaymentService, error) {
 	if secret := os.Getenv("STRIPE_SECRET_KEY"); secret != "" {
 		stripe.Key = secret
-	} else if config.GetPayment().GetStripeSecretKey(); secret != "" {
+	} else if secret := config.GetPayment().GetStripeSecretKey(); secret != "" {
 		stripe.Key = secret
 	} else {
 		return nil, errors.New("stripe secret key not configured")
@@ -56,6 +54,10 @@ func NewPaymentService(
 	if successURL == "" {
 		return nil, errors.New("stripe success URL not configured")
 	}
+
+	stripe.SetHTTPClient(&http.Client{
+		Transport: otelhttp.NewTransport(http.DefaultTransport),
+	})
 
 	return &PaymentService{
 		uc:               uc,

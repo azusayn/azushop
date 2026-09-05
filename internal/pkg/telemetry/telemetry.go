@@ -33,6 +33,19 @@ func InjectTraceHeaderBytes(ctx context.Context, headerBytes []byte) (context.Co
 	return otel.GetTextMapPropagator().Extract(ctx, carrier), nil
 }
 
+func InjectTraceMap(ctx context.Context) map[string]string {
+	carrier := make(propagation.MapCarrier)
+	otel.GetTextMapPropagator().Inject(ctx, carrier)
+	return carrier
+}
+
+func ContextWithTraceMap(ctx context.Context, m map[string]string) context.Context {
+	if len(m) == 0 {
+		return ctx
+	}
+	return otel.GetTextMapPropagator().Extract(ctx, propagation.MapCarrier(m))
+}
+
 func WithUnsampledSpanContext(ctx context.Context) context.Context {
 	sc := trace.NewSpanContext(trace.SpanContextConfig{
 		// A valid span (both TraceID and SpanID are not zero) with TraceFlags set to 0x0
