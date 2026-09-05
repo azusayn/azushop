@@ -222,6 +222,10 @@ func (repo *OrderRepo) MarkOutboxMessagesSent(ctx context.Context, ids []uuid.UU
 	if client == nil {
 		client = repo.postgres.GormClient
 	}
+
+	// TODO(4): metrics.
+	ctx = telemetry.WithUnsampledSpanContext(ctx)
+
 	if err := client.
 		WithContext(ctx).
 		Model(&biz.OrderOutboxMessage{}).
@@ -242,6 +246,9 @@ func (repo *OrderRepo) MarkOutboxMessagesFailed(ctx context.Context, ids []uuid.
 	if client == nil {
 		client = repo.postgres.GormClient
 	}
+
+	// TODO(4): metrics.
+	ctx = telemetry.WithUnsampledSpanContext(ctx)
 
 	if err := client.
 		WithContext(ctx).

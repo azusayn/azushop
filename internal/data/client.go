@@ -7,6 +7,7 @@ import (
 	"connectrpc.com/otelconnect"
 	"github.com/azusayn/azushop/internal/pkg/middleware"
 	"github.com/azusayn/azushop/proto/conf"
+	"go.opentelemetry.io/otel/propagation"
 
 	authv1connect "github.com/azusayn/azushop/proto/api/auth/v1/v1connect"
 	inventoryv1connect "github.com/azusayn/azushop/proto/api/inventory/v1/v1connect"
@@ -19,8 +20,10 @@ func newHTTPClient() *http.Client {
 	return &http.Client{}
 }
 
-func newAuthenticatedClientOptions() ([]connect.ClientOption, error) {
-	otelInterceptor, err := otelconnect.NewInterceptor()
+func newAuthenticatedClientOptions(propagator propagation.TextMapPropagator) ([]connect.ClientOption, error) {
+	otelInterceptor, err := otelconnect.NewInterceptor(
+		otelconnect.WithPropagator(propagator),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -41,8 +44,8 @@ func newServiceClient[T any](
 	return newFn(newHTTPClient(), "http://"+addr, opts...)
 }
 
-func NewInventoryClient(config *conf.Data) (inventoryv1connect.InventoryServiceClient, error) {
-	opts, err := newAuthenticatedClientOptions()
+func NewInventoryClient(config *conf.Data, propagator propagation.TextMapPropagator) (inventoryv1connect.InventoryServiceClient, error) {
+	opts, err := newAuthenticatedClientOptions(propagator)
 	if err != nil {
 		return nil, err
 	}
@@ -53,8 +56,8 @@ func NewInventoryClient(config *conf.Data) (inventoryv1connect.InventoryServiceC
 	), nil
 }
 
-func NewProductClient(config *conf.Data) (productv1connect.ProductServiceClient, error) {
-	opts, err := newAuthenticatedClientOptions()
+func NewProductClient(config *conf.Data, propagator propagation.TextMapPropagator) (productv1connect.ProductServiceClient, error) {
+	opts, err := newAuthenticatedClientOptions(propagator)
 	if err != nil {
 		return nil, err
 	}
@@ -65,8 +68,8 @@ func NewProductClient(config *conf.Data) (productv1connect.ProductServiceClient,
 	), nil
 }
 
-func NewOrderClient(config *conf.Data) (orderv1connect.OrderServiceClient, error) {
-	opts, err := newAuthenticatedClientOptions()
+func NewOrderClient(config *conf.Data, propagator propagation.TextMapPropagator) (orderv1connect.OrderServiceClient, error) {
+	opts, err := newAuthenticatedClientOptions(propagator)
 	if err != nil {
 		return nil, err
 	}
@@ -77,8 +80,10 @@ func NewOrderClient(config *conf.Data) (orderv1connect.OrderServiceClient, error
 	), nil
 }
 
-func NewAuthClient(config *conf.Data) (authv1connect.AuthServiceClient, error) {
-	otelInterceptor, err := otelconnect.NewInterceptor()
+func NewAuthClient(config *conf.Data, propagator propagation.TextMapPropagator) (authv1connect.AuthServiceClient, error) {
+	otelInterceptor, err := otelconnect.NewInterceptor(
+		otelconnect.WithPropagator(propagator),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -91,8 +96,8 @@ func NewAuthClient(config *conf.Data) (authv1connect.AuthServiceClient, error) {
 	), nil
 }
 
-func NewPaymentClient(config *conf.Data) (paymentv1connect.PaymentServiceClient, error) {
-	opts, err := newAuthenticatedClientOptions()
+func NewPaymentClient(config *conf.Data, propagator propagation.TextMapPropagator) (paymentv1connect.PaymentServiceClient, error) {
+	opts, err := newAuthenticatedClientOptions(propagator)
 	if err != nil {
 		return nil, err
 	}

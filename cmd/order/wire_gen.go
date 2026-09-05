@@ -9,6 +9,7 @@ package main
 import (
 	"github.com/azusayn/azushop/internal/biz"
 	"github.com/azusayn/azushop/internal/data"
+	"github.com/azusayn/azushop/internal/pkg/telemetry"
 	"github.com/azusayn/azushop/internal/server"
 	"github.com/azusayn/azushop/internal/service"
 	"github.com/azusayn/azushop/proto/conf"
@@ -37,29 +38,30 @@ func wireApp(cd *conf.Data, cs *conf.Server) (*App, func(), error) {
 	}
 	orderPublisher := data.NewOrderPublisher(kafkaProducer)
 	transaction := data.NewTransaction(postgres)
-	inventoryServiceClient, err := data.NewInventoryClient(cd)
+	textMapPropagator := telemetry.NewTextMapPropagator()
+	inventoryServiceClient, err := data.NewInventoryClient(cd, textMapPropagator)
 	if err != nil {
 		return nil, nil, err
 	}
 	orderUsecase := biz.NewOrderUsecase(orderRepo, orderSubscriber, orderPublisher, transaction, inventoryServiceClient)
-	productServiceClient, err := data.NewProductClient(cd)
+	productServiceClient, err := data.NewProductClient(cd, textMapPropagator)
 	if err != nil {
 		return nil, nil, err
 	}
 	orderService := service.NewOrderService(orderUsecase, productServiceClient, inventoryServiceClient)
 	orderServiceConnectHandler := service.NewOrderServiceConnectHandler(orderService)
-	connectServerConfig, err := newConnectServerConfig(orderServiceConnectHandler, cs, cd)
+	connectServerConfig, err := newConnectServerConfig(orderServiceConnectHandler, cs, cd, textMapPropagator)
 	if err != nil {
 		return nil, nil, err
 	}
 	connectServer := server.NewConnectServer(connectServerConfig)
 	metricsServer := server.NewMetricsServer(cs)
 	orderRunner := server.NewOrderRunner(orderUsecase)
-	delayMsgRelayPublisher, err := data.NewDelayRelayPublisher(cd)
+	delayMsgRelaySubscriber, err := data.NewDelayMsgRelaySubscriber(cd)
 	if err != nil {
 		return nil, nil, err
 	}
-	delayMsgRelaySubscriber, err := data.NewDelayMsgRelaySubscriber(cd)
+	delayMsgRelayPublisher, err := data.NewDelayRelayPublisher(cd)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -72,4 +74,4 @@ func wireApp(cd *conf.Data, cs *conf.Server) (*App, func(), error) {
 
 // wire.go:
 
-var wireProviders = wire.NewSet(data.OrderDataProviderSet, data.DelayMsgRelayDataProviderSet, biz.NewOrderUsecase, biz.NewDelayMsgRealyUsecase, service.NewOrderService, service.NewOrderServiceConnectHandler, server.NewOrderRunner, server.NewDelayMsgRelayRunner, newConnectServerConfig, server.NewConnectServer, server.NewMetricsServer, newApp)
+var wireProviders = wire.NewSet(telemetry.NewTextMapPropagator, data.OrderDataProviderSet, data.DelayMsgRelayDataProviderSet, biz.NewOrderUsecase, biz.NewDelayMsgRealyUsecase, service.NewOrderService, service.NewOrderServiceConnectHandler, server.NewOrderRunner, server.NewDelayMsgRelayRunner, newConnectServerConfig, server.NewConnectServer, server.NewMetricsServer, newApp)

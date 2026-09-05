@@ -12,10 +12,14 @@ import (
 	"github.com/azusayn/azushop/internal/service"
 	authv1connect "github.com/azusayn/azushop/proto/api/auth/v1/v1connect"
 	"github.com/azusayn/azushop/proto/conf"
+	"go.opentelemetry.io/otel/propagation"
 )
 
-func newConnectServerConfig(connectHandler *service.AuthServiceConnectHandler, config *conf.Server) (*server.ConnectServerConfig, error) {
-	connectInterceptor, err := otelconnect.NewInterceptor()
+func newConnectServerConfig(connectHandler *service.AuthServiceConnectHandler, config *conf.Server, propagator propagation.TextMapPropagator) (*server.ConnectServerConfig, error) {
+	connectInterceptor, err := otelconnect.NewInterceptor(
+		otelconnect.WithPropagator(propagator),
+		otelconnect.WithTrustRemote(),
+	)
 	if err != nil {
 		return nil, err
 	}

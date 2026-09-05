@@ -9,6 +9,7 @@ package main
 import (
 	"github.com/azusayn/azushop/internal/biz"
 	"github.com/azusayn/azushop/internal/data"
+	"github.com/azusayn/azushop/internal/pkg/telemetry"
 	"github.com/azusayn/azushop/internal/server"
 	"github.com/azusayn/azushop/internal/service"
 	"github.com/azusayn/azushop/proto/conf"
@@ -33,7 +34,8 @@ func wireApp(cd *conf.Data, cs *conf.Server) (*App, func(), error) {
 	}
 	paymentPublisher := data.NewPaymentPublisher(kafkaProducer)
 	paymentUsecase := biz.NewPaymentUsecase(paymentRepo, paymentPublisher)
-	orderServiceClient, err := data.NewOrderClient(cd)
+	textMapPropagator := telemetry.NewTextMapPropagator()
+	orderServiceClient, err := data.NewOrderClient(cd, textMapPropagator)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -43,7 +45,7 @@ func wireApp(cd *conf.Data, cs *conf.Server) (*App, func(), error) {
 	}
 	paymentServiceConnectHandler := service.NewPaymentServiceConnectHandler(paymentService)
 	paymentCallbackHandler := service.NewPaymentCallbackHandler(paymentUsecase)
-	connectServerConfig, err := newConnectServerConfig(paymentServiceConnectHandler, paymentCallbackHandler, cs, cd)
+	connectServerConfig, err := newConnectServerConfig(paymentServiceConnectHandler, paymentCallbackHandler, cs, cd, textMapPropagator)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -56,4 +58,4 @@ func wireApp(cd *conf.Data, cs *conf.Server) (*App, func(), error) {
 
 // wire.go:
 
-var wireProviders = wire.NewSet(data.PaymentDataProviderSet, biz.NewPaymentUsecase, service.NewPaymentService, service.NewPaymentServiceConnectHandler, service.NewPaymentCallbackHandler, newConnectServerConfig, server.NewConnectServer, server.NewMetricsServer, newApp)
+var wireProviders = wire.NewSet(telemetry.NewTextMapPropagator, data.PaymentDataProviderSet, biz.NewPaymentUsecase, service.NewPaymentService, service.NewPaymentServiceConnectHandler, service.NewPaymentCallbackHandler, newConnectServerConfig, server.NewConnectServer, server.NewMetricsServer, newApp)

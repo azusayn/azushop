@@ -15,6 +15,7 @@ import (
 	"github.com/azusayn/azushop/internal/service"
 	paymentv1connect "github.com/azusayn/azushop/proto/api/payment/v1/v1connect"
 	"github.com/azusayn/azushop/proto/conf"
+	"go.opentelemetry.io/otel/propagation"
 )
 
 func newConnectServerConfig(
@@ -22,13 +23,17 @@ func newConnectServerConfig(
 	paymentCallbackHandler *service.PaymentCallbackHandler,
 	serverConfig *conf.Server,
 	dataConfig *conf.Data,
+	propagator propagation.TextMapPropagator,
 ) (*server.ConnectServerConfig, error) {
 	publicKey, err := crypto.LoadEd25519PublicKey(dataConfig.GetAuth().GetPublicKeyPath())
 	if err != nil {
 		return nil, err
 	}
 
-	connectInterceptor, err := otelconnect.NewInterceptor()
+	connectInterceptor, err := otelconnect.NewInterceptor(
+		otelconnect.WithPropagator(propagator),
+		otelconnect.WithTrustRemote(),
+	)
 	if err != nil {
 		return nil, err
 	}
