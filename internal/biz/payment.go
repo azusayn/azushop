@@ -148,6 +148,7 @@ func (uc *PaymentUsecase) Callback(ctx context.Context, method PaymentMethod, bo
 		span.SetStatus(codes.Error, err.Error())
 		return err
 	}
+	// TODO: outbox
 	if err := uc.publisher.PublishPaymentStatus(ctx, orderID, paymentStatus); err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
