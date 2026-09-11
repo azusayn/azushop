@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
-	"math/rand/v2"
+	"math/rand"
 	"time"
 
 	"github.com/azusayn/azushop/proto/conf"
@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	// jitter percentage range for cache expiration.
+	// expiration jitter ratio range to reduce cache avalanches.
 	cacheJitterMin float64 = 0.05
 	cacheJitterMax float64 = 0.10
 )
@@ -40,62 +40,59 @@ func NewRedis(config *conf.Data) (*Redis, error) {
 
 func GetCache[T any](ctx context.Context, r *Redis, key string) (T, bool) {
 	var zero T
-	val, err := func() (T, error) {
-		client := r.Client
-		bytes, err := client.Get(ctx, key).Bytes()
-		if err != nil {
-			return zero, err
-		}
-		var val T
-		if err := json.Unmarshal(bytes, &val); err != nil {
-			return zero, err
-		}
-		return val, nil
-	}()
+
+	bytes, err := r.Client.Get(ctx, key).Bytes()
 	if err != nil {
-		if !errors.Is(err, redis.Nil) {
-			slog.Warn(err.Error())
+		if errors.Is(err, redis.Nil) {
+			slog.DebugContext(ctx, "cache miss", slog.String("key", key))
+			return zero, false
 		}
+		slog.WarnContext(ctx, "failed to get cache", slog.Any("err", err))
 		return zero, false
 	}
+
+	var val T
+	if err := json.Unmarshal(bytes, &val); err != nil {
+		slog.WarnContext(ctx, "failed to unmarshal cache", slog.Any("err", err))
+		return zero, false
+	}
+
 	return val, true
 }
 
 func SetCache(ctx context.Context, r *Redis, key string, val any, expiration time.Duration) {
-	err := func() error {
-		client := r.Client
-		bytes, err := json.Marshal(val)
-		if err != nil {
-			return err
-		}
-		ratio := cacheJitterMin + (cacheJitterMax-cacheJitterMin)*rand.Float64()
-		jitter := float64(expiration) * ratio
-		return client.Set(ctx, key, bytes, expiration+time.Duration(jitter)).Err()
-	}()
+	bytes, err := json.Marshal(val)
 	if err != nil {
-		slog.Warn(err.Error())
+		slog.WarnContext(ctx, "failed to marshal value", slog.Any("err", err))
+		return
+	}
+
+	ratio := cacheJitterMin + (cacheJitterMax-cacheJitterMin)*rand.Float64()
+	jitter := float64(expiration) * ratio
+	if err := r.Client.Set(ctx, key, bytes, expiration+time.Duration(jitter)).Err(); err != nil {
+		slog.WarnContext(ctx, "failed to set cache", slog.Any("err", err))
 	}
 }
 
 func DelCache(ctx context.Context, r *Redis, keys ...string) {
 	client := r.Client
 	if err := client.Del(ctx, keys...).Err(); err != nil {
-		slog.Warn(err.Error())
+		slog.WarnContext(ctx, "failed to delete cache", slog.Any("err", err))
 	}
 }
 
 func SetCacheSAdd(ctx context.Context, r *Redis, key string, members ...any) {
 	client := r.Client
 	if err := client.SAdd(ctx, key, members).Err(); err != nil {
-		slog.Warn(err.Error())
+		slog.WarnContext(ctx, "failed to sadd cache", slog.Any("err", err))
 	}
 }
 
-// returns true if any keys are found.
+// GetCacheSMembers returns true if any keys are found.
 func GetCacheSMembers(ctx context.Context, r *Redis, key string) ([]string, bool) {
 	strs, err := r.Client.SMembers(ctx, key).Result()
 	if err != nil {
-		slog.Warn(err.Error())
+		slog.WarnContext(ctx, "failed to get cache smembers", slog.Any("err", err))
 		return nil, false
 	}
 	if len(strs) == 0 {
