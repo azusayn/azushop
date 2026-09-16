@@ -60,13 +60,15 @@ jobs:
       - name: Helm upgrade --install
         env:
           IMAGE: ${{ steps.meta.outputs.image }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
         run: |
           helm upgrade --install azushop ./helm-charts/azushop \
             -n azushop \
             --create-namespace \
             --reuse-values \
             --set "services.image=${IMAGE}" \
-            --set "services.imagePullPolicy=IfNotPresent"
+            --set "services.imagePullPolicy=IfNotPresent" \
+            --set "stripe.secretKey=${STRIPE_SECRET_KEY}"
 
       - name: Wait for business deployments
         run: |
