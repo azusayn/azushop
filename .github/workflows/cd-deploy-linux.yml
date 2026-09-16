@@ -1,0 +1,85 @@
+# Helm deploy for Linux runners (bash).
+name: CD Deploy Linux
+
+on:
+  workflow_dispatch:
+    inputs:
+      runner:
+        description: 'Linux runner that can reach the target cluster'
+        required: true
+        default: 'ubuntu-24.04'
+        type: string
+  workflow_call:
+    inputs:
+      runner:
+        description: 'Linux runner that can reach the target cluster'
+        required: false
+        type: string
+        default: 'ubuntu-24.04'
+
+jobs:
+  deploy:
+    name: helm-deploy
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha || github.sha }}
+
+      - name: Resolve azushop image tag
+        id: meta
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+        run: |
+          tag="$(git rev-parse --short HEAD)"
+          image="${DOCKER_USERNAME}/azushop:${tag}"
+          {
+            echo "image_tag=${tag}"
+            echo "image=${image}"
+          } >> "$GITHUB_OUTPUT"
+          echo "Deploying ${image} on runner=${{ inputs.runner }}"
+
+      - name: Ensure minikube is running
+        run: |
+          if ! minikube status; then
+            echo "minikube not ready; starting..."
+            minikube start
+          fi
+
+      - name: Pull image into minikube
+        env:
+          IMAGE: ${{ steps.meta.outputs.image }}
+        run: minikube image pull "$IMAGE"
+
+      - name: Helm upgrade --install
+        env:
+          IMAGE: ${{ steps.meta.outputs.image }}
+        run: |
+          helm upgrade --install azushop ./helm-charts/azushop \
+            -n azushop \
+            --create-namespace \
+            --reuse-values \
+            --set "services.image=${IMAGE}" \
+            --set "services.imagePullPolicy=IfNotPresent"
+
+      - name: Wait for business deployments
+        run: |
+          for svc in auth inventory order payment product; do
+            echo "=== rollout status ${svc} ==="
+            kubectl rollout status "deploy/${svc}" -n azushop --timeout=300s
+          done
+
+      - name: Show deploy status
+        env:
+          IMAGE: ${{ steps.meta.outputs.image }}
+        run: |
+          echo "Image: ${IMAGE}"
+          helm list -n azushop
+          kubectl get pods -n azushop
+          kubectl get deploy -n azushop auth inventory order payment product -o wide

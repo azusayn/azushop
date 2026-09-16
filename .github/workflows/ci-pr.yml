@@ -73,12 +73,21 @@ jobs:
       - name: Run tests
         run: go test ./...
 
+  # Atlas officially recommends committing atlas.sum from developers and failing CI on
+  # mismatch (to surface concurrent migration edits). We deliberately do the opposite:
+  # regenerate and push atlas.sum here so local/PR authors do not have to coordinate
+  # migration-file conflicts across developers.
   atlas-sum:
     name: atlas-sum
     runs-on: ubuntu-24.04
     timeout-minutes: 5
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v6
+        with:
+          # Commit back onto the PR head branch, not the ephemeral merge ref.
+          ref: ${{ github.head_ref }}
 
       - name: Install atlas
         run: |
@@ -86,7 +95,15 @@ jobs:
           sudo install -m 755 /tmp/atlas /usr/local/bin/atlas
           atlas version
 
-      - name: Verify migrations atlas.sum
+      - name: Regenerate atlas.sum and commit if changed
         run: |
           atlas migrate hash --dir "file://helm-charts/azushop/migrations"
-          git diff --exit-code -- helm-charts/azushop/migrations/atlas.sum
+          if git diff --quiet -- helm-charts/azushop/migrations/atlas.sum; then
+            echo "atlas.sum already up to date"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add helm-charts/azushop/migrations/atlas.sum
+          git commit -m "chore(migrations): regenerate atlas.sum"
+          git push

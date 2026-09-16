@@ -1,0 +1,90 @@
+# Helm deploy for Windows runners (PowerShell).
+name: CD Deploy Windows
+
+on:
+  workflow_dispatch:
+    inputs:
+      runner:
+        description: 'Windows runner that can reach the target cluster'
+        required: true
+        default: 'self-hosted'
+        type: string
+  workflow_call:
+    inputs:
+      runner:
+        description: 'Windows runner that can reach the target cluster'
+        required: false
+        type: string
+        default: 'self-hosted'
+
+jobs:
+  deploy:
+    name: helm-deploy
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: powershell
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha || github.sha }}
+
+      - name: Resolve azushop image tag
+        id: meta
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+        run: |
+          $tag = (git rev-parse --short HEAD).Trim()
+          $image = "$($env:DOCKER_USERNAME)/azushop:$tag"
+          # Avoid PowerShell >> UTF-16; append UTF-8 for GITHUB_OUTPUT.
+          [System.IO.File]::AppendAllText($env:GITHUB_OUTPUT, "image_tag=$tag$([Environment]::NewLine)")
+          [System.IO.File]::AppendAllText($env:GITHUB_OUTPUT, "image=$image$([Environment]::NewLine)")
+          Write-Host "Deploying $image on runner=${{ inputs.runner }}"
+
+      - name: Ensure minikube is running
+        run: |
+          minikube status
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "minikube not ready; starting..."
+            minikube start
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+
+      - name: Pull image into minikube
+        env:
+          IMAGE: ${{ steps.meta.outputs.image }}
+        run: |
+          minikube image pull $env:IMAGE
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Helm upgrade --install
+        env:
+          IMAGE: ${{ steps.meta.outputs.image }}
+        run: |
+          helm upgrade --install azushop ./helm-charts/azushop `
+            -n azushop `
+            --create-namespace `
+            --reuse-values `
+            --set "services.image=$($env:IMAGE)" `
+            --set "services.imagePullPolicy=IfNotPresent"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Wait for business deployments
+        run: |
+          foreach ($svc in @("auth", "inventory", "order", "payment", "product")) {
+            Write-Host "=== rollout status $svc ==="
+            kubectl rollout status "deploy/$svc" -n azushop --timeout=300s
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+
+      - name: Show deploy status
+        env:
+          IMAGE: ${{ steps.meta.outputs.image }}
+        run: |
+          Write-Host "Image: $($env:IMAGE)"
+          helm list -n azushop
+          kubectl get pods -n azushop
+          kubectl get deploy -n azushop auth inventory order payment product -o wide
