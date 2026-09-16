@@ -36,8 +36,12 @@ jobs:
         id: meta
         env:
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          GITHUB_SHA: ${{ github.sha }}
         run: |
-          $tag = (git rev-parse --short HEAD).Trim()
+          # Prefer GITHUB_SHA over git rev-parse on Windows self-hosted runners.
+          # git commands fail with "dubious ownership" because actions/checkout sets
+          # safe.directory in a temporary HOME that doesn't persist for PowerShell steps.
+          $tag = $env:GITHUB_SHA.Substring(0, 7)
           $image = "$($env:DOCKER_USERNAME)/azushop:$tag"
           # Avoid PowerShell >> UTF-16; append UTF-8 for GITHUB_OUTPUT.
           [System.IO.File]::AppendAllText($env:GITHUB_OUTPUT, "image_tag=$tag$([Environment]::NewLine)")
