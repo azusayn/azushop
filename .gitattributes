@@ -1,0 +1,2 @@
+# Exclude misc directory from GitHub language statistics
+misc/** linguist-vendored
