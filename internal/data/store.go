@@ -24,6 +24,13 @@ func NewPostgres(config *conf.Data) (*Postgres, error) {
 		return nil, errors.New("nil PostgresConfig")
 	}
 
+	// TODO: implement retry policy for database connection initialization.
+	//
+	// Since all the pods start almost at the same time, the database connection may fail if
+	// the database pod is not ready. Instead of crashing and letting Kubernetes restart the
+	// pod (which may cause backoff delays), restarting the application inside the pod with
+	// short-interval retries is more efficient.
+
 	postgresConn, err := otelsql.Open(
 		config.GetDatabase().GetDriver(),
 		config.GetDatabase().GetSource(),
