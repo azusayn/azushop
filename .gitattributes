@@ -1,2 +1,8 @@
 # Exclude misc directory from GitHub language statistics
 misc/** linguist-vendored
+
+# Force LF line endings for Atlas migration files to ensure checksum consistency
+# across platforms (Windows autocrlf would otherwise convert to CRLF, breaking
+# Atlas checksum validation in Kubernetes deployment)
+helm-charts/**/migrations/*.sql text eol=lf
+helm-charts/**/migrations/atlas.sum text eol=lf
