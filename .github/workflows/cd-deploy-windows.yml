@@ -27,6 +27,13 @@ jobs:
         shell: powershell
 
     steps:
+      - name: Configure git for LF line endings
+        run: |
+          # Ensure .gitattributes eol=lf rules are respected on Windows.
+          # Without this, core.autocrlf may convert LF → CRLF, breaking Atlas checksum.
+          git config --global core.autocrlf false
+          git config --global core.eol lf
+
       - name: Checkout
         uses: actions/checkout@v6
         with:

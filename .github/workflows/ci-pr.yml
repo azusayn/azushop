@@ -100,10 +100,16 @@ jobs:
           atlas migrate hash --dir "file://helm-charts/azushop/migrations"
           if git diff --quiet -- helm-charts/azushop/migrations/atlas.sum; then
             echo "atlas.sum already up to date"
-            exit 0
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add helm-charts/azushop/migrations/atlas.sum
+            git commit -m "chore(migrations): regenerate atlas.sum"
+            git push
           fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add helm-charts/azushop/migrations/atlas.sum
-          git commit -m "chore(migrations): regenerate atlas.sum"
-          git push
+
+      - name: Validate migrations with Atlas
+        run: |
+          # Validate that migrations are consistent and checksums match.
+          # This catches line-ending drift and other migration file issues early.
+          atlas migrate validate --dir "file://helm-charts/azushop/migrations"
