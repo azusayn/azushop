@@ -39,6 +39,46 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.merge_commit_sha || github.sha }}
 
+      - name: Force LF line endings on migration files
+        run: |
+          # Despite .gitattributes eol=lf and core.autocrlf=false, actions/checkout
+          # on Windows self-hosted runners may still produce CRLF files (likely due to
+          # HOME override or renormalize not applied). Explicitly rewrite to LF.
+          $migrationsDir = "helm-charts/azushop/migrations"
+          if (Test-Path $migrationsDir) {
+            Get-ChildItem -Path $migrationsDir -File | ForEach-Object {
+              $content = [System.IO.File]::ReadAllText($_.FullName)
+              # Replace CRLF and CR with LF
+              $content = $content -replace "`r`n", "`n" -replace "`r", "`n"
+              # Write back as UTF-8 without BOM
+              $utf8NoBom = New-Object System.Text.UTF8Encoding $false
+              [System.IO.File]::WriteAllText($_.FullName, $content, $utf8NoBom)
+              Write-Host "Normalized line endings: $($_.Name)"
+            }
+          }
+
+      - name: Assert no CR remains in migrations
+        run: |
+          # Fail the job if any CR (carriage return) characters remain in migration files.
+          # This prevents silent regression of the line-ending fix.
+          $migrationsDir = "helm-charts/azushop/migrations"
+          $foundCR = $false
+          if (Test-Path $migrationsDir) {
+            Get-ChildItem -Path $migrationsDir -File | ForEach-Object {
+              $content = [System.IO.File]::ReadAllText($_.FullName)
+              $crCount = ([regex]::Matches($content, "`r")).Count
+              if ($crCount -gt 0) {
+                Write-Host "ERROR: Found $crCount CR characters in $($_.Name)"
+                $foundCR = $true
+              }
+            }
+          }
+          if ($foundCR) {
+            Write-Host "FAILED: Migration files still contain CR characters after normalization"
+            exit 1
+          }
+          Write-Host "SUCCESS: All migration files contain only LF line endings"
+
       - name: Resolve azushop image tag
         id: meta
         env:
