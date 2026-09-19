@@ -40,6 +40,8 @@ spec:
               value: {{ .Values.kafka.clusterID | quote }}
           ports:
             - containerPort: {{ .Values.kafka.service.port }}
+          resources:
+            {{- toYaml .Values.kafka.resources | nindent 12 }}
           volumeMounts:
             - name: kafka-data
               mountPath: {{ .Values.kafka.persistence.mountPath }}

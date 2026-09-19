@@ -16,6 +16,8 @@ spec:
           image: {{ .Values.kafkaui.image.repository }}:{{ .Values.kafkaui.image.tag }}
           ports:
             - containerPort: {{ .Values.kafkaui.service.targetPort }}
+          resources:
+            {{- toYaml .Values.kafkaui.resources | nindent 12 }}
           env:
             - name: KAFKA_CLUSTERS_0_NAME
               value: {{ .Values.kafkaui.cluster.name | quote }}

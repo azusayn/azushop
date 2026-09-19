@@ -29,6 +29,8 @@ spec:
               name: http
             - containerPort: {{ .Values.clickhouse.service.nativePort }}
               name: native
+          resources:
+            {{- toYaml .Values.clickhouse.resources | nindent 12 }}
           volumeMounts:
             - name: clickhouse-data
               mountPath: {{ .Values.clickhouse.persistence.mountPath }}

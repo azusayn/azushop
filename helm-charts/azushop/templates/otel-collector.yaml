@@ -30,6 +30,8 @@ spec:
               name: otlp-grpc
             - containerPort: {{ .Values.otelCollector.service.otlpHttpPort }}
               name: otlp-http
+          resources:
+            {{- toYaml .Values.otelCollector.resources | nindent 12 }}
           volumeMounts:
             - name: config-volume
               mountPath: /etc/otelcol

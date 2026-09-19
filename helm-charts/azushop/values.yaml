@@ -16,6 +16,13 @@ postgres:
     mountPath: /var/lib/postgresql
     accessModes:
       - ReadWriteOnce
+  resources:
+    requests:
+      cpu: "250m"
+      memory: "512Mi"
+    limits:
+      cpu: "1"
+      memory: "1Gi"
   hookWeight: -5
 
 migration:
@@ -26,6 +33,20 @@ migration:
   configHookWeight: 4
   hookWeight: 5
   backoffLimit: 3
+  waitResources:
+    requests:
+      cpu: "50m"
+      memory: "64Mi"
+    limits:
+      cpu: "200m"
+      memory: "128Mi"
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "500m"
+      memory: "256Mi"
 
 redis:
   image:
@@ -71,6 +92,13 @@ kafka:
     mountPath: /var/lib/kafka/data
     accessModes:
       - ReadWriteOnce
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "1"
+      memory: "2Gi"
 
 kafkaui:
   image:
@@ -82,6 +110,13 @@ kafkaui:
   cluster:
     name: local
     bootstrapServers: kafka-service:9092
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
 
 gateway:
   image:
@@ -95,6 +130,13 @@ gateway:
   config:
     mountPath: /etc/envoy
     file: configs/infra/envoy.yaml
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "500m"
+      memory: "256Mi"
 
 grafana:
   image:
@@ -136,6 +178,13 @@ clickhouse:
     mountPath: /var/lib/clickhouse
     accessModes:
       - ReadWriteOnce
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "1"
+      memory: "2Gi"
 
 otelCollector:
   image:
@@ -146,11 +195,25 @@ otelCollector:
   service:
     otlpGrpcPort: 4317
     otlpHttpPort: 4318
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
 
 services:
   image: "azusaing/azushop:latest"
   imagePullPolicy: IfNotPresent
   replicas: 1
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "500m"
+      memory: "256Mi"
   service:
     type: ClusterIP
     port: 8080

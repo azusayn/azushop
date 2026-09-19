@@ -25,6 +25,8 @@ spec:
       initContainers:
         - name: wait-for-postgres
           image: {{ .Values.migration.waitImage }}
+          resources:
+            {{- toYaml .Values.migration.waitResources | nindent 12 }}
           command:
             - sh
             - -c
@@ -36,6 +38,8 @@ spec:
       containers:
         - name: atlas
           image: {{ .Values.migration.image.repository }}:{{ .Values.migration.image.tag }}
+          resources:
+            {{- toYaml .Values.migration.resources | nindent 12 }}
           args:
             - migrate
             - apply

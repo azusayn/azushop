@@ -131,4 +131,30 @@ helm uninstall azushop -n azushop
 
 - Prefer namespace `azushop` to avoid leftover Postgres conflicts.
 - Free ngrok URLs change each session unless you reserve a domain.
-- Production: replace ngrok with Ingress or a load balancer.
+
+## GCP
+
+One GKE Standard node, 8 vCPU / 16 GiB. Terraform creates the cluster; Helm is installed from a laptop after `gcloud container clusters get-credentials`. GKE does not ship Helm.
+
+Allocatable capacity on that node is less than 8 / 16: kubelet reserves about 2.6 GiB, and `kube-system` takes more. Steady-state requests below are about **2.25 vCPU / 4 GiB**, so the chart fits with room for system pods. Limits are caps, not extra reservations; they can sum past the node and only throttle or OOM the container that hits them.
+
+| Workload | CPU request | Memory request | CPU limit | Memory limit |
+| --- | --- | --- | --- | --- |
+| postgres | 250m | 512Mi | 1 | 1Gi |
+| redis | 100m | 100Mi | 1 | 500Mi |
+| kafka | 500m | 1Gi | 1 | 2Gi |
+| kafka-ui | 100m | 256Mi | 500m | 512Mi |
+| envoy | 100m | 128Mi | 500m | 256Mi |
+| grafana | 100m | 128Mi | 500m | 512Mi |
+| clickhouse | 500m | 1Gi | 1 | 2Gi |
+| otel-collector | 100m | 256Mi | 500m | 512Mi |
+| auth, inventory, order, payment, product | 100m each | 128Mi each | 500m each | 256Mi each |
+
+The Atlas migration Job and `busybox` init containers request 50–100m / 64–128Mi. They are not part of the steady-state sum: init requests do not stack on top of the app container, and the Job exits after migrate.
+
+- [x] Container `resources.requests` sized for this node
+- [ ] Move `helm-charts/` to `deploy/helm-charts/` and update workflow paths
+- [ ] Terraform for the GKE cluster (one 8 vCPU / 16 GiB node)
+- [ ] `values-gke.yaml`: Envoy `LoadBalancer`, Postgres `ClusterIP`
+- [ ] Move secrets out of the chart (Postgres password, Stripe key, Grafana admin, JWT keys)
+- [ ] Point `stripeSuccessUrl` at the load balancer address

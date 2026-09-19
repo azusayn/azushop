@@ -27,6 +27,8 @@ spec:
           ports:
             - containerPort: {{ .Values.gateway.service.targetPort }}
               name: http
+          resources:
+            {{- toYaml .Values.gateway.resources | nindent 12 }}
           volumeMounts:
             - name: config-volume
               mountPath: {{ .Values.gateway.config.mountPath }}
