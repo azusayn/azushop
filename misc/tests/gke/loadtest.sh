@@ -12,7 +12,7 @@ if declare -f setproxy >/dev/null 2>&1; then
 fi
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-ROOT="$(cd "$HERE/../.." && pwd)"
+ROOT="$(cd "$HERE/../../.." && pwd)"
 TF_DIR="$ROOT/deploy/terraform"
 NAMESPACE="azushop"
 LOADGEN="${LOADGEN:-azushop-loadgen}"

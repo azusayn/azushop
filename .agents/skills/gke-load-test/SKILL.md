@@ -2,7 +2,7 @@
 name: gke-load-test
 description: >-
   Create a one-node GKE cluster, install azushop, set the Stripe success URL
-  and webhook, run tests/gke, then destroy the cluster. Use when load-testing
+  and webhook, run misc/tests/gke, then destroy the cluster. Use when load-testing
   on GKE, running terraform apply or destroy, or pointing Stripe at the load balancer.
 ---
 
@@ -40,7 +40,7 @@ Terraform uses application-default credentials from the login above.
 From the repo root, after Login. The script reads the gcloud project, region, and zone. It does not log in and does not pick a project.
 
 ```bash
-tests/gke/create.sh
+misc/tests/gke/create.sh
 ```
 
 That writes `terraform.tfvars`, runs `terraform init` and `terraform apply -auto-approve`, then the printed `get_credentials` command.
@@ -50,7 +50,7 @@ That writes `terraform.tfvars`, runs `terraform init` and `terraform apply -auto
 From the repo root. `values-gke.yaml` only sets Envoy to `LoadBalancer`. Postgres stays ClusterIP. `STRIPE_SECRET_KEY` must already be set. The script installs the chart if the release is missing, waits for the Envoy address, then upgrades Stripe and Grafana to that address.
 
 ```bash
-tests/gke/install.sh
+misc/tests/gke/install.sh
 ```
 
 Gateway port is `10000`. The script prints `envoy http://<EXTERNAL-IP>:10000` and `grafana http://<EXTERNAL-IP>:10000/grafana/`.
@@ -61,7 +61,7 @@ Gateway port is `10000`. The script prints `envoy http://<EXTERNAL-IP>:10000` an
 
 ## Stripe URLs
 
-`tests/gke/install.sh` does this step. It is not a separate command.
+`misc/tests/gke/install.sh` does this step. It is not a separate command.
 
 Success URL goes into the `azushop-config` Secret via Helm. Webhook URL is set on Stripe by `misc/set-stripe-webhook.js` (`/payment.v1.PaymentService/provider/callback`). Same `sk_test_…` key as the payment service. The script passes `stripe.secretKey`, `serviceConfig.payment.stripeSuccessUrl`, and `grafana.rootURL`, runs the webhook script, then restarts envoy and grafana.
 
@@ -69,10 +69,10 @@ The chart default `stripe.secretKey` is a dummy. The payment service creates Che
 
 ## Test
 
-k6 runs on `azushop-loadgen`, a VM in `azushop-vpc`, not on a GKE node and not in a Pod. Do not run it on the laptop. `tests/gke/loadtest.sh` seeds Postgres, copies k6 and the three scripts onto that VM, checks the gateway, then runs both tests. `BASE_URL` is the Envoy LoadBalancer. The script does not summarize results.
+k6 runs on `azushop-loadgen`, a VM in `azushop-vpc`, not on a GKE node and not in a Pod. Do not run it on the laptop. `misc/tests/gke/loadtest.sh` seeds Postgres, copies k6 and the three scripts onto that VM, checks the gateway, then runs both tests. `BASE_URL` is the Envoy LoadBalancer. The script does not summarize results.
 
 ```bash
-tests/gke/loadtest.sh
+misc/tests/gke/loadtest.sh
 ```
 
 `STRIPE_SECRET_KEY` must be set. A k6 threshold failure (exit 99) still runs the other test. The script then exits non-zero. Read the k6 summaries; do not treat that exit code as the report.
@@ -100,7 +100,7 @@ Performance: `http_req_duration` avg / med / p(90) / p(95) / max, `http_reqs` co
 Do not run `terraform destroy` by itself. The load balancer and the Postgres, Kafka, and ClickHouse disks are created by Kubernetes, not Terraform. StatefulSet disks also survive `helm uninstall`.
 
 ```bash
-tests/gke/destroy.sh
+misc/tests/gke/destroy.sh
 ```
 
 The script deletes the Helm release, PVCs, and namespace while the cluster is still up, then `terraform destroy`, then removes any leftover forwarding rules, disks, addresses, firewall rules, subnet, and VPC for this cluster. It exits non-zero if any of those remain. Enabled APIs stay on; they are not billed.

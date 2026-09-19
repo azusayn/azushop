@@ -10,7 +10,7 @@ if declare -f setproxy >/dev/null 2>&1; then
   setproxy || true
 fi
 
-ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 NAMESPACE="azushop"
 CHART="$ROOT/deploy/helm-charts/azushop"
 VALUES_GKE="$CHART/values-gke.yaml"

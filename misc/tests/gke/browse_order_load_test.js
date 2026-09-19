@@ -9,7 +9,7 @@ import { buyerCredentials, login } from './buyer.js';
  * paging. An empty cart after the last page does not order.
  * setup logs in as loadcustomer / loadtest, inserted by products.sql.
  *
- *   k6 run tests/gke/browse_order_load_test.js \
+ *   k6 run misc/tests/gke/browse_order_load_test.js \
  *     -e BASE_URL=http://127.0.0.1:10000 \
  *     -e SELLER_ID=2 \
  *     -e ADD_CHANCE=40

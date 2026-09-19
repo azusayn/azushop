@@ -11,7 +11,7 @@ if declare -f setproxy >/dev/null 2>&1; then
   setproxy || true
 fi
 
-ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 TF_DIR="$ROOT/deploy/terraform"
 
 gcloud_value() {

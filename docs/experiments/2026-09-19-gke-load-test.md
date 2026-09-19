@@ -116,7 +116,7 @@ Sessions that reached step 5 in the small pre-load check all succeeded. Under 50
 
 One `e2-custom-8-16384` node (8 vCPU, 16 GiB) in `azushop-vpc`. Load generator `azushop-loadgen` is `e2-custom-4-8192`, 30 GB, Ubuntu 24.04, in the same subnet, with an ephemeral external IP so it can call Stripe. It is not a Kubernetes node. SSH is IAP only (`35.235.240.0/20` to tcp/22). k6 v2.2.0 runs in `$HOME` because Container-Optimized OS mounts `/home`, `/tmp`, and `/var` `noexec` on the GKE node.
 
-Buyer is SQL, not the k6 script: `loadcustomer` / `loadtest`, id 2, role admin, inserted by `tests/gke/products.sql` (`ON CONFLICT DO NOTHING`). `BASE_URL` is the Envoy external address, port 10000. Postgres stays ClusterIP.
+Buyer is SQL, not the k6 script: `loadcustomer` / `loadtest`, id 2, role admin, inserted by `misc/tests/gke/products.sql` (`ON CONFLICT DO NOTHING`). `BASE_URL` is the Envoy external address, port 10000. Postgres stays ClusterIP.
 
 `browse_order_load_test.js` adds a product with probability `ADD_CHANCE` (default 40) while paging. A non-empty cart always places an order. An empty cart after the last page does not. Page size is 20. Cart cap is 5.
 
@@ -159,7 +159,7 @@ These are not the final numbers. They explain the fixes above.
 
 ## Destroy
 
-Do not run `terraform destroy` alone. The load balancer and the Postgres, Kafka, and ClickHouse disks are created by Kubernetes. `tests/gke/destroy.sh` deletes workloads, PVCs, and the namespace, runs `terraform destroy`, then deletes a leftover forwarding rule, disk, address, firewall, the load-generator VM, subnet, and VPC. Enabled APIs stay on.
+Do not run `terraform destroy` alone. The load balancer and the Postgres, Kafka, and ClickHouse disks are created by Kubernetes. `misc/tests/gke/destroy.sh` deletes workloads, PVCs, and the namespace, runs `terraform destroy`, then deletes a leftover forwarding rule, disk, address, firewall, the load-generator VM, subnet, and VPC. Enabled APIs stay on.
 
 Postgres is a Helm pre-install hook with no delete policy, so `helm uninstall` leaves its StatefulSet. The script deletes StatefulSets before PVCs. Without that, the Postgres disk stays attached and PVC deletion waits until timeout.
 

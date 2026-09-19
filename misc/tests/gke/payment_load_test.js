@@ -12,7 +12,7 @@ import { buyerCredentials, login } from './buyer.js';
  *   POST /v1/payment_pages/{cs_xxx}/confirm   payment_method_data[type]=alipay
  *   GET  the test-mode authorize page, then its success redirect
  *
- *   k6 run tests/gke/payment_load_test.js \
+ *   k6 run misc/tests/gke/payment_load_test.js \
  *     -e BASE_URL=http://127.0.0.1:10000 \
  *     -e STRIPE_SECRET_KEY=sk_test_... \
  *     -e ORDER_IDS=101,102,103
