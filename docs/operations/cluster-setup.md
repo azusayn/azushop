@@ -1,6 +1,6 @@
 # Azushop Cluster Setup
 
-Install and operate `helm-charts/azushop` on a local Kubernetes cluster (minikube v1.38+ tested).
+Install and operate `deploy/helm-charts/azushop` on a local Kubernetes cluster (minikube v1.38+ tested).
 
 ## Prerequisites
 
@@ -14,7 +14,7 @@ ngrok config add-authtoken <your-token>
 ## Install
 
 ```bash
-helm install azushop ./helm-charts/azushop -n azushop --create-namespace
+helm install azushop ./deploy/helm-charts/azushop -n azushop --create-namespace
 kubectl get pods -n azushop
 ```
 
@@ -51,7 +51,7 @@ API entry: Envoy `svc/envoy:10000`. The cluster is not public — tunnel from th
 5. Sync Stripe callback when the URL changes:
 
    ```bash
-   helm upgrade azushop ./helm-charts/azushop -n azushop --reuse-values \
+   helm upgrade azushop ./deploy/helm-charts/azushop -n azushop --reuse-values \
      --set serviceConfig.payment.stripeSuccessUrl="https://<ngrok-host>/v1/payment/callback/stripe"
    ```
 
@@ -79,7 +79,7 @@ Browser may show ngrok’s interstitial once — click Visit Site, or send `ngro
 ## Stripe key (optional)
 
 ```bash
-helm upgrade azushop ./helm-charts/azushop -n azushop \
+helm upgrade azushop ./deploy/helm-charts/azushop -n azushop \
   --set stripe.secretKey="sk_test_..." \
   --set serviceConfig.payment.stripeSuccessUrl="https://<ngrok-host>/v1/payment/callback/stripe"
 ```
@@ -122,7 +122,7 @@ Current instrumentation emits mainly DB spans (`db.Query`, …); Connect/HTTP ha
 ## Day-to-day
 
 ```bash
-helm upgrade azushop ./helm-charts/azushop -n azushop
+helm upgrade azushop ./deploy/helm-charts/azushop -n azushop
 kubectl logs -n azushop deploy/order --tail=50
 helm uninstall azushop -n azushop
 ```
@@ -134,7 +134,16 @@ helm uninstall azushop -n azushop
 
 ## GCP
 
-One GKE Standard node, 8 vCPU / 16 GiB. Terraform creates the cluster; Helm is installed from a laptop after `gcloud container clusters get-credentials`. GKE does not ship Helm.
+One GKE Standard node, 8 vCPU / 16 GiB (`e2-custom-8-16384`). Terraform in `deploy/terraform` creates the cluster only. Helm is installed from a laptop after the credentials command Terraform prints. GKE does not ship Helm.
+
+```bash
+cd deploy/terraform
+cp terraform.tfvars.example terraform.tfvars   # set project_id
+terraform init
+terraform apply
+# then, from the repo root:
+helm install azushop ./deploy/helm-charts/azushop -n azushop --create-namespace
+```
 
 Allocatable capacity on that node is less than 8 / 16: kubelet reserves about 2.6 GiB, and `kube-system` takes more. Steady-state requests below are about **2.25 vCPU / 4 GiB**, so the chart fits with room for system pods. Limits are caps, not extra reservations; they can sum past the node and only throttle or OOM the container that hits them.
 
@@ -153,8 +162,8 @@ Allocatable capacity on that node is less than 8 / 16: kubelet reserves about 2.
 The Atlas migration Job and `busybox` init containers request 50–100m / 64–128Mi. They are not part of the steady-state sum: init requests do not stack on top of the app container, and the Job exits after migrate.
 
 - [x] Container `resources.requests` sized for this node
-- [ ] Move `helm-charts/` to `deploy/helm-charts/` and update workflow paths
-- [ ] Terraform for the GKE cluster (one 8 vCPU / 16 GiB node)
+- [x] Move `helm-charts/` to `deploy/helm-charts/` and update workflow paths
+- [x] Terraform for the GKE cluster (one 8 vCPU / 16 GiB node)
 - [ ] `values-gke.yaml`: Envoy `LoadBalancer`, Postgres `ClusterIP`
 - [ ] Move secrets out of the chart (Postgres password, Stripe key, Grafana admin, JWT keys)
 - [ ] Point `stripeSuccessUrl` at the load balancer address

@@ -92,7 +92,7 @@ services:
       - GF_SERVER_ROOT_URL=/grafana/
     volumes:
       - grafana-data:/var/lib/grafana
-      - ../helm-charts/azushop/configs/infra/grafana-datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+      - ../deploy/helm-charts/azushop/configs/infra/grafana-datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yml:ro
     depends_on:
       - clickhouse
     restart: unless-stopped

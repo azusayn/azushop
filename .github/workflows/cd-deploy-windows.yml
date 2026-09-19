@@ -69,7 +69,7 @@ jobs:
           IMAGE: ${{ steps.meta.outputs.image }}
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
         run: |
-          helm upgrade --install azushop ./helm-charts/azushop `
+          helm upgrade --install azushop ./deploy/helm-charts/azushop `
             -n azushop `
             --create-namespace `
             --reuse-values `
