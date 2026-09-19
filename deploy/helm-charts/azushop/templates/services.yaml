@@ -33,8 +33,15 @@ spec:
         - name: {{ . }}
           image: {{ $image }}
           imagePullPolicy: {{ $.Values.services.imagePullPolicy }}
+          {{- $resources := $.Values.services.resources }}
+          {{- if hasKey $.Values.services . }}
+          {{- $override := index $.Values.services . }}
+          {{- if and (kindIs "map" $override) (hasKey $override "resources") }}
+          {{- $resources = index $override "resources" }}
+          {{- end }}
+          {{- end }}
           resources:
-            {{- toYaml $.Values.services.resources | nindent 12 }}
+            {{- toYaml $resources | nindent 12 }}
           command:
             - "/usr/local/bin/{{ . }}"
           args:

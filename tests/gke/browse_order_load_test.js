@@ -1,16 +1,18 @@
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 import exec from 'k6/execution';
+import { buyerCredentials, login } from './buyer.js';
 
 /**
- * Baseline: 5000 customers browse seller catalog then optionally CreateOrder.
+ * Baseline: 5000 customers browse the seller catalog and order if the cart
+ * is not empty. ADD_CHANCE is the percent chance to add a product while
+ * paging. An empty cart after the last page does not order.
+ * setup logs in as loadcustomer / loadtest, inserted by products.sql.
  *
- *   k6 run misc/test/browse_order_load_test.js \
+ *   k6 run tests/gke/browse_order_load_test.js \
  *     -e BASE_URL=http://127.0.0.1:10000 \
- *     -e USERNAME=loadtest_customer \
- *     -e PASSWORD='...' \
  *     -e SELLER_ID=2 \
- *     -e BUY_CHANCE=35
+ *     -e ADD_CHANCE=40
  */
 
 export const options = {
@@ -52,39 +54,11 @@ function postJSON(url, body, headers) {
 
 export function setup() {
   const baseURL = envOr('BASE_URL', 'http://127.0.0.1:10000');
-  const username = envOr('USERNAME', 'loadtest_customer');
-  const password = envOr('PASSWORD', '');
-  if (!password) {
-    throw new Error('PASSWORD env is required for login');
-  }
-
+  const buyer = buyerCredentials();
   const sellerID = parseInt(envOr('SELLER_ID', '2'), 10);
-  const buyChance = parseInt(envOr('BUY_CHANCE', '35'), 10);
-
-  const res = postJSON(
-    `${baseURL}/auth.v1.AuthService/Login`,
-    {
-      identityProvider: 'PROVIDER_LOCAL',
-      identityProviderContext: {
-        passwordContext: { username, password },
-      },
-    },
-    connectHeaders(),
-  );
-
-  const ok = check(res, {
-    'login status 200': (r) => r.status === 200,
-  });
-  if (!ok) {
-    throw new Error(`login failed: status=${res.status} body=${res.body}`);
-  }
-
-  const token = res.json('accessToken');
-  if (!token) {
-    throw new Error('login returned empty accessToken');
-  }
-
-  return { baseURL, token, sellerID, buyChance };
+  const addChance = parseInt(envOr('ADD_CHANCE', '40'), 10);
+  const token = login(baseURL, buyer.username, buyer.password);
+  return { baseURL, token, sellerID, addChance };
 }
 
 export default function (data) {
@@ -108,7 +82,7 @@ export default function (data) {
       'list seller products 200': (r) => r.status === 200,
     });
     if (res.status !== 200) {
-      return;
+      break;
     }
 
     const products = res.json('products') || [];
@@ -124,7 +98,7 @@ export default function (data) {
       if (skus.length === 0) {
         continue;
       }
-      if (rng() >= 0.4) {
+      if (Math.floor(rng() * 100) >= data.addChance) {
         continue;
       }
       const sku = skus[Math.floor(rng() * skus.length)];
@@ -144,7 +118,7 @@ export default function (data) {
     }
   }
 
-  if (cart.length === 0 || Math.floor(rng() * 100) >= data.buyChance) {
+  if (cart.length === 0) {
     return;
   }
 

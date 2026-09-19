@@ -12,6 +12,8 @@ spec:
       labels:
         app: kafka
     spec:
+      securityContext:
+        fsGroup: 1000
       containers:
         - name: kafka
           image: {{ .Values.kafka.image.repository }}:{{ .Values.kafka.image.tag }}

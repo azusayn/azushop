@@ -5,8 +5,14 @@
 
 set -euo pipefail
 
-TF_DIR="$(cd "$(dirname "$0")" && pwd)"
-ROOT="$(cd "$TF_DIR/../.." && pwd)"
+# shellcheck disable=SC1090
+source "${HOME}/.zprofile" 2>/dev/null || true
+if declare -f setproxy >/dev/null 2>&1; then
+  setproxy || true
+fi
+
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+TF_DIR="$ROOT/deploy/terraform"
 
 read_tfvar() {
   local key="$1"
@@ -75,6 +81,7 @@ release_kubernetes() {
     helm uninstall azushop --namespace "$NAMESPACE" --wait --timeout 10m || true
   fi
   if kubectl get namespace "$NAMESPACE" >/dev/null 2>&1; then
+    kubectl delete statefulset,deploy,job --all --namespace "$NAMESPACE" --wait=true --timeout=5m || true
     kubectl delete pvc --all --namespace "$NAMESPACE" --wait=true --timeout=10m || true
     kubectl delete svc --all --namespace "$NAMESPACE" --wait=true --timeout=10m || true
     kubectl delete namespace "$NAMESPACE" --wait=true --timeout=10m || true
@@ -97,6 +104,11 @@ sweep() {
       --filter="status=RESERVED AND (name~${CLUSTER} OR description~${NAMESPACE})" \
       --format='value(name,region)'
   )
+
+  if gcloud compute instances describe "${CLUSTER}-loadgen" --zone "$ZONE" --project "$PROJECT" >/dev/null 2>&1; then
+    echo "deleting ${CLUSTER}-loadgen"
+    gcloud compute instances delete "${CLUSTER}-loadgen" --zone "$ZONE" --project "$PROJECT" --quiet
+  fi
 
   if cluster_exists; then
     echo "deleting cluster $CLUSTER"
@@ -121,6 +133,7 @@ sweep() {
 
 leftovers() {
   {
+    gcloud compute instances list --project "$PROJECT" --filter="name=${CLUSTER}-loadgen AND zone:${ZONE}" --format='value(name)'
     gcloud container clusters list --project "$PROJECT" --filter="name=${CLUSTER} AND location=${ZONE}" --format='value(name)'
     gcloud compute disks list --project "$PROJECT" --filter="name~^gke-${CLUSTER}- OR description~${NAMESPACE}" --format='value(name)'
     gcloud compute forwarding-rules list --project "$PROJECT" --filter="description~${NAMESPACE}/" --format='value(name)'
