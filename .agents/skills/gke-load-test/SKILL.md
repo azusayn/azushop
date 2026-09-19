@@ -18,13 +18,19 @@ One Standard node, 8 vCPU / 16 GiB. Terraform only creates the cluster. Helm is 
 brew install --cask google-cloud-sdk
 gcloud auth login
 gcloud auth application-default login
-PROJECT_ID="$(gcloud projects list --filter='lifecycleState:ACTIVE' --format='value(projectId)' --limit=1)"
+gcloud projects list --filter='lifecycleState:ACTIVE' --format='table(projectId,name,createTime)'
+```
+
+Stop here. Show that table and ask which `projectId` to use. Do not create a project. Do not pick one yourself. Wait for the answer, then:
+
+```bash
 gcloud config set project "$PROJECT_ID"
+gcloud auth application-default set-quota-project "$PROJECT_ID"
 gcloud config set compute/region asia-east1
 gcloud config set compute/zone asia-east1-b
 ```
 
-`PROJECT_ID` is the first project whose lifecycle state is `ACTIVE`. Terraform uses application-default credentials from the login above.
+Terraform uses application-default credentials from the login above.
 
 ## Create
 
