@@ -8,7 +8,7 @@ postgres:
     database: postgres
   service:
     name: postgres
-    type: NodePort
+    type: ClusterIP
     port: 5432
     targetPort: 5432
   persistence:
@@ -18,10 +18,10 @@ postgres:
       - ReadWriteOnce
   resources:
     requests:
-      cpu: "250m"
+      cpu: "2"
       memory: "512Mi"
     limits:
-      cpu: "1"
+      cpu: "2"
       memory: "1Gi"
   hookWeight: -5
 
@@ -78,7 +78,7 @@ kafka:
     port: 9092
     controllerPort: 9093
   nodeID: 1
-  logDirs: "/var/lib/kafka/data"
+  logDirs: "/var/lib/kafka/data/logs"
   clusterID: "MkU3OEVBNTcwNTJENDM2Qks"
   offsetsTopicReplicationFactor: 1
   transactionStateLogReplicationFactor: 1
@@ -125,6 +125,7 @@ gateway:
   replicas: 1
   service:
     name: envoy
+    type: ClusterIP
     port: 10000
     targetPort: 10000
   config:
@@ -132,11 +133,11 @@ gateway:
     file: configs/infra/envoy.yaml
   resources:
     requests:
-      cpu: "100m"
-      memory: "128Mi"
-    limits:
       cpu: "500m"
-      memory: "256Mi"
+      memory: "512Mi"
+    limits:
+      cpu: "4"
+      memory: "2Gi"
 
 grafana:
   image:
@@ -149,6 +150,9 @@ grafana:
   auth:
     anonymousEnabled: true
   installPlugins: grafana-clickhouse-datasource
+  # Full public URL, including /grafana/. A path-only value boots the HTML
+  # and then the SPA fails to load. Set this after the load balancer IP exists.
+  rootURL: "http://127.0.0.1:10000/grafana/"
   service:
     port: 3001
     targetPort: 3000
@@ -214,6 +218,30 @@ services:
     limits:
       cpu: "500m"
       memory: "256Mi"
+  product:
+    resources:
+      requests:
+        cpu: "2"
+        memory: "1Gi"
+      limits:
+        cpu: "2"
+        memory: "2Gi"
+  order:
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "1Gi"
+      limits:
+        cpu: "500m"
+        memory: "1Gi"
+  payment:
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "1Gi"
+      limits:
+        cpu: "500m"
+        memory: "1Gi"
   service:
     type: ClusterIP
     port: 8080

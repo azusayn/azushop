@@ -47,7 +47,11 @@ static_resources:
                             cluster: payment_cluster
                             timeout: 30s
                         - match:
-                            prefix: "/grafana"
+                            path: "/grafana"
+                          redirect:
+                            path_redirect: "/grafana/"
+                        - match:
+                            prefix: "/grafana/"
                           route:
                             cluster: grafana_cluster
                             timeout: 30s
@@ -97,6 +101,11 @@ static_resources:
     # Connect servers speak HTTP/1.x + unencrypted HTTP/2 (h2c). Follow downstream.
     - name: auth_cluster
       connect_timeout: 0.5s
+      circuit_breakers:
+        thresholds:
+          - max_connections: 8192
+            max_pending_requests: 8192
+            max_requests: 8192
       type: STRICT_DNS
       dns_lookup_family: V4_ONLY
       lb_policy: ROUND_ROBIN
@@ -118,6 +127,11 @@ static_resources:
 
     - name: product_cluster
       connect_timeout: 0.5s
+      circuit_breakers:
+        thresholds:
+          - max_connections: 8192
+            max_pending_requests: 8192
+            max_requests: 8192
       type: STRICT_DNS
       dns_lookup_family: V4_ONLY
       lb_policy: ROUND_ROBIN
@@ -139,6 +153,11 @@ static_resources:
 
     - name: inventory_cluster
       connect_timeout: 0.5s
+      circuit_breakers:
+        thresholds:
+          - max_connections: 8192
+            max_pending_requests: 8192
+            max_requests: 8192
       type: STRICT_DNS
       dns_lookup_family: V4_ONLY
       lb_policy: ROUND_ROBIN
@@ -160,6 +179,11 @@ static_resources:
 
     - name: order_cluster
       connect_timeout: 0.5s
+      circuit_breakers:
+        thresholds:
+          - max_connections: 8192
+            max_pending_requests: 8192
+            max_requests: 8192
       type: STRICT_DNS
       dns_lookup_family: V4_ONLY
       lb_policy: ROUND_ROBIN
@@ -181,6 +205,11 @@ static_resources:
 
     - name: payment_cluster
       connect_timeout: 0.5s
+      circuit_breakers:
+        thresholds:
+          - max_connections: 8192
+            max_pending_requests: 8192
+            max_requests: 8192
       type: STRICT_DNS
       dns_lookup_family: V4_ONLY
       lb_policy: ROUND_ROBIN
@@ -202,6 +231,11 @@ static_resources:
 
     - name: grafana_cluster
       connect_timeout: 0.5s
+      circuit_breakers:
+        thresholds:
+          - max_connections: 8192
+            max_pending_requests: 8192
+            max_requests: 8192
       type: STRICT_DNS
       dns_lookup_family: V4_ONLY
       lb_policy: ROUND_ROBIN

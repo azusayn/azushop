@@ -2,20 +2,18 @@ import http from 'k6/http';
 import { check, sleep } from 'k6';
 import exec from 'k6/execution';
 import encoding from 'k6/encoding';
+import { buyerCredentials, login } from './buyer.js';
 
 /**
- * Pay pending orders: CreatePayment → confirm Stripe Checkout via the same
- * Payment Pages API the hosted UI calls (no browser / no typing 4242…).
+ * Pay pending orders: CreatePayment → confirm Stripe Checkout as Alipay.
+ * CNY sessions only allow alipay and wechat_pay; a card token is rejected.
  *
- * Hosted Checkout under the hood (see Stripe CLI fixture checkout.session.completed):
  *   GET  /v1/payment_pages/{cs_xxx}
- *   POST /v1/payment_methods          (tok_visa in test mode)
- *   POST /v1/payment_pages/{cs_xxx}/confirm
+ *   POST /v1/payment_pages/{cs_xxx}/confirm   payment_method_data[type]=alipay
+ *   GET  the test-mode authorize page, then its success redirect
  *
- *   k6 run misc/test/payment_load_test.js \
+ *   k6 run misc/tests/gke/payment_load_test.js \
  *     -e BASE_URL=http://127.0.0.1:10000 \
- *     -e USERNAME=loadtest_customer \
- *     -e PASSWORD='...' \
  *     -e STRIPE_SECRET_KEY=sk_test_... \
  *     -e ORDER_IDS=101,102,103
  *
@@ -29,16 +27,16 @@ function defaultIterations() {
   if (__ENV.ORDER_IDS) {
     return __ENV.ORDER_IDS.split(',').filter((s) => s.trim() !== '').length;
   }
-  return Number(__ENV.VUS || 20);
+  return Number(__ENV.VUS || 5000);
 }
 
 export const options = {
   scenarios: {
     pay_orders: {
       executor: 'shared-iterations',
-      vus: Number(__ENV.VUS || 20),
+      vus: Number(__ENV.VUS || 5000),
       iterations: defaultIterations(),
-      maxDuration: __ENV.MAX_DURATION || '30m',
+      maxDuration: __ENV.MAX_DURATION || '45m',
     },
   },
   thresholds: {
@@ -91,9 +89,17 @@ function stripeForm(secret, method, path, params) {
   return http.post(url, body, { headers, tags: { name: `stripe ${path}` } });
 }
 
-/** Nested form fields for Stripe (e.g. card[token]=tok_visa). */
-function stripeFormNested(secret, path, flatParams) {
-  return stripeForm(secret, 'POST', path, flatParams);
+function stripeError(res) {
+  try {
+    const err = res.json('error');
+    if (err && err.message) {
+      const code = err.code ? `${err.code} ` : '';
+      return `${res.status} ${code}${err.message}`;
+    }
+  } catch (_) {
+    // body is not the Stripe error shape
+  }
+  return `status=${res.status}`;
 }
 
 function parseOrderIDs(raw) {
@@ -149,68 +155,85 @@ function sessionIDFromCheckoutURL(url) {
 }
 
 /**
- * Same sequence Stripe CLI uses to complete a hosted Checkout Session without a browser.
- * "4242…" in the UI is tok_visa / pm_card_visa on the API side.
+ * CNY Checkout does not accept cards. Confirm with Alipay, then follow the
+ * test-mode authorize page's success redirect. That is the same button the
+ * Stripe test page shows; no browser and no tok_visa.
  */
 function confirmCheckoutSession(secret, sessionID) {
   const pageRes = stripeForm(secret, 'GET', `/v1/payment_pages/${sessionID}`);
-  check(pageRes, {
+  const types = pageRes.json('payment_method_types') || [];
+  const pageOK = check(pageRes, {
     'stripe payment_pages GET 200': (r) => r.status === 200,
+    'checkout accepts alipay': () => types.indexOf('alipay') !== -1,
   });
-  if (pageRes.status !== 200) {
-    throw new Error(`payment_pages GET failed: ${pageRes.status} ${pageRes.body}`);
+  if (!pageOK) {
+    throw new Error(`payment_pages GET failed: ${stripeError(pageRes)} types=${JSON.stringify(types)}`);
   }
 
-  let expectedAmount = pageRes.json('amount_total');
-  if (expectedAmount == null) {
-    const sess = stripeForm(secret, 'GET', `/v1/checkout/sessions/${sessionID}`);
-    expectedAmount = sess.json('amount_total');
+  const expectedAmount = pageRes.json('total_summary.due');
+  const returnURL = pageRes.json('success_url');
+  if (expectedAmount == null || !returnURL) {
+    throw new Error('payment page missing total_summary.due or success_url');
   }
 
-  const pmRes = stripeFormNested(secret, '/v1/payment_methods', {
-    type: 'card',
-    'card[token]': 'tok_visa',
-    'billing_details[email]': 'loadtest@example.com',
-    'billing_details[name]': 'Load Test',
+  const confirmRes = stripeForm(secret, 'POST', `/v1/payment_pages/${sessionID}/confirm`, {
+    'payment_method_data[type]': 'alipay',
+    'payment_method_data[billing_details][email]': 'loadtest@example.com',
+    'payment_method_data[billing_details][name]': 'Load Test',
+    expected_amount: String(expectedAmount),
+    return_url: returnURL,
   });
-  check(pmRes, {
-    'stripe payment_methods create 200': (r) => r.status === 200,
-  });
-  if (pmRes.status !== 200) {
-    throw new Error(`payment_methods failed: ${pmRes.status} ${pmRes.body}`);
-  }
-  const paymentMethodID = pmRes.json('id');
-
-  const confirmParams = {
-    payment_method: paymentMethodID,
-  };
-  if (expectedAmount != null) {
-    confirmParams.expected_amount = String(expectedAmount);
-  }
-
-  const confirmRes = stripeForm(
-    secret,
-    'POST',
-    `/v1/payment_pages/${sessionID}/confirm`,
-    confirmParams,
-  );
-  const ok = check(confirmRes, {
+  const redirectURL = confirmRes.json('payment_intent.next_action.alipay_handle_redirect.url');
+  const confirmed = check(confirmRes, {
     'stripe payment_pages confirm 200': (r) => r.status === 200,
+    'alipay requires redirect': () => typeof redirectURL === 'string' && redirectURL.indexOf('http') === 0,
   });
-  if (!ok) {
-    throw new Error(`payment_pages confirm failed: ${confirmRes.status} ${confirmRes.body}`);
+  if (!confirmed) {
+    throw new Error(`payment_pages confirm failed: ${stripeError(confirmRes)}`);
+  }
+
+  const testPage = http.get(redirectURL, { tags: { name: 'stripe alipay test page' } });
+  const payloadMatch = String(testPage.body || '').match(/data-message="([^"]+)"/);
+  const pageHasPayload = check(testPage, {
+    'alipay test page 200': (r) => r.status === 200,
+    'alipay test page has payload': () => payloadMatch !== null,
+  });
+  if (!pageHasPayload) {
+    throw new Error(`alipay test page failed: status=${testPage.status}`);
+  }
+
+  const payload = JSON.parse(encoding.b64decode(payloadMatch[1], 'std', 's'));
+  const authorize = http.get(payload.redirect_url_success, {
+    redirects: 0,
+    tags: { name: 'stripe alipay authorize' },
+  });
+  check(authorize, {
+    'alipay test authorize redirects': (r) => r.status >= 300 && r.status < 400,
+  });
+
+  const piID = confirmRes.json('payment_intent.id');
+  let piStatus = '';
+  for (let i = 0; i < 5; i++) {
+    const piRes = stripeForm(secret, 'GET', `/v1/payment_intents/${piID}`);
+    piStatus = piRes.json('status') || '';
+    if (piStatus === 'succeeded') {
+      break;
+    }
+    sleep(0.5);
+  }
+  const paid = check({ status: piStatus }, {
+    'payment intent succeeded': (x) => x.status === 'succeeded',
+  });
+  if (!paid) {
+    throw new Error(`payment intent ${piID} status=${piStatus}`);
   }
   return confirmRes;
 }
 
 export function setup() {
   const baseURL = envOr('BASE_URL', 'http://127.0.0.1:10000');
-  const username = envOr('USERNAME', 'loadtest_customer');
-  const password = envOr('PASSWORD', '');
+  const buyer = buyerCredentials();
   const stripeSecret = envOr('STRIPE_SECRET_KEY', '');
-  if (!password) {
-    throw new Error('PASSWORD env is required for login');
-  }
   if (!stripeSecret) {
     throw new Error('STRIPE_SECRET_KEY env is required (same sk_test_… as payment service)');
   }
@@ -218,23 +241,7 @@ export function setup() {
     throw new Error('STRIPE_SECRET_KEY must be a sk_test_… key for load tests');
   }
 
-  const loginRes = postJSON(
-    `${baseURL}/auth.v1.AuthService/Login`,
-    {
-      identityProvider: 'PROVIDER_LOCAL',
-      identityProviderContext: {
-        passwordContext: { username, password },
-      },
-    },
-    connectHeaders(),
-  );
-  if (loginRes.status !== 200) {
-    throw new Error(`login failed: status=${loginRes.status} body=${loginRes.body}`);
-  }
-  const token = loginRes.json('accessToken');
-  if (!token) {
-    throw new Error('login returned empty accessToken');
-  }
+  const token = login(baseURL, buyer.username, buyer.password);
 
   let orderIDs = parseOrderIDs(__ENV.ORDER_IDS);
   if (orderIDs.length === 0) {
