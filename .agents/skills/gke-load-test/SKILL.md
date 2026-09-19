@@ -12,16 +12,32 @@ One Standard node, 8 vCPU / 16 GiB. Terraform only creates the cluster. Helm is 
 
 `products.sql` seeds that merchant's catalog. `browse_order_load_test.js` browses and sometimes places orders. `payment_load_test.js` pays those pending orders. Payment does not create orders. Destroy the cluster when finished.
 
+## Login
+
+```bash
+brew install --cask google-cloud-sdk
+gcloud auth login
+gcloud auth application-default login
+PROJECT_ID="$(gcloud projects list --filter='lifecycleState:ACTIVE' --format='value(projectId)' --limit=1)"
+gcloud config set project "$PROJECT_ID"
+gcloud config set compute/region asia-east1
+gcloud config set compute/zone asia-east1-b
+```
+
+`PROJECT_ID` is the first project whose lifecycle state is `ACTIVE`. Terraform uses application-default credentials from the login above.
+
 ## Create
+
+From the repo root, after Login:
 
 ```bash
 cd deploy/terraform
-cp terraform.tfvars.example terraform.tfvars   # set project_id
+printf 'project_id = "%s"\nregion     = "asia-east1"\nzone       = "asia-east1-b"\n' "$PROJECT_ID" > terraform.tfvars
 terraform init
 terraform apply
 ```
 
-Login is local Google application-default credentials, not a file in the repo. Run the `get_credentials` command Terraform prints.
+Run the `get_credentials` command Terraform prints.
 
 ## Install
 
@@ -69,7 +85,10 @@ k6 run misc/test/payment_load_test.js \
 
 ## Destroy
 
+Do not run `terraform destroy` by itself. The load balancer and the Postgres, Kafka, and ClickHouse disks are created by Kubernetes, not Terraform. StatefulSet disks also survive `helm uninstall`.
+
 ```bash
-cd deploy/terraform
-terraform destroy
+deploy/terraform/destroy.sh
 ```
+
+The script deletes the Helm release, PVCs, and namespace while the cluster is still up, then `terraform destroy`, then removes any leftover forwarding rules, disks, addresses, firewall rules, subnet, and VPC for this cluster. It exits non-zero if any of those remain. Enabled APIs stay on; they are not billed.
