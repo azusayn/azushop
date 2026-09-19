@@ -141,8 +141,22 @@ cd deploy/terraform
 cp terraform.tfvars.example terraform.tfvars   # set project_id
 terraform init
 terraform apply
-# then, from the repo root:
-helm install azushop ./deploy/helm-charts/azushop -n azushop --create-namespace
+```
+
+From the repo root, install with the GKE values file. Envoy becomes a `LoadBalancer`. Postgres stays `ClusterIP` in the base values, on GKE and locally.
+
+```bash
+helm install azushop ./deploy/helm-charts/azushop -n azushop --create-namespace \
+  -f ./deploy/helm-charts/azushop/values-gke.yaml
+kubectl get svc envoy -n azushop
+```
+
+The external address does not exist until that Service is up, and `stripeSuccessUrl` is rendered into the `azushop-config` Secret from values. After `EXTERNAL-IP` is assigned, upgrade once:
+
+```bash
+helm upgrade azushop ./deploy/helm-charts/azushop -n azushop --reuse-values \
+  -f ./deploy/helm-charts/azushop/values-gke.yaml \
+  --set serviceConfig.payment.stripeSuccessUrl="http://<EXTERNAL-IP>/v1/payment/callback/stripe"
 ```
 
 Allocatable capacity on that node is less than 8 / 16: kubelet reserves about 2.6 GiB, and `kube-system` takes more. Steady-state requests below are about **2.25 vCPU / 4 GiB**, so the chart fits with room for system pods. Limits are caps, not extra reservations; they can sum past the node and only throttle or OOM the container that hits them.
@@ -164,6 +178,5 @@ The Atlas migration Job and `busybox` init containers request 50–100m / 64–1
 - [x] Container `resources.requests` sized for this node
 - [x] Move `helm-charts/` to `deploy/helm-charts/` and update workflow paths
 - [x] Terraform for the GKE cluster (one 8 vCPU / 16 GiB node)
-- [ ] `values-gke.yaml`: Envoy `LoadBalancer`, Postgres `ClusterIP`
-- [ ] Move secrets out of the chart (Postgres password, Stripe key, Grafana admin, JWT keys)
-- [ ] Point `stripeSuccessUrl` at the load balancer address
+- [x] `values-gke.yaml`: Envoy `LoadBalancer`. Postgres is `ClusterIP` in the base values for every install.
+- [x] `stripeSuccessUrl` is set by a second `helm upgrade` after the load balancer address exists. Secrets stay in the chart.

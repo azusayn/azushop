@@ -43,6 +43,7 @@ kind: Service
 metadata:
   name: {{ .Values.gateway.service.name }}
 spec:
+  type: {{ .Values.gateway.service.type }}
   selector:
     app: {{ .Values.gateway.service.name }}
   ports:

@@ -8,7 +8,7 @@ postgres:
     database: postgres
   service:
     name: postgres
-    type: NodePort
+    type: ClusterIP
     port: 5432
     targetPort: 5432
   persistence:
@@ -125,6 +125,7 @@ gateway:
   replicas: 1
   service:
     name: envoy
+    type: ClusterIP
     port: 10000
     targetPort: 10000
   config:
