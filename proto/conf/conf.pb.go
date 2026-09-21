@@ -127,11 +127,12 @@ func (x *Server) GetMetricsServerAddr() string {
 }
 
 type Database struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Driver        string                 `protobuf:"bytes,1,opt,name=driver,proto3" json:"driver,omitempty"`
-	Source        string                 `protobuf:"bytes,2,opt,name=source,proto3" json:"source,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	Driver             string                 `protobuf:"bytes,1,opt,name=driver,proto3" json:"driver,omitempty"`
+	Source             string                 `protobuf:"bytes,2,opt,name=source,proto3" json:"source,omitempty"`
+	MaxOpenConnections int32                  `protobuf:"varint,3,opt,name=max_open_connections,json=maxOpenConnections,proto3" json:"max_open_connections,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *Database) Reset() {
@@ -176,6 +177,13 @@ func (x *Database) GetSource() string {
 		return x.Source
 	}
 	return ""
+}
+
+func (x *Database) GetMaxOpenConnections() int32 {
+	if x != nil {
+		return x.MaxOpenConnections
+	}
+	return 0
 }
 
 type Redis struct {
@@ -673,10 +681,11 @@ const file_conf_conf_proto_rawDesc = "" +
 	".conf.DataR\x04data\"h\n" +
 	"\x06Server\x12.\n" +
 	"\x13connect_server_addr\x18\x01 \x01(\tR\x11connectServerAddr\x12.\n" +
-	"\x13metrics_server_addr\x18\x02 \x01(\tR\x11metricsServerAddr\":\n" +
+	"\x13metrics_server_addr\x18\x02 \x01(\tR\x11metricsServerAddr\"l\n" +
 	"\bDatabase\x12\x16\n" +
 	"\x06driver\x18\x01 \x01(\tR\x06driver\x12\x16\n" +
-	"\x06source\x18\x02 \x01(\tR\x06source\"\xb3\x01\n" +
+	"\x06source\x18\x02 \x01(\tR\x06source\x120\n" +
+	"\x14max_open_connections\x18\x03 \x01(\x05R\x12maxOpenConnections\"\xb3\x01\n" +
 	"\x05Redis\x12\x18\n" +
 	"\anetwork\x18\x01 \x01(\tR\anetwork\x12\x12\n" +
 	"\x04addr\x18\x02 \x01(\tR\x04addr\x12<\n" +

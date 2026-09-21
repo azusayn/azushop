@@ -14,6 +14,10 @@ import (
 	"gorm.io/gorm"
 )
 
+const (
+	MaxDBOpenConnections = 20
+)
+
 type Postgres struct {
 	Conn       *sql.DB
 	GormClient *gorm.DB
@@ -38,6 +42,11 @@ func NewPostgres(config *conf.Data) (*Postgres, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	if v := config.Database.MaxOpenConnections; v == 0 {
+		postgresConn.SetMaxOpenConns(MaxDBOpenConnections)
+	}
+
 	// only a wrapper of the pg connection.
 	pgCfg := postgres.Config{Conn: postgresConn}
 	gormClient, err := gorm.Open(postgres.New(pgCfg), &gorm.Config{})
