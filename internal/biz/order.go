@@ -325,6 +325,11 @@ func (uc *OrderUsecase) releaseStock(
 	})
 }
 
+const (
+	fastRetryInterval = time.Millisecond * 50
+)
+
+// retry performs short-interval retries for transient failures.
 func (uc *OrderUsecase) retry(
 	ctx context.Context,
 	msg *RetryQueueMessage,
@@ -332,6 +337,12 @@ func (uc *OrderUsecase) retry(
 ) error {
 	if err := fn(ctx); err == nil {
 		return nil
+	}
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-time.After(fastRetryInterval):
 	}
 
 	if msg.RetryCount > MaxMessageQueueRetryCount {
