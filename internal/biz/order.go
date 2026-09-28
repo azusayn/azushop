@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"sync"
 	"time"
 
 	"uuid"
@@ -22,6 +23,7 @@ const (
 	OutboxMaxRetryCount       int = 5
 	OrderTimeout                  = time.Second * 30
 	MaxMessageQueueRetryCount int = 3
+	maxGoroutines             int = 20
 )
 
 type OrderRepo interface {
@@ -243,21 +245,44 @@ func (uc *OrderUsecase) ProcessOutboxMessages(ctx context.Context) error {
 
 	sentIDs := make([]uuid.UUID, 0)
 	failedIDs := make([]uuid.UUID, 0)
+	var mu sync.Mutex
+
+	markID := func(id uuid.UUID, success bool) {
+		mu.Lock()
+		defer mu.Unlock()
+		if success {
+			sentIDs = append(sentIDs, id)
+			return
+		}
+		failedIDs = append(failedIDs, id)
+	}
+
+	var wg sync.WaitGroup
+	limitCh := make(chan struct{}, maxGoroutines)
 
 	for _, message := range messages {
-		msgCtx, err := telemetry.InjectTraceHeaderBytes(ctx, message.Headers)
-		if err != nil {
-			slog.ErrorContext(ctx, "failed to inject headers into context", slog.Any("message_id", message.ID), slog.Any("err", err))
-			failedIDs = append(failedIDs, message.ID)
-			continue
-		}
-		if err := uc.dispatchOutboxMessage(msgCtx, message); err != nil {
-			slog.ErrorContext(msgCtx, "failed to send outbox message", slog.Any("msg", message), slog.Any("err", err))
-			failedIDs = append(failedIDs, message.ID)
-			continue
-		}
-		sentIDs = append(sentIDs, message.ID)
+		limitCh <- struct{}{}
+		wg.Go(func() {
+			defer func() { <-limitCh }()
+
+			msgCtx, err := telemetry.InjectTraceHeaderBytes(ctx, message.Headers)
+			if err != nil {
+				slog.ErrorContext(ctx, "failed to inject headers into context", slog.Any("message_id", message.ID), slog.Any("err", err))
+				markID(message.ID, false)
+				return
+			}
+
+			if err := uc.dispatchOutboxMessage(msgCtx, message); err != nil {
+				slog.ErrorContext(msgCtx, "failed to send outbox message", slog.Any("msg", message), slog.Any("err", err))
+				markID(message.ID, false)
+				return
+			}
+
+			markID(message.ID, true)
+		})
 	}
+
+	wg.Wait()
 
 	return errors.Join(
 		uc.repo.MarkOutboxMessagesFailed(ctx, failedIDs),
