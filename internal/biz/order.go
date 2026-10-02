@@ -12,18 +12,22 @@ import (
 	"uuid"
 
 	"connectrpc.com/connect"
+	"github.com/azusayn/azushop/internal/pkg/kafka"
+	"github.com/azusayn/azushop/internal/pkg/kafka/retry"
 	"github.com/azusayn/azushop/internal/pkg/telemetry"
 	inventorypb "github.com/azusayn/azushop/proto/api/inventory/v1"
 	inventoryv1connect "github.com/azusayn/azushop/proto/api/inventory/v1/v1connect"
+	"github.com/azusayn/azushop/proto/conf"
 	"github.com/shopspring/decimal"
 )
 
 const (
-	OutboxBatchSize           int = 100
-	OutboxMaxRetryCount       int = 5
-	OrderTimeout                  = time.Second * 30
-	MaxMessageQueueRetryCount int = 3
-	maxGoroutines             int = 20
+	OutboxBatchSize     int = 100
+	OutboxMaxRetryCount int = 5
+	OrderTimeout            = time.Second * 30
+	maxGoroutines       int = 20
+
+	retryEventReleaseStock = "mq.retry.event.release_stock"
 )
 
 type OrderRepo interface {
@@ -41,12 +45,11 @@ type OrderRepo interface {
 	MarkOutboxMessagesFailed(ctx context.Context, ids []uuid.UUID) error
 }
 type OrderSubscriber interface {
-	RegisterHandler(topic KafkaTopicType, handler func(context.Context, []byte) error)
-	Subscribe(ctx context.Context) error
+	Subscribe(ctx context.Context, handlers map[kafka.TopicType]kafka.HandlerFunc) error
 }
 
 type OrderPublisher interface {
-	SendMessagaes(ctx context.Context, messages []*KafkaMessage) error
+	SendMessages(ctx context.Context, messages []*kafka.Message) error
 }
 
 type OrderUsecase struct {
@@ -55,6 +58,7 @@ type OrderUsecase struct {
 	subscriber OrderSubscriber
 	publisher  OrderPublisher
 	inventory  inventoryv1connect.InventoryServiceClient
+	retrier    *retry.Retrier
 }
 
 func NewOrderUsecase(
@@ -63,6 +67,7 @@ func NewOrderUsecase(
 	publisher OrderPublisher,
 	tx Transaction,
 	inventory inventoryv1connect.InventoryServiceClient,
+	config *conf.Data,
 ) *OrderUsecase {
 	return &OrderUsecase{
 		repo:       repo,
@@ -70,6 +75,7 @@ func NewOrderUsecase(
 		subscriber: subscriber,
 		publisher:  publisher,
 		inventory:  inventory,
+		retrier:    retry.NewRetrier(config.GetAppName(), publisher, subscriber),
 	}
 }
 
@@ -181,31 +187,14 @@ func (uc *OrderUsecase) GetOrder(ctx context.Context, orderID int64) (*Order, er
 }
 
 func (uc *OrderUsecase) HandleKafkaMessages(ctx context.Context) error {
-	uc.subscriber.RegisterHandler(KafkaTopicOrderCancelled, uc.handleOrderCancelled)
-	uc.subscriber.RegisterHandler(KafkaTopicPaymentStatus, uc.handlePaymentStatus)
-	uc.subscriber.RegisterHandler(KafkaTopicRetryQueue, uc.handleRetryQueueMessages)
-	return uc.subscriber.Subscribe(ctx)
+	return uc.subscriber.Subscribe(ctx, map[kafka.TopicType]kafka.HandlerFunc{
+		KafkaTopicOrderCancelled: uc.handleOrderCancelled,
+		KafkaTopicPaymentStatus:  uc.handlePaymentStatus,
+	})
 }
 
-func (uc *OrderUsecase) handleRetryQueueMessages(ctx context.Context, bytes []byte) error {
-	var retryMessage RetryQueueMessage
-	if err := json.Unmarshal(bytes, &retryMessage); err != nil {
-		return err
-	}
-
-	eventType := retryMessage.EventType
-	switch eventType {
-	case RetryQueueEventTypeReleaseStock:
-		v, ok := retryMessage.Message.(ReleaseStockMessage)
-		if !ok {
-			return errors.New("failed to convert any to ReleaseStockMessage")
-		}
-		return uc.releaseStock(ctx, &v, retryMessage.RetryCount)
-
-	default:
-	}
-	return fmt.Errorf("unknown event %q", eventType)
-
+func (uc *OrderUsecase) HandleRetryMessages(ctx context.Context) error {
+	return uc.retrier.Run(ctx)
 }
 
 func (uc *OrderUsecase) handlePaymentStatus(ctx context.Context, bytes []byte) error {
@@ -301,8 +290,8 @@ func (uc *OrderUsecase) dispatchOutboxMessage(ctx context.Context, message *Orde
 		if err != nil {
 			return err
 		}
-		return uc.publisher.SendMessagaes(ctx, []*KafkaMessage{{
-			Topic: string(KafkaTopicOrderCreated),
+		return uc.publisher.SendMessages(ctx, []*kafka.Message{{
+			Topic: KafkaTopicOrderCreated,
 			Value: msg,
 		}})
 
@@ -311,8 +300,8 @@ func (uc *OrderUsecase) dispatchOutboxMessage(ctx context.Context, message *Orde
 		if err != nil {
 			return err
 		}
-		return uc.publisher.SendMessagaes(ctx, []*KafkaMessage{{
-			Topic: string(KafkaTopicOrderCancelledDelay),
+		return uc.publisher.SendMessages(ctx, []*kafka.Message{{
+			Topic: KafkaTopicOrderCancelledDelay,
 			Value: msg,
 		}})
 
@@ -321,7 +310,7 @@ func (uc *OrderUsecase) dispatchOutboxMessage(ctx context.Context, message *Orde
 		if err := json.Unmarshal(message.Payload, &msg); err != nil {
 			return err
 		}
-		return uc.releaseStock(ctx, &msg, 0)
+		return uc.releaseStock(ctx, &msg)
 
 	default:
 	}
@@ -332,14 +321,13 @@ func (uc *OrderUsecase) dispatchOutboxMessage(ctx context.Context, message *Orde
 func (uc *OrderUsecase) releaseStock(
 	ctx context.Context,
 	msg *ReleaseStockMessage,
-	retryCount int,
 ) error {
-	retryMsg := &RetryQueueMessage{
-		EventType:  RetryQueueEventTypeReleaseStock,
-		Message:    msg,
-		RetryCount: retryCount,
+	retryMsg := &retry.Message{
+		EventType: retryEventReleaseStock,
+		Message:   msg,
 	}
-	return uc.retry(ctx, retryMsg, func(ctx context.Context) error {
+
+	fn := func(ctx context.Context) error {
 		req := connect.NewRequest(&inventorypb.ReleaseStockRequest{
 			OrderId: msg.OrderID,
 		})
@@ -347,46 +335,9 @@ func (uc *OrderUsecase) releaseStock(
 			return fmt.Errorf("failed to release stock for order %d", msg.OrderID)
 		}
 		return nil
-	})
-}
-
-const (
-	fastRetryInterval = time.Millisecond * 50
-)
-
-// retry performs short-interval retries for transient failures.
-func (uc *OrderUsecase) retry(
-	ctx context.Context,
-	msg *RetryQueueMessage,
-	fn func(context.Context) error,
-) error {
-	if err := fn(ctx); err == nil {
-		return nil
 	}
 
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case <-time.After(fastRetryInterval):
-	}
-
-	if msg.RetryCount > MaxMessageQueueRetryCount {
-		slog.ErrorContext(ctx, fmt.Sprintf("max retries (%d) exceeded", MaxMessageQueueRetryCount))
-		if err := uc.publisher.SendMessagaes(ctx, []*KafkaMessage{{
-			Topic: string(KafkaTopicDeadLetterQueue),
-			Value: msg,
-		}}); err != nil {
-			slog.ErrorContext(ctx, "failed to send message to dead letter queue", slog.Any("msg", msg))
-		}
-		return nil
-	}
-
-	msg.RetryCount++
-
-	return uc.publisher.SendMessagaes(ctx, []*KafkaMessage{{
-		Topic: string(KafkaTopicRetryQueue),
-		Value: msg,
-	}})
+	return uc.retrier.Submit(ctx, retryMsg, fn)
 }
 
 type OrderCreatedMessage struct {

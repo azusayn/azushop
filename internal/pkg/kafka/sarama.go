@@ -1,0 +1,76 @@
+package kafka
+
+import (
+	"fmt"
+	"log/slog"
+
+	"github.com/IBM/sarama"
+	"github.com/dnwe/otelsarama"
+	"github.com/pkg/errors"
+	"go.opentelemetry.io/otel"
+)
+
+func NewConsumerHandler(handlers map[TopicType]HandlerFunc) sarama.ConsumerGroupHandler {
+	h := &ConsumerHandler{handlers: handlers}
+	return otelsarama.WrapConsumerGroupHandler(h)
+}
+
+func (c *ConsumerHandler) Setup(sarama.ConsumerGroupSession) error {
+	return nil
+}
+
+func (c *ConsumerHandler) Cleanup(sarama.ConsumerGroupSession) error {
+	return nil
+}
+
+func (c *ConsumerHandler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
+	for {
+		select {
+		case <-session.Context().Done():
+			return nil
+		case msg, ok := <-claim.Messages():
+			if !ok || msg == nil {
+				return nil
+			}
+			handler, found := c.handlers[TopicType(claim.Topic())]
+			if !found {
+				return fmt.Errorf("handler for topic %q not found", claim.Topic())
+			}
+			ctx := otel.GetTextMapPropagator().Extract(
+				session.Context(),
+				otelsarama.NewConsumerMessageCarrier(msg),
+			)
+			if err := handler(ctx, msg.Value); err != nil {
+				slog.ErrorContext(ctx, "failed to handle message", slog.Any("err", err))
+			}
+			session.MarkMessage(msg, "")
+		}
+	}
+}
+
+func NewSyncProducer(brokerAddrs []string) (sarama.SyncProducer, error) {
+	kafkaConfig := sarama.NewConfig()
+	kafkaConfig.Producer.RequiredAcks = sarama.WaitForAll
+	kafkaConfig.Producer.Return.Successes = true
+
+	producer, err := sarama.NewSyncProducer(brokerAddrs, kafkaConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return otelsarama.WrapSyncProducer(kafkaConfig, producer), nil
+}
+
+func NewConsumerGroup(brokerAddrs []string, groupID string) (sarama.ConsumerGroup, error) {
+	consumerConfig := sarama.NewConfig()
+	// consumes messages at least once, make sure all the APIs are idempotent.
+	consumerConfig.Consumer.Offsets.Initial = sarama.OffsetOldest
+	consumerConfig.Consumer.Group.Rebalance.GroupStrategies = []sarama.BalanceStrategy{
+		sarama.NewBalanceStrategyRoundRobin(),
+	}
+	consumerGroup, err := sarama.NewConsumerGroup(brokerAddrs, groupID, consumerConfig)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to create consumer group %q", groupID)
+	}
+	return consumerGroup, nil
+}

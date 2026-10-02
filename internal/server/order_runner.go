@@ -21,6 +21,10 @@ func (r *OrderRunner) Start(ctx context.Context) error {
 	g, ctx := errgroup.WithContext(ctx)
 
 	g.Go(func() error {
+		return r.uc.HandleRetryMessages(ctx)
+	})
+
+	g.Go(func() error {
 		return r.uc.HandleKafkaMessages(ctx)
 	})
 

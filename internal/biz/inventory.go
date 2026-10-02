@@ -7,6 +7,7 @@ import (
 
 	"uuid"
 
+	"github.com/azusayn/azushop/internal/pkg/kafka"
 	"github.com/google/wire"
 )
 
@@ -30,7 +31,7 @@ type InventoryRepo interface {
 }
 
 type InventorySubscriber interface {
-	RegisterHandler(topic KafkaTopicType, handler func(context.Context, []byte) error)
+	RegisterHandler(topic kafka.TopicType, handler func(context.Context, []byte) error)
 	Subscribe(ctx context.Context) error
 }
 

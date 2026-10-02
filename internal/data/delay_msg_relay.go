@@ -11,6 +11,7 @@ import (
 	"go.opentelemetry.io/otel"
 
 	"github.com/azusayn/azushop/internal/biz"
+	"github.com/azusayn/azushop/internal/pkg/kafka"
 	"github.com/azusayn/azushop/proto/conf"
 	"github.com/google/wire"
 )
@@ -55,7 +56,7 @@ type DelayMsgRelaySubscriber struct {
 }
 
 func NewDelayMsgRelaySubscriber(config *conf.Data) (biz.DelayMsgRelaySubscriber, error) {
-	sub, err := NewConsumerGroup(config.GetKafka().GetBrokerAddrs(), "delay.message")
+	sub, err := kafka.NewConsumerGroup(config.GetKafka().GetBrokerAddrs(), "delay.message")
 	if err != nil {
 		return nil, err
 	}

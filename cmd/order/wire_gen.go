@@ -43,7 +43,7 @@ func wireApp(cd *conf.Data, cs *conf.Server) (*App, func(), error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	orderUsecase := biz.NewOrderUsecase(orderRepo, orderSubscriber, orderPublisher, transaction, inventoryServiceClient)
+	orderUsecase := biz.NewOrderUsecase(orderRepo, orderSubscriber, orderPublisher, transaction, inventoryServiceClient, cd)
 	productServiceClient, err := data.NewProductClient(cd, textMapPropagator)
 	if err != nil {
 		return nil, nil, err
