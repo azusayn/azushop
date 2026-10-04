@@ -40,7 +40,7 @@ type OrderRepo interface {
 	CancelOrder(ctx context.Context, orderID int64) error
 	// order_outbox
 	CreateOutboxMessage(ctx context.Context, eventType OutboxEventType, payload json.RawMessage) error
-	ListOutboxMessages(ctx context.Context, limit int) ([]*OrderOutboxMessage, error)
+	ListDueOutboxMessages(ctx context.Context, limit int) ([]*OrderOutboxMessage, error)
 	MarkOutboxMessagesSent(ctx context.Context, ids []uuid.UUID) error
 	MarkOutboxMessagesFailed(ctx context.Context, ids []uuid.UUID) error
 }
@@ -108,13 +108,14 @@ type Order struct {
 }
 
 type OrderOutboxMessage struct {
-	ID         uuid.UUID       `gorm:"column:id"`
-	EventType  OutboxEventType `gorm:"column:event_type"`
-	Payload    json.RawMessage `gorm:"column:payload"`
-	RetryCount int             `gorm:"column:retry_count"`
-	CreatedAt  time.Time       `gorm:"column:created_at"`
-	Headers    json.RawMessage `gorm:"column:headers"`
-	SentAt     *time.Time      `gorm:"column:sent_at"`
+	ID          uuid.UUID       `gorm:"column:id"`
+	EventType   OutboxEventType `gorm:"column:event_type"`
+	Payload     json.RawMessage `gorm:"column:payload"`
+	RetryCount  int             `gorm:"column:retry_count"`
+	CreatedAt   time.Time       `gorm:"column:created_at"`
+	Headers     json.RawMessage `gorm:"column:headers"`
+	NextRetryAt time.Time       `gorm:"column:next_retry_at"`
+	SentAt      *time.Time      `gorm:"column:sent_at"`
 }
 
 // retrieves orders by user ID, filtered by order status.
@@ -227,7 +228,7 @@ func (uc *OrderUsecase) handleOrderCancelled(ctx context.Context, bytes []byte) 
 }
 
 func (uc *OrderUsecase) ProcessOutboxMessages(ctx context.Context) error {
-	messages, err := uc.repo.ListOutboxMessages(ctx, OutboxBatchSize)
+	messages, err := uc.repo.ListDueOutboxMessages(ctx, OutboxBatchSize)
 	if err != nil {
 		return err
 	}
