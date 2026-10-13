@@ -2,8 +2,6 @@ package server
 
 import (
 	"context"
-	"log/slog"
-	"time"
 
 	"github.com/azusayn/azushop/internal/biz"
 	"golang.org/x/sync/errgroup"
@@ -29,19 +27,7 @@ func (r *OrderRunner) Start(ctx context.Context) error {
 	})
 
 	g.Go(func() error {
-		ticker := time.NewTicker(time.Second)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ticker.C:
-				if err := r.uc.ProcessOutboxMessages(ctx); err != nil {
-					slog.Error("failed to process outbox messages")
-				}
-			case <-ctx.Done():
-				slog.InfoContext(ctx, "stop processing outbox messages")
-				return nil
-			}
-		}
+		return r.uc.HandleOutboxMessages(ctx)
 	})
 
 	return g.Wait()

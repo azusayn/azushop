@@ -7,12 +7,10 @@ import (
 	"fmt"
 	"time"
 
-	"uuid"
-
 	"github.com/IBM/sarama"
 	"github.com/azusayn/azushop/internal/biz"
+	"github.com/azusayn/azushop/internal/pkg/db"
 	"github.com/azusayn/azushop/internal/pkg/kafka"
-	"github.com/azusayn/azushop/internal/pkg/telemetry"
 	"github.com/azusayn/azushop/proto/conf"
 	"github.com/dnwe/otelsarama"
 	"github.com/google/wire"
@@ -27,8 +25,8 @@ const (
 )
 
 var OrderDataProviderSet = wire.NewSet(
-	NewTransaction,
-	NewPostgres,
+	db.NewTransaction,
+	db.NewPostgres,
 	NewRedis,
 	NewOrderRepo,
 	NewOrderSubscriber,
@@ -39,11 +37,11 @@ var OrderDataProviderSet = wire.NewSet(
 )
 
 type OrderRepo struct {
-	postgres *Postgres
+	postgres *db.Postgres
 	redis    *Redis
 }
 
-func NewOrderRepo(postgres *Postgres, redis *Redis) biz.OrderRepo {
+func NewOrderRepo(postgres *db.Postgres, redis *Redis) biz.OrderRepo {
 	return &OrderRepo{
 		postgres: postgres,
 		redis:    redis,
@@ -88,7 +86,7 @@ func (repo *OrderRepo) CreateOrder(
 	}
 
 	var client *gorm.DB
-	if client = GetTransaction(ctx); client == nil {
+	if client = db.GetTransaction(ctx); client == nil {
 		client = repo.postgres.GormClient
 	}
 	itemsJson, err := json.Marshal(orderItems)
@@ -112,7 +110,7 @@ func (repo *OrderRepo) CreateOrder(
 }
 
 func (repo *OrderRepo) DeleteOrder(ctx context.Context, orderID int64) error {
-	gormClient := GetTransaction(ctx)
+	gormClient := db.GetTransaction(ctx)
 	if gormClient == nil {
 		gormClient = repo.postgres.GormClient
 	}
@@ -120,7 +118,7 @@ func (repo *OrderRepo) DeleteOrder(ctx context.Context, orderID int64) error {
 }
 
 func (repo *OrderRepo) CancelOrder(ctx context.Context, orderID int64) error {
-	client := GetTransaction(ctx)
+	client := db.GetTransaction(ctx)
 	if client == nil {
 		client = repo.postgres.GormClient
 	}
@@ -152,7 +150,7 @@ func (repo *OrderRepo) GetOrder(ctx context.Context, orderID int64) (*biz.Order,
 }
 
 func (repo *OrderRepo) UpdateOrderStatus(ctx context.Context, orderID int64, status biz.OrderStatus) error {
-	client := GetTransaction(ctx)
+	client := db.GetTransaction(ctx)
 	if client == nil {
 		client = repo.postgres.GormClient
 	}
@@ -162,107 +160,6 @@ func (repo *OrderRepo) UpdateOrderStatus(ctx context.Context, orderID int64, sta
 		Model(&biz.Order{}).
 		Where("id = ?", orderID).
 		Update("status", status).Error
-}
-
-func (repo *OrderRepo) CreateOutboxMessage(ctx context.Context, eventType biz.OutboxEventType, payload json.RawMessage) error {
-	client := GetTransaction(ctx)
-	if client == nil {
-		client = repo.postgres.GormClient
-	}
-
-	traceBytes, err := telemetry.ExtractTraceHeaderBytes(ctx)
-	if err != nil {
-		return err
-	}
-
-	id := uuid.NewV7()
-	outboxMsg := &biz.OrderOutboxMessage{
-		ID:        id,
-		EventType: eventType,
-		Payload:   payload,
-		Headers:   traceBytes,
-	}
-
-	// TODO(4): metrics.
-	ctx = telemetry.WithUnsampledSpanContext(ctx)
-
-	return client.WithContext(ctx).Create(outboxMsg).Error
-}
-
-// returns messages that are eligible for processing.
-func (repo *OrderRepo) ListDueOutboxMessages(ctx context.Context, limit int) ([]*biz.OrderOutboxMessage, error) {
-	client := GetTransaction(ctx)
-	if client == nil {
-		client = repo.postgres.GormClient
-	}
-
-	// TODO(4): metrics.
-	ctx = telemetry.WithUnsampledSpanContext(ctx)
-
-	// TODO(4): composite index?
-	var messages []*biz.OrderOutboxMessage
-	if err := client.
-		WithContext(ctx).
-		Where("sent_at IS NULL").
-		Where("retry_count < ? AND next_retry_at < NOW()", biz.OutboxMaxRetryCount).
-		Order("next_retry_at ASC").
-		Limit(limit).
-		Find(&messages).
-		Error; err != nil {
-		return nil, err
-	}
-	return messages, nil
-}
-
-func (repo *OrderRepo) MarkOutboxMessagesSent(ctx context.Context, ids []uuid.UUID) error {
-	if len(ids) == 0 {
-		return nil
-	}
-	client := GetTransaction(ctx)
-	if client == nil {
-		client = repo.postgres.GormClient
-	}
-
-	// TODO(4): metrics.
-	ctx = telemetry.WithUnsampledSpanContext(ctx)
-
-	if err := client.
-		WithContext(ctx).
-		Model(&biz.OrderOutboxMessage{}).
-		Where("id IN ?", ids).
-		Update("sent_at", time.Now()).
-		Error; err != nil {
-		return fmt.Errorf("failed to mark outbox message (%v) sent: %w", ids, err)
-	}
-
-	return nil
-}
-
-func (repo *OrderRepo) MarkOutboxMessagesFailed(ctx context.Context, ids []uuid.UUID) error {
-	if len(ids) == 0 {
-		return nil
-	}
-	client := GetTransaction(ctx)
-	if client == nil {
-		client = repo.postgres.GormClient
-	}
-
-	// TODO(4): metrics.
-	ctx = telemetry.WithUnsampledSpanContext(ctx)
-
-	if err := client.
-		WithContext(ctx).
-		Model(&biz.OrderOutboxMessage{}).
-		Where("id IN ?", ids).
-		Updates(map[string]any{
-			"retry_count": gorm.Expr("retry_count + 1"),
-			// exponential backoff.
-			"next_retry_at": gorm.Expr("NOW() + make_interval(secs => POWER(2, retry_count))"),
-		}).Error; err != nil {
-		return fmt.Errorf("failed to mark outbox message (%v) failed: %w", ids, err)
-	}
-
-	return nil
 }
 
 type OrderSubscriber struct {

@@ -9,6 +9,7 @@ package main
 import (
 	"github.com/azusayn/azushop/internal/biz"
 	"github.com/azusayn/azushop/internal/data"
+	"github.com/azusayn/azushop/internal/pkg/db"
 	"github.com/azusayn/azushop/internal/pkg/telemetry"
 	"github.com/azusayn/azushop/internal/server"
 	"github.com/azusayn/azushop/internal/service"
@@ -19,12 +20,12 @@ import (
 // Injectors from wire.go:
 
 func wireApp(cd *conf.Data, cs *conf.Server) (*App, func(), error) {
-	postgres, err := data.NewPostgres(cd)
+	postgres, err := db.NewPostgres(cd)
 	if err != nil {
 		return nil, nil, err
 	}
 	inventoryRepo := data.NewInventoryRepo(postgres)
-	transaction := data.NewTransaction(postgres)
+	transaction := db.NewTransaction(postgres)
 	inventorySubscriber, err := data.NewInventorySubscriber(cd)
 	if err != nil {
 		return nil, nil, err

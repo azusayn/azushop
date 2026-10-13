@@ -3,10 +3,7 @@ package biz
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"log/slog"
-	"sync"
 	"time"
 
 	"uuid"
@@ -15,7 +12,7 @@ import (
 	"github.com/azusayn/azushop/internal/pkg/kafka"
 	"github.com/azusayn/azushop/internal/pkg/kafka/delay"
 	"github.com/azusayn/azushop/internal/pkg/kafka/retry"
-	"github.com/azusayn/azushop/internal/pkg/telemetry"
+	"github.com/azusayn/azushop/internal/pkg/outbox"
 	inventorypb "github.com/azusayn/azushop/proto/api/inventory/v1"
 	inventoryv1connect "github.com/azusayn/azushop/proto/api/inventory/v1/v1connect"
 	"github.com/azusayn/azushop/proto/conf"
@@ -23,11 +20,7 @@ import (
 )
 
 const (
-	OutboxBatchSize     int = 100
-	OutboxMaxRetryCount int = 5
-	OrderTimeout            = time.Second * 30
-	maxGoroutines       int = 20
-
+	OrderTimeout           = time.Second * 30
 	retryEventReleaseStock = "mq.retry.event.release_stock"
 )
 
@@ -39,11 +32,6 @@ type OrderRepo interface {
 	UpdateOrderStatus(ctx context.Context, orderID int64, status OrderStatus) error
 	DeleteOrder(ctx context.Context, orderID int64) error
 	CancelOrder(ctx context.Context, orderID int64) error
-	// order_outbox
-	CreateOutboxMessage(ctx context.Context, eventType OutboxEventType, payload json.RawMessage) error
-	ListDueOutboxMessages(ctx context.Context, limit int) ([]*OrderOutboxMessage, error)
-	MarkOutboxMessagesSent(ctx context.Context, ids []uuid.UUID) error
-	MarkOutboxMessagesFailed(ctx context.Context, ids []uuid.UUID) error
 }
 type OrderSubscriber interface {
 	Subscribe(ctx context.Context, handlers map[kafka.TopicType]kafka.HandlerFunc) error
@@ -61,6 +49,7 @@ type OrderUsecase struct {
 	inventory   inventoryv1connect.InventoryServiceClient
 	retrier     *retry.Retrier
 	delayWorker *delay.Worker
+	outbox      *outbox.Outbox
 }
 
 func NewOrderUsecase(
@@ -76,7 +65,8 @@ func NewOrderUsecase(
 	if err != nil {
 		return nil, err
 	}
-	return &OrderUsecase{
+
+	uc := &OrderUsecase{
 		repo:       repo,
 		tx:         tx,
 		subscriber: subscriber,
@@ -85,7 +75,10 @@ func NewOrderUsecase(
 		// TODO: DI.
 		retrier:     retry.NewRetrier(scope, publisher, subscriber),
 		delayWorker: delay.NewWorker(scope, publisher, consumerGroup),
-	}, nil
+	}
+	uc.outbox = outbox.NewOutbox(uc.buildDispatchFunc(), tx)
+
+	return uc, nil
 }
 
 type OrderStatus string
@@ -114,17 +107,6 @@ type Order struct {
 	Status         OrderStatus     `gorm:"column:status"`
 	OrderItems     json.RawMessage `gorm:"column:order_items"`
 	CreatedAt      time.Time       `gorm:"column:created_at"`
-}
-
-type OrderOutboxMessage struct {
-	ID          uuid.UUID       `gorm:"column:id"`
-	EventType   OutboxEventType `gorm:"column:event_type"`
-	Payload     json.RawMessage `gorm:"column:payload"`
-	RetryCount  int             `gorm:"column:retry_count"`
-	CreatedAt   time.Time       `gorm:"column:created_at"`
-	Headers     json.RawMessage `gorm:"column:headers"`
-	NextRetryAt time.Time       `gorm:"column:next_retry_at"`
-	SentAt      *time.Time      `gorm:"column:sent_at"`
 }
 
 // retrieves orders by user ID, filtered by order status.
@@ -160,11 +142,13 @@ func (uc *OrderUsecase) CreateOrder(
 		if err != nil {
 			return err
 		}
-		err = uc.repo.CreateOutboxMessage(ctx, OutboxEventOrderCreated, payload)
+
+		err = uc.outbox.Save(ctx, string(outboxEventOrderCreated), payload)
 		if err != nil {
 			return err
 		}
-		return uc.repo.CreateOutboxMessage(ctx, OutboxEventOrderCancelledDelay, payload)
+
+		return uc.outbox.Save(ctx, string(outboxEventOrderCancelledDelay), payload)
 	})
 	if err != nil {
 		return nil, err
@@ -184,7 +168,7 @@ func (uc *OrderUsecase) CancelOrder(ctx context.Context, orderID int64) error {
 		if err != nil {
 			return err
 		}
-		return uc.repo.CreateOutboxMessage(ctx, OutboxEventOrderCancelled, bytes)
+		return uc.outbox.Save(ctx, string(outboxEventOrderCancelled), bytes)
 	})
 }
 
@@ -205,6 +189,10 @@ func (uc *OrderUsecase) HandleKafkaMessages(ctx context.Context) error {
 
 func (uc *OrderUsecase) HandleRetryMessages(ctx context.Context) error {
 	return uc.retrier.Run(ctx)
+}
+
+func (uc *OrderUsecase) HandleOutboxMessages(ctx context.Context) error {
+	return uc.outbox.Run(ctx)
 }
 
 func (uc *OrderUsecase) handlePaymentStatus(ctx context.Context, bytes []byte) error {
@@ -240,66 +228,13 @@ func (uc *OrderUsecase) handleOrderCancelled(ctx context.Context, bytes []byte) 
 	return uc.repo.UpdateOrderStatus(ctx, msg.OrderID, OrderStatusCancelled)
 }
 
-func (uc *OrderUsecase) ProcessOutboxMessages(ctx context.Context) error {
-	messages, err := uc.repo.ListDueOutboxMessages(ctx, OutboxBatchSize)
-	if err != nil {
-		return err
-	}
-
-	sentIDs := make([]uuid.UUID, 0)
-	failedIDs := make([]uuid.UUID, 0)
-	var mu sync.Mutex
-
-	markID := func(id uuid.UUID, success bool) {
-		mu.Lock()
-		defer mu.Unlock()
-		if success {
-			sentIDs = append(sentIDs, id)
-			return
-		}
-		failedIDs = append(failedIDs, id)
-	}
-
-	var wg sync.WaitGroup
-	limitCh := make(chan struct{}, maxGoroutines)
-
-	for _, message := range messages {
-		limitCh <- struct{}{}
-		wg.Go(func() {
-			defer func() { <-limitCh }()
-
-			msgCtx, err := telemetry.InjectTraceHeaderBytes(ctx, message.Headers)
-			if err != nil {
-				slog.ErrorContext(ctx, "failed to inject headers into context", slog.Any("message_id", message.ID), slog.Any("err", err))
-				markID(message.ID, false)
-				return
-			}
-
-			if err := uc.dispatchOutboxMessage(msgCtx, message); err != nil {
-				slog.ErrorContext(msgCtx, "failed to send outbox message", slog.Any("msg", message), slog.Any("err", err))
-				markID(message.ID, false)
-				return
-			}
-
-			markID(message.ID, true)
-		})
-	}
-
-	wg.Wait()
-
-	return errors.Join(
-		uc.repo.MarkOutboxMessagesFailed(ctx, failedIDs),
-		uc.repo.MarkOutboxMessagesSent(ctx, sentIDs),
-	)
-}
-
 // dispatchOutboxMessages dispatches an outbox message to the appropriate handler
 // based on its event type.
-func (uc *OrderUsecase) dispatchOutboxMessage(ctx context.Context, message *OrderOutboxMessage) error {
+func (uc *OrderUsecase) dispatchOutboxMessage(ctx context.Context, message *outbox.OutboxMessage) error {
 	// TODO(3): batch messages by topic
-	eventType := message.EventType
+	eventType := OutboxEventType(message.EventType)
 	switch eventType {
-	case OutboxEventOrderCreated:
+	case outboxEventOrderCreated:
 		msg, err := toOrderCreatedMessage(message)
 		if err != nil {
 			return err
@@ -309,7 +244,7 @@ func (uc *OrderUsecase) dispatchOutboxMessage(ctx context.Context, message *Orde
 			Value: msg,
 		}})
 
-	case OutboxEventOrderCancelledDelay:
+	case outboxEventOrderCancelledDelay:
 		var order Order
 		if err := json.Unmarshal(message.Payload, &order); err != nil {
 			return err
@@ -321,7 +256,7 @@ func (uc *OrderUsecase) dispatchOutboxMessage(ctx context.Context, message *Orde
 			},
 		})
 
-	case OutboxEventOrderCancelled:
+	case outboxEventOrderCancelled:
 		var msg ReleaseStockMessage
 		if err := json.Unmarshal(message.Payload, &msg); err != nil {
 			return err
@@ -332,6 +267,12 @@ func (uc *OrderUsecase) dispatchOutboxMessage(ctx context.Context, message *Orde
 	}
 
 	return fmt.Errorf("unknown event type %q", eventType)
+}
+
+func (uc *OrderUsecase) buildDispatchFunc() outbox.DispatchFunc {
+	return func(ctx context.Context, message *outbox.OutboxMessage) error {
+		return uc.dispatchOutboxMessage(ctx, message)
+	}
 }
 
 func (uc *OrderUsecase) releaseStock(
@@ -361,7 +302,7 @@ type OrderCreatedMessage struct {
 	OrderItems []*OrderItem
 }
 
-func toOrderCreatedMessage(message *OrderOutboxMessage) (*OrderCreatedMessage, error) {
+func toOrderCreatedMessage(message *outbox.OutboxMessage) (*OrderCreatedMessage, error) {
 	var order Order
 	if err := json.Unmarshal(message.Payload, &order); err != nil {
 		return nil, err

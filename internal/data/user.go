@@ -4,20 +4,21 @@ import (
 	"context"
 
 	"github.com/azusayn/azushop/internal/biz"
+	"github.com/azusayn/azushop/internal/pkg/db"
 	"github.com/google/wire"
 )
 
 var AuthDataProviderSet = wire.NewSet(
-	NewPostgres,
-	NewTransaction,
+	db.NewPostgres,
+	db.NewTransaction,
 	NewUserRepo,
 )
 
 type UserRepo struct {
-	postgres *Postgres
+	postgres *db.Postgres
 }
 
-func NewUserRepo(postgres *Postgres) biz.UserRepo {
+func NewUserRepo(postgres *db.Postgres) biz.UserRepo {
 	return &UserRepo{
 		postgres: postgres,
 	}

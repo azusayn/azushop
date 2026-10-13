@@ -12,6 +12,7 @@ import (
 
 	"github.com/IBM/sarama"
 	"github.com/azusayn/azushop/internal/biz"
+	"github.com/azusayn/azushop/internal/pkg/db"
 	"github.com/azusayn/azushop/internal/pkg/str"
 	"github.com/azusayn/azutils/sql"
 	"github.com/dnwe/otelsarama"
@@ -22,7 +23,7 @@ import (
 )
 
 var ProductDataProviderSet = wire.NewSet(
-	NewPostgres,
+	db.NewPostgres,
 	NewRedis,
 	NewProductRepo,
 	NewKafkaProducer,
@@ -38,11 +39,11 @@ const (
 )
 
 type ProductRepo struct {
-	postgres *Postgres
+	postgres *db.Postgres
 	redis    *Redis
 }
 
-func NewProductRepo(postgres *Postgres, redis *Redis) biz.ProductRepo {
+func NewProductRepo(postgres *db.Postgres, redis *Redis) biz.ProductRepo {
 	return &ProductRepo{
 		postgres: postgres,
 		redis:    redis,
