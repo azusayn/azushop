@@ -9,6 +9,7 @@ import (
 
 	"github.com/IBM/sarama"
 	"github.com/azusayn/azushop/internal/biz"
+	"github.com/azusayn/azushop/internal/pkg/db"
 	"github.com/dnwe/otelsarama"
 	"github.com/google/wire"
 	"github.com/shopspring/decimal"
@@ -21,7 +22,7 @@ const (
 )
 
 var PaymentDataProviderSet = wire.NewSet(
-	NewPostgres,
+	db.NewPostgres,
 	NewRedis,
 	NewPaymentRepo,
 	NewKafkaProducer,
@@ -30,11 +31,11 @@ var PaymentDataProviderSet = wire.NewSet(
 )
 
 type PaymentRepo struct {
-	postgres *Postgres
+	postgres *db.Postgres
 	redis    *Redis
 }
 
-func NewPaymentRepo(postgres *Postgres, redis *Redis) biz.PaymentRepo {
+func NewPaymentRepo(postgres *db.Postgres, redis *Redis) biz.PaymentRepo {
 	return &PaymentRepo{
 		postgres: postgres,
 		redis:    redis,
@@ -52,7 +53,7 @@ func (repo *PaymentRepo) CreatePayment(
 	externalID string,
 ) (*biz.Payment, error) {
 	var client *gorm.DB
-	if client = GetTransaction(ctx); client == nil {
+	if client = db.GetTransaction(ctx); client == nil {
 		client = repo.postgres.GormClient.WithContext(ctx)
 	}
 
@@ -78,7 +79,7 @@ func (repo *PaymentRepo) CreatePayment(
 }
 
 func (repo *PaymentRepo) UpdatePaymentStatusByOrderID(ctx context.Context, orderID int64, status biz.PaymentStatus) error {
-	client := GetTransaction(ctx)
+	client := db.GetTransaction(ctx)
 	if client == nil {
 		client = repo.postgres.GormClient.WithContext(ctx)
 	}
@@ -91,7 +92,7 @@ func (repo *PaymentRepo) UpdatePaymentStatusByOrderID(ctx context.Context, order
 }
 
 func (repo *PaymentRepo) UpdatePaymentByID(ctx context.Context, payment *biz.Payment, paths []string) error {
-	client := GetTransaction(ctx)
+	client := db.GetTransaction(ctx)
 	if client == nil {
 		client = repo.postgres.GormClient.WithContext(ctx)
 	}

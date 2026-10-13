@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/azusayn/azushop/internal/biz"
+	"github.com/azusayn/azushop/internal/pkg/db"
 	"github.com/azusayn/azushop/internal/pkg/kafka"
 	"github.com/azusayn/azushop/proto/conf"
 
@@ -18,23 +19,23 @@ import (
 )
 
 var InventoryDataProviderSet = wire.NewSet(
-	NewPostgres,
-	NewTransaction,
+	db.NewPostgres,
+	db.NewTransaction,
 	NewInventoryRepo,
 	NewInventorySubscriber,
 )
 
 type InventoryRepo struct {
-	postgres *Postgres
+	postgres *db.Postgres
 }
 
-func NewInventoryRepo(postgres *Postgres) biz.InventoryRepo {
+func NewInventoryRepo(postgres *db.Postgres) biz.InventoryRepo {
 	return &InventoryRepo{postgres: postgres}
 }
 
 // updates the same set of fields (defined by paths) for each inventory.
 func (repo *InventoryRepo) UpdateInventories(ctx context.Context, inventories []*biz.Inventory, paths []string) error {
-	client := GetTransaction(ctx)
+	client := db.GetTransaction(ctx)
 	if client == nil {
 		client = repo.postgres.GormClient
 	}
@@ -60,7 +61,7 @@ func (repo *InventoryRepo) BatchGetInventories(ctx context.Context, skuIDs []uui
 }
 
 func (repo *InventoryRepo) UpdateDeltaQuantity(ctx context.Context, inventories []*biz.Inventory, paths []string) error {
-	gormClient := GetTransaction(ctx)
+	gormClient := db.GetTransaction(ctx)
 	if gormClient == nil {
 		gormClient = repo.postgres.GormClient
 	}
@@ -88,7 +89,7 @@ func (repo *InventoryRepo) UpdateDeltaQuantity(ctx context.Context, inventories 
 }
 
 func (repo *InventoryRepo) GetInventoryLock(ctx context.Context, orderID int64) (*biz.InventoryLock, error) {
-	gormClient := GetTransaction(ctx)
+	gormClient := db.GetTransaction(ctx)
 	if gormClient == nil {
 		gormClient = repo.postgres.GormClient
 	}
@@ -105,7 +106,7 @@ func (repo *InventoryRepo) CreateInventoryLock(
 	orderItems []*biz.OrderItem,
 	status biz.InventoryLockStatus,
 ) error {
-	gormClient := GetTransaction(ctx)
+	gormClient := db.GetTransaction(ctx)
 	if gormClient == nil {
 		gormClient = repo.postgres.GormClient
 	}
@@ -122,7 +123,7 @@ func (repo *InventoryRepo) CreateInventoryLock(
 }
 
 func (repo *InventoryRepo) UpdateInventoryLock(ctx context.Context, inventoryLocks []*biz.InventoryLock, paths []string) error {
-	client := GetTransaction(ctx)
+	client := db.GetTransaction(ctx)
 	if client == nil {
 		client = repo.postgres.GormClient
 	}
@@ -139,7 +140,7 @@ func (repo *InventoryRepo) UpdateInventoryLock(ctx context.Context, inventoryLoc
 }
 
 func (repo *InventoryRepo) BatchCreateInventoris(ctx context.Context, skuIDs []uuid.UUID) ([]*biz.Inventory, error) {
-	client := GetTransaction(ctx)
+	client := db.GetTransaction(ctx)
 	if client == nil {
 		client = repo.postgres.GormClient
 	}

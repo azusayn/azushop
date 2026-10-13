@@ -9,6 +9,7 @@ package main
 import (
 	"github.com/azusayn/azushop/internal/biz"
 	"github.com/azusayn/azushop/internal/data"
+	"github.com/azusayn/azushop/internal/pkg/db"
 	"github.com/azusayn/azushop/internal/pkg/telemetry"
 	"github.com/azusayn/azushop/internal/server"
 	"github.com/azusayn/azushop/internal/service"
@@ -19,7 +20,7 @@ import (
 // Injectors from wire.go:
 
 func wireApp(cd *conf.Data, cs *conf.Server) (*App, func(), error) {
-	postgres, err := data.NewPostgres(cd)
+	postgres, err := db.NewPostgres(cd)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -37,7 +38,7 @@ func wireApp(cd *conf.Data, cs *conf.Server) (*App, func(), error) {
 		return nil, nil, err
 	}
 	orderPublisher := data.NewOrderPublisher(kafkaProducer)
-	transaction := data.NewTransaction(postgres)
+	transaction := db.NewTransaction(postgres)
 	textMapPropagator := telemetry.NewTextMapPropagator()
 	inventoryServiceClient, err := data.NewInventoryClient(cd, textMapPropagator)
 	if err != nil {

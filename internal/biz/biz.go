@@ -16,9 +16,9 @@ const (
 type OutboxEventType string
 
 const (
-	OutboxEventOrderCreated        OutboxEventType = "outbox.event.order.created"
-	OutboxEventOrderCancelled      OutboxEventType = "outbox.event.order.cancelled"
-	OutboxEventOrderCancelledDelay OutboxEventType = "outbox.event.order.cancelled_delay"
+	outboxEventOrderCreated        OutboxEventType = "outbox.event.order.created"
+	outboxEventOrderCancelled      OutboxEventType = "outbox.event.order.cancelled"
+	outboxEventOrderCancelledDelay OutboxEventType = "outbox.event.order.cancelled_delay"
 )
 
 // TODO(3): decouple these outgoing message structs from their corresponding outbox payloads.
