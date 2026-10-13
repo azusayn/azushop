@@ -10,10 +10,7 @@ const (
 	KafkaTopicPaymentStatus  kafka.TopicType = "payment.status"
 	KafkaTopicProductCreated kafka.TopicType = "product.created"
 	KafkaTopicOrderCreated   kafka.TopicType = "order.created"
-	// "order.cancelled.delay" is an intermediate topic
-	// used by the delay runner to defer delivery to "order.cancelled"
-	KafkaTopicOrderCancelledDelay kafka.TopicType = "order.cancelled.delay"
-	KafkaTopicOrderCancelled      kafka.TopicType = "order.cancelled"
+	KafkaTopicOrderCancelled kafka.TopicType = "order.cancelled"
 )
 
 type OutboxEventType string

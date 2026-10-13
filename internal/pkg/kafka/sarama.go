@@ -10,6 +10,10 @@ import (
 	"go.opentelemetry.io/otel"
 )
 
+type ConsumerHandler struct {
+	handlers map[TopicType]HandlerFunc
+}
+
 func NewConsumerHandler(handlers map[TopicType]HandlerFunc) sarama.ConsumerGroupHandler {
 	h := &ConsumerHandler{handlers: handlers}
 	return otelsarama.WrapConsumerGroupHandler(h)

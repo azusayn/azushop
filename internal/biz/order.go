@@ -13,6 +13,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/azusayn/azushop/internal/pkg/kafka"
+	"github.com/azusayn/azushop/internal/pkg/kafka/delay"
 	"github.com/azusayn/azushop/internal/pkg/kafka/retry"
 	"github.com/azusayn/azushop/internal/pkg/telemetry"
 	inventorypb "github.com/azusayn/azushop/proto/api/inventory/v1"
@@ -53,12 +54,13 @@ type OrderPublisher interface {
 }
 
 type OrderUsecase struct {
-	repo       OrderRepo
-	tx         Transaction
-	subscriber OrderSubscriber
-	publisher  OrderPublisher
-	inventory  inventoryv1connect.InventoryServiceClient
-	retrier    *retry.Retrier
+	repo        OrderRepo
+	tx          Transaction
+	subscriber  OrderSubscriber
+	publisher   OrderPublisher
+	inventory   inventoryv1connect.InventoryServiceClient
+	retrier     *retry.Retrier
+	delayWorker *delay.Worker
 }
 
 func NewOrderUsecase(
@@ -68,15 +70,22 @@ func NewOrderUsecase(
 	tx Transaction,
 	inventory inventoryv1connect.InventoryServiceClient,
 	config *conf.Data,
-) *OrderUsecase {
+) (*OrderUsecase, error) {
+	scope := config.GetAppName()
+	consumerGroup, err := kafka.NewConsumerGroup(config.GetKafka().GetBrokerAddrs(), scope)
+	if err != nil {
+		return nil, err
+	}
 	return &OrderUsecase{
 		repo:       repo,
 		tx:         tx,
 		subscriber: subscriber,
 		publisher:  publisher,
 		inventory:  inventory,
-		retrier:    retry.NewRetrier(config.GetAppName(), publisher, subscriber),
-	}
+		// TODO: DI.
+		retrier:     retry.NewRetrier(scope, publisher, subscriber),
+		delayWorker: delay.NewWorker(scope, publisher, consumerGroup),
+	}, nil
 }
 
 type OrderStatus string
@@ -212,6 +221,10 @@ func (uc *OrderUsecase) handlePaymentStatus(ctx context.Context, bytes []byte) e
 	return uc.repo.UpdateOrderStatus(ctx, msg.OrderID, OrderStatusConfirmed)
 }
 
+type OrderCancelledMessage struct {
+	OrderID int64
+}
+
 func (uc *OrderUsecase) handleOrderCancelled(ctx context.Context, bytes []byte) error {
 	var msg OrderCancelledMessage
 	if err := json.Unmarshal(bytes, &msg); err != nil {
@@ -297,14 +310,16 @@ func (uc *OrderUsecase) dispatchOutboxMessage(ctx context.Context, message *Orde
 		}})
 
 	case OutboxEventOrderCancelledDelay:
-		msg, err := toOrderCancelledMsg(message)
-		if err != nil {
+		var order Order
+		if err := json.Unmarshal(message.Payload, &order); err != nil {
 			return err
 		}
-		return uc.publisher.SendMessages(ctx, []*kafka.Message{{
-			Topic: KafkaTopicOrderCancelledDelay,
-			Value: msg,
-		}})
+		return uc.delayWorker.SendMessage(ctx, kafka.Message{
+			Topic: KafkaTopicOrderCancelled,
+			Value: OrderCancelledMessage{
+				OrderID: order.ID,
+			},
+		})
 
 	case OutboxEventOrderCancelled:
 		var msg ReleaseStockMessage
@@ -367,21 +382,4 @@ func toOrderCreatedMessage(message *OrderOutboxMessage) (*OrderCreatedMessage, e
 		OrderItems: orderItems,
 	}
 	return orderCreatedMsg, nil
-}
-
-type OrderCancelledMessage struct {
-	OrderID     int64
-	ExpiredTime time.Time
-}
-
-func toOrderCancelledMsg(message *OrderOutboxMessage) (*OrderCancelledMessage, error) {
-	var order Order
-	if err := json.Unmarshal(message.Payload, &order); err != nil {
-		return nil, err
-	}
-	orderCancelledMsg := &OrderCancelledMessage{
-		OrderID:     order.ID,
-		ExpiredTime: time.Now().Add(OrderTimeout),
-	}
-	return orderCancelledMsg, nil
 }

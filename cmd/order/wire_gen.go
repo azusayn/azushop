@@ -43,7 +43,10 @@ func wireApp(cd *conf.Data, cs *conf.Server) (*App, func(), error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	orderUsecase := biz.NewOrderUsecase(orderRepo, orderSubscriber, orderPublisher, transaction, inventoryServiceClient, cd)
+	orderUsecase, err := biz.NewOrderUsecase(orderRepo, orderSubscriber, orderPublisher, transaction, inventoryServiceClient, cd)
+	if err != nil {
+		return nil, nil, err
+	}
 	productServiceClient, err := data.NewProductClient(cd, textMapPropagator)
 	if err != nil {
 		return nil, nil, err
@@ -57,21 +60,11 @@ func wireApp(cd *conf.Data, cs *conf.Server) (*App, func(), error) {
 	connectServer := server.NewConnectServer(connectServerConfig)
 	metricsServer := server.NewMetricsServer(cs)
 	orderRunner := server.NewOrderRunner(orderUsecase)
-	delayMsgRelaySubscriber, err := data.NewDelayMsgRelaySubscriber(cd)
-	if err != nil {
-		return nil, nil, err
-	}
-	delayMsgRelayPublisher, err := data.NewDelayRelayPublisher(cd)
-	if err != nil {
-		return nil, nil, err
-	}
-	delayMsgRealyUsecase := biz.NewDelayMsgRealyUsecase(delayMsgRelaySubscriber, delayMsgRelayPublisher)
-	delayMsgRelayRunner := server.NewDelayMsgRelayRunner(delayMsgRealyUsecase)
-	app := newApp(connectServer, metricsServer, orderRunner, delayMsgRelayRunner)
+	app := newApp(connectServer, metricsServer, orderRunner)
 	return app, func() {
 	}, nil
 }
 
 // wire.go:
 
-var wireProviders = wire.NewSet(telemetry.NewTextMapPropagator, data.OrderDataProviderSet, data.DelayMsgRelayDataProviderSet, biz.NewOrderUsecase, biz.NewDelayMsgRealyUsecase, service.NewOrderService, service.NewOrderServiceConnectHandler, server.NewOrderRunner, server.NewDelayMsgRelayRunner, newConnectServerConfig, server.NewConnectServer, server.NewMetricsServer, newApp)
+var wireProviders = wire.NewSet(telemetry.NewTextMapPropagator, data.OrderDataProviderSet, biz.NewOrderUsecase, service.NewOrderService, service.NewOrderServiceConnectHandler, server.NewOrderRunner, newConnectServerConfig, server.NewConnectServer, server.NewMetricsServer, newApp)

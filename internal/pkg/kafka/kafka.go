@@ -25,7 +25,3 @@ type Subscriber interface {
 	// Subscribe handles messages for given topics synchronously.
 	Subscribe(ctx context.Context, handlers map[TopicType]HandlerFunc) error
 }
-
-type ConsumerHandler struct {
-	handlers map[TopicType]HandlerFunc
-}
