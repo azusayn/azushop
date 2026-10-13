@@ -60,10 +60,9 @@ func newApp(
 	connectServer *server.ConnectServer,
 	metricsServer *server.MetricsServer,
 	orderRunner *server.OrderRunner,
-	delayMsgRelayRunner *server.DelayMsgRelayRunner,
 ) *App {
 	app := &App{}
-	app.Servers = []server.Server{connectServer, metricsServer, orderRunner, delayMsgRelayRunner}
+	app.Servers = []server.Server{connectServer, metricsServer, orderRunner}
 	return app
 }
 

@@ -20,13 +20,10 @@ func wireApp(cd *conf.Data, cs *conf.Server) (*App, func(), error) {
 var wireProviders = wire.NewSet(
 	telemetry.NewTextMapPropagator,
 	data.OrderDataProviderSet,
-	data.DelayMsgRelayDataProviderSet,
 	biz.NewOrderUsecase,
-	biz.NewDelayMsgRealyUsecase,
 	service.NewOrderService,
 	service.NewOrderServiceConnectHandler,
 	server.NewOrderRunner,
-	server.NewDelayMsgRelayRunner,
 	newConnectServerConfig,
 	server.NewConnectServer,
 	server.NewMetricsServer,

@@ -11,11 +11,11 @@ import (
 
 	"github.com/IBM/sarama"
 	"github.com/azusayn/azushop/internal/biz"
+	"github.com/azusayn/azushop/internal/pkg/kafka"
 	"github.com/azusayn/azushop/internal/pkg/telemetry"
 	"github.com/azusayn/azushop/proto/conf"
 	"github.com/dnwe/otelsarama"
 	"github.com/google/wire"
-	"github.com/samber/lo"
 	"github.com/shopspring/decimal"
 	"go.opentelemetry.io/otel"
 	"gorm.io/gorm"
@@ -190,7 +190,7 @@ func (repo *OrderRepo) CreateOutboxMessage(ctx context.Context, eventType biz.Ou
 }
 
 // returns messages that are eligible for processing.
-func (repo *OrderRepo) ListOutboxMessages(ctx context.Context, limit int) ([]*biz.OrderOutboxMessage, error) {
+func (repo *OrderRepo) ListDueOutboxMessages(ctx context.Context, limit int) ([]*biz.OrderOutboxMessage, error) {
 	client := GetTransaction(ctx)
 	if client == nil {
 		client = repo.postgres.GormClient
@@ -204,8 +204,8 @@ func (repo *OrderRepo) ListOutboxMessages(ctx context.Context, limit int) ([]*bi
 	if err := client.
 		WithContext(ctx).
 		Where("sent_at IS NULL").
-		Where("retry_count < ?", biz.OutboxMaxRetryCount).
-		Order("created_at ASC").
+		Where("retry_count < ? AND next_retry_at < NOW()", biz.OutboxMaxRetryCount).
+		Order("next_retry_at ASC").
 		Limit(limit).
 		Find(&messages).
 		Error; err != nil {
@@ -254,8 +254,11 @@ func (repo *OrderRepo) MarkOutboxMessagesFailed(ctx context.Context, ids []uuid.
 		WithContext(ctx).
 		Model(&biz.OrderOutboxMessage{}).
 		Where("id IN ?", ids).
-		Update("retry_count", gorm.Expr("retry_count + 1")).
-		Error; err != nil {
+		Updates(map[string]any{
+			"retry_count": gorm.Expr("retry_count + 1"),
+			// exponential backoff.
+			"next_retry_at": gorm.Expr("NOW() + make_interval(secs => POWER(2, retry_count))"),
+		}).Error; err != nil {
 		return fmt.Errorf("failed to mark outbox message (%v) failed: %w", ids, err)
 	}
 
@@ -263,24 +266,25 @@ func (repo *OrderRepo) MarkOutboxMessagesFailed(ctx context.Context, ids []uuid.
 }
 
 type OrderSubscriber struct {
-	handlers      map[string]func(context.Context, []byte) error
 	consumerGroup sarama.ConsumerGroup
 }
 
 func NewOrderSubscriber(config *conf.Data) (biz.OrderSubscriber, error) {
-	consumerGroup, err := NewConsumerGroup(config.GetKafka().GetBrokerAddrs(), config.GetAppName())
+	consumerGroup, err := kafka.NewConsumerGroup(config.GetKafka().GetBrokerAddrs(), config.GetAppName())
 	if err != nil {
 		return nil, err
 	}
 	return &OrderSubscriber{
-		handlers:      make(map[string]func(context.Context, []byte) error),
 		consumerGroup: consumerGroup,
 	}, nil
 }
 
-func (s *OrderSubscriber) Subscribe(ctx context.Context) error {
-	consumerHandler := NewConsumerHandler(s.handlers)
-	topics := lo.Keys(s.handlers)
+func (s *OrderSubscriber) Subscribe(ctx context.Context, handlers map[kafka.TopicType]kafka.HandlerFunc) error {
+	consumerHandler := kafka.NewConsumerHandler(handlers)
+	topics := make([]string, 0, len(handlers))
+	for topic := range handlers {
+		topics = append(topics, string(topic))
+	}
 	for {
 		err := s.consumerGroup.Consume(ctx, topics, consumerHandler)
 		if err != nil {
@@ -292,19 +296,16 @@ func (s *OrderSubscriber) Subscribe(ctx context.Context) error {
 	}
 }
 
-func (s *OrderSubscriber) RegisterHandler(topic biz.KafkaTopicType, handler func(context.Context, []byte) error) {
-	s.handlers[string(topic)] = handler
-}
-
 type OrderPublisher struct {
 	kafkaProducer *KafkaProducer
 }
 
+// TODO: move to pkg.
 func NewOrderPublisher(producer *KafkaProducer) biz.OrderPublisher {
 	return &OrderPublisher{kafkaProducer: producer}
 }
 
-func (p *OrderPublisher) SendMessagaes(ctx context.Context, messages []*biz.KafkaMessage) error {
+func (p *OrderPublisher) SendMessages(ctx context.Context, messages []*kafka.Message) error {
 	producer := p.kafkaProducer.syncProducer
 	var prodMsgs []*sarama.ProducerMessage
 	for _, message := range messages {

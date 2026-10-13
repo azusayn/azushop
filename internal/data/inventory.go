@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/azusayn/azushop/internal/biz"
+	"github.com/azusayn/azushop/internal/pkg/kafka"
 	"github.com/azusayn/azushop/proto/conf"
 
 	"uuid"
@@ -13,7 +14,6 @@ import (
 	"github.com/IBM/sarama"
 	"github.com/google/wire"
 	"github.com/pkg/errors"
-	"github.com/samber/lo"
 	"gorm.io/gorm"
 )
 
@@ -158,25 +158,28 @@ func (repo *InventoryRepo) BatchCreateInventoris(ctx context.Context, skuIDs []u
 }
 
 type InventorySubscriber struct {
-	handlers      map[string]func(context.Context, []byte) error
+	handlers      map[kafka.TopicType]kafka.HandlerFunc
 	consumerGroup sarama.ConsumerGroup
 }
 
 func NewInventorySubscriber(config *conf.Data) (biz.InventorySubscriber, error) {
 	brokerAddrs := config.GetKafka().GetBrokerAddrs()
-	consumerGroup, err := NewConsumerGroup(brokerAddrs, config.GetAppName())
+	consumerGroup, err := kafka.NewConsumerGroup(brokerAddrs, config.GetAppName())
 	if err != nil {
 		return nil, err
 	}
 	return &InventorySubscriber{
-		handlers:      make(map[string]func(context.Context, []byte) error),
+		handlers:      make(map[kafka.TopicType]kafka.HandlerFunc),
 		consumerGroup: consumerGroup,
 	}, nil
 }
 
 func (s *InventorySubscriber) Subscribe(ctx context.Context) error {
-	consumerHandler := NewConsumerHandler(s.handlers)
-	topics := lo.Keys(s.handlers)
+	consumerHandler := kafka.NewConsumerHandler(s.handlers)
+	topics := make([]string, 0, len(s.handlers))
+	for topic := range s.handlers {
+		topics = append(topics, string(topic))
+	}
 	for {
 		err := s.consumerGroup.Consume(ctx, topics, consumerHandler)
 		if err != nil {
@@ -188,6 +191,6 @@ func (s *InventorySubscriber) Subscribe(ctx context.Context) error {
 	}
 }
 
-func (s *InventorySubscriber) RegisterHandler(topic biz.KafkaTopicType, handler func(context.Context, []byte) error) {
-	s.handlers[string(topic)] = handler
+func (s *InventorySubscriber) RegisterHandler(topic kafka.TopicType, handler func(context.Context, []byte) error) {
+	s.handlers[topic] = handler
 }

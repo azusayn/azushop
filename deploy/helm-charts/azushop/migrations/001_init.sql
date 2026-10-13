@@ -95,6 +95,7 @@ CREATE TABLE order_outbox_messages (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   retry_count INT NOT NULL DEFAULT 0,
   headers JSONB,
+  next_retry_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   sent_at TIMESTAMPTZ
 );
 
