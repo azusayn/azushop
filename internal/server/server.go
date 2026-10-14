@@ -33,11 +33,11 @@ func NewRuntime() *Runtime {
 }
 
 func (r *Runtime) Bootstrap(config *conf.Data) {
-	appName := config.GetAppName()
-	log.SetupGlobalLogger(appName)
+	serviceName := config.GetServiceName()
+	log.SetupGlobalLogger(serviceName)
 
 	tp, tpCleanup, err := NewGlobalTraceProvider(
-		appName,
+		serviceName,
 		config.GetOtlpGrpcAddress(),
 	)
 	if err != nil {

@@ -31,16 +31,16 @@ type PaymentPublisher interface {
 }
 
 type PaymentUsecase struct {
-	repo      PaymentRepo
-	publisher PaymentPublisher
-	appName   string
+	repo        PaymentRepo
+	publisher   PaymentPublisher
+	serviceName string
 }
 
 func NewPaymentUsecase(repo PaymentRepo, publisher PaymentPublisher, config *conf.Data) *PaymentUsecase {
 	return &PaymentUsecase{
-		repo:      repo,
-		publisher: publisher,
-		appName:   config.GetAppName(),
+		repo:        repo,
+		publisher:   publisher,
+		serviceName: config.GetServiceName(),
 	}
 }
 
@@ -140,7 +140,7 @@ func (uc *PaymentUsecase) Callback(ctx context.Context, method PaymentMethod, bo
 		return fmt.Errorf("unsupported payment method %q", method)
 	}
 
-	ctx, span := otel.Tracer(uc.appName).Start(ctx, paymentCallbackSpanName)
+	ctx, span := otel.Tracer(uc.serviceName).Start(ctx, paymentCallbackSpanName)
 	defer span.End()
 
 	if err := uc.repo.UpdatePaymentStatusByOrderID(ctx, orderID, paymentStatus); err != nil {

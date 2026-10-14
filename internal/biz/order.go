@@ -60,7 +60,7 @@ func NewOrderUsecase(
 	inventory inventoryv1connect.InventoryServiceClient,
 	config *conf.Data,
 ) (*OrderUsecase, error) {
-	scope := config.GetAppName()
+	scope := config.GetServiceName()
 	consumerGroup, err := kafka.NewConsumerGroup(config.GetKafka().GetBrokerAddrs(), scope)
 	if err != nil {
 		return nil, err

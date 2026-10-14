@@ -494,6 +494,7 @@ type Data struct {
 	Payment         *Payment               `protobuf:"bytes,4,opt,name=payment,proto3" json:"payment,omitempty"`
 	Kafka           *Kafka                 `protobuf:"bytes,5,opt,name=kafka,proto3" json:"kafka,omitempty"`
 	AppName         string                 `protobuf:"bytes,6,opt,name=app_name,json=appName,proto3" json:"app_name,omitempty"`
+	ServiceName     string                 `protobuf:"bytes,10,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
 	Auth            *Auth                  `protobuf:"bytes,7,opt,name=auth,proto3" json:"auth,omitempty"`
 	OtlpGrpcAddress string                 `protobuf:"bytes,8,opt,name=otlp_grpc_address,json=otlpGrpcAddress,proto3" json:"otlp_grpc_address,omitempty"`
 	EmbeddingApi    *EmbeddingAPI          `protobuf:"bytes,9,opt,name=embedding_api,json=embeddingApi,proto3" json:"embedding_api,omitempty"`
@@ -569,6 +570,13 @@ func (x *Data) GetKafka() *Kafka {
 func (x *Data) GetAppName() string {
 	if x != nil {
 		return x.AppName
+	}
+	return ""
+}
+
+func (x *Data) GetServiceName() string {
+	if x != nil {
+		return x.ServiceName
 	}
 	return ""
 }
@@ -697,14 +705,16 @@ const file_conf_conf_proto_rawDesc = "" +
 	"\bendpoint\x18\x01 \x01(\tR\bendpoint\x12\x16\n" +
 	"\x06secret\x18\x02 \x01(\tR\x06secret\x12\x14\n" +
 	"\x05model\x18\x03 \x01(\tR\x05model\x12!\n" +
-	"\fmax_distance\x18\x04 \x01(\x02R\vmaxDistance\"\xf7\x02\n" +
+	"\fmax_distance\x18\x04 \x01(\x02R\vmaxDistance\"\x9a\x03\n" +
 	"\x04Data\x12*\n" +
 	"\bdatabase\x18\x01 \x01(\v2\x0e.conf.DatabaseR\bdatabase\x12!\n" +
 	"\x05redis\x18\x02 \x01(\v2\v.conf.RedisR\x05redis\x124\n" +
 	"\fservice_addr\x18\x03 \x01(\v2\x11.conf.ServiceAddrR\vserviceAddr\x12'\n" +
 	"\apayment\x18\x04 \x01(\v2\r.conf.PaymentR\apayment\x12!\n" +
 	"\x05kafka\x18\x05 \x01(\v2\v.conf.KafkaR\x05kafka\x12\x19\n" +
-	"\bapp_name\x18\x06 \x01(\tR\aappName\x12\x1e\n" +
+	"\bapp_name\x18\x06 \x01(\tR\aappName\x12!\n" +
+	"\fservice_name\x18\n" +
+	" \x01(\tR\vserviceName\x12\x1e\n" +
 	"\x04auth\x18\a \x01(\v2\n" +
 	".conf.AuthR\x04auth\x12*\n" +
 	"\x11otlp_grpc_address\x18\b \x01(\tR\x0fotlpGrpcAddress\x127\n" +
