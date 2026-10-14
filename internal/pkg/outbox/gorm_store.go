@@ -23,10 +23,16 @@ type gormOutboxMessage struct {
 	SentAt      *time.Time      `gorm:"column:sent_at"`
 }
 
-type store struct{}
+type store struct {
+	tableName string
+}
 
-func newStore() *store {
-	return &store{}
+func newStore(tableName string) *store {
+	return &store{tableName: tableName}
+}
+
+func (s *store) TableName() string {
+	return s.tableName
 }
 
 func (s *store) CreateOutboxMessage(ctx context.Context, eventType string, payload json.RawMessage) error {
@@ -45,7 +51,7 @@ func (s *store) CreateOutboxMessage(ctx context.Context, eventType string, paylo
 	// TODO(4): metrics.
 	ctx = telemetry.WithUnsampledSpanContext(ctx)
 
-	return db.GetTransaction(ctx).WithContext(ctx).Create(outboxMsg).Error
+	return db.GetTransaction(ctx).WithContext(ctx).Table(s.TableName()).Create(outboxMsg).Error
 }
 
 // returns messages that are eligible for processing.
@@ -58,6 +64,7 @@ func (s *store) ListDueOutboxMessages(ctx context.Context, limit int) ([]*Outbox
 	if err := db.
 		GetTransaction(ctx).
 		WithContext(ctx).
+		Table(s.TableName()).
 		Where("sent_at IS NULL").
 		Where("retry_count < ? AND next_retry_at < NOW()", outboxMaxRetryCount).
 		Order("next_retry_at ASC").
@@ -84,7 +91,7 @@ func (s *store) MarkOutboxMessagesSent(ctx context.Context, ids []uuid.UUID) err
 
 	if err := db.GetTransaction(ctx).
 		WithContext(ctx).
-		Model(&gormOutboxMessage{}).
+		Table(s.TableName()).
 		Where("id IN ?", ids).
 		Update("sent_at", time.Now()).
 		Error; err != nil {
@@ -104,7 +111,7 @@ func (s *store) MarkOutboxMessagesFailed(ctx context.Context, ids []uuid.UUID) e
 
 	if err := db.GetTransaction(ctx).
 		WithContext(ctx).
-		Model(&gormOutboxMessage{}).
+		Table(s.TableName()).
 		Where("id IN ?", ids).
 		Updates(map[string]any{
 			"retry_count": gorm.Expr("retry_count + 1"),
