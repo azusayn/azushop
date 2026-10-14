@@ -50,9 +50,13 @@ type App struct {
 	server.Runtime
 }
 
-func newApp(connectServer *server.ConnectServer, metricsServer *server.MetricsServer) *App {
+func newApp(
+	connectServer *server.ConnectServer,
+	metricsServer *server.MetricsServer,
+	productRunner *server.ProductRunner,
+) *App {
 	app := &App{}
-	app.Servers = []server.Server{connectServer, metricsServer}
+	app.Servers = []server.Server{connectServer, metricsServer, productRunner}
 	return app
 }
 

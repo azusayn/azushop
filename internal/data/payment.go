@@ -23,6 +23,7 @@ const (
 
 var PaymentDataProviderSet = wire.NewSet(
 	db.NewPostgres,
+	db.NewTransaction,
 	NewRedis,
 	NewPaymentRepo,
 	NewKafkaProducer,

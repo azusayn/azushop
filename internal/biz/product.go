@@ -4,11 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log/slog"
 
 	"uuid"
 
+	"github.com/azusayn/azushop/internal/pkg/db"
 	"github.com/azusayn/azushop/internal/pkg/llm"
+	"github.com/azusayn/azushop/internal/pkg/outbox"
+	"github.com/azusayn/azushop/proto/conf"
 	"github.com/azusayn/azutils/validate"
 	"github.com/pgvector/pgvector-go"
 	"github.com/pkg/errors"
@@ -58,6 +60,7 @@ type ProductRepo interface {
 	BatchCreateProducts(ctx context.Context, product []*Product) ([]*Product, error)
 	BatchUpdateProducts(ctx context.Context, product []*Product, paths []string) error
 	BatchGetSkuDetails(ctx context.Context, skuIDs []uuid.UUID, pageToken uuid.UUID, pageSize int32) ([]*SkuDetail, error)
+	ClearSellerProductCaches(ctx context.Context, sellerIDs []int32)
 }
 
 type ProductPublisher interface {
@@ -68,14 +71,25 @@ type ProductUsecase struct {
 	repo            ProductRepo
 	publisher       ProductPublisher
 	embeddingClient *llm.OpenAIClient
+	tx              *db.Transaction
+	outbox          *outbox.Outbox
 }
 
-func NewProductUsecase(repo ProductRepo, publisher ProductPublisher, openaiClient *llm.OpenAIClient) *ProductUsecase {
-	return &ProductUsecase{
+func NewProductUsecase(
+	repo ProductRepo,
+	publisher ProductPublisher,
+	openaiClient *llm.OpenAIClient,
+	tx *db.Transaction,
+	config *conf.Data,
+) *ProductUsecase {
+	uc := &ProductUsecase{
 		repo:            repo,
 		publisher:       publisher,
 		embeddingClient: openaiClient,
+		tx:              tx,
 	}
+	uc.outbox = outbox.NewOutbox(config.GetServiceName(), uc.buildDispatchFunc(), tx)
+	return uc
 }
 
 // used by listSellerProducts()
@@ -189,22 +203,63 @@ func (uc *ProductUsecase) BatchCreateProducts(
 		p.Embedding = embeddings[i]
 	}
 
-	createdProds, err := uc.repo.BatchCreateProducts(ctx, products)
+	var createdProds []*Product
+	err = uc.tx.Transaction(ctx, func(ctx context.Context) error {
+		var err error
+		createdProds, err = uc.repo.BatchCreateProducts(ctx, products)
+		if err != nil {
+			return err
+		}
+		var skuIDs []uuid.UUID
+		for _, p := range createdProds {
+			for _, s := range p.Skus {
+				skuIDs = append(skuIDs, s.ID)
+			}
+		}
+		payload, err := json.Marshal(ProductCreatedMessage{SkuIDs: skuIDs})
+		if err != nil {
+			return err
+		}
+		return uc.outbox.Save(ctx, string(outboxEventProductCreated), payload)
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	var skuIDs []uuid.UUID
+	seen := make(map[int32]struct{}, len(createdProds))
+	sellerIDs := make([]int32, 0, len(createdProds))
 	for _, p := range createdProds {
-		for _, s := range p.Skus {
-			skuIDs = append(skuIDs, s.ID)
+		if _, ok := seen[p.SellerID]; ok {
+			continue
 		}
+		seen[p.SellerID] = struct{}{}
+		sellerIDs = append(sellerIDs, p.SellerID)
 	}
-	// TODO(0): outbox
-	if err := uc.publisher.PublishProductCreated(ctx, skuIDs); err != nil {
-		slog.Warn(err.Error())
-	}
+	uc.repo.ClearSellerProductCaches(ctx, sellerIDs)
 	return createdProds, nil
+}
+
+func (uc *ProductUsecase) HandleOutboxMessages(ctx context.Context) error {
+	return uc.outbox.Run(ctx)
+}
+
+func (uc *ProductUsecase) dispatchOutboxMessage(ctx context.Context, message *outbox.OutboxMessage) error {
+	switch OutboxEventType(message.EventType) {
+	case outboxEventProductCreated:
+		var msg ProductCreatedMessage
+		if err := json.Unmarshal(message.Payload, &msg); err != nil {
+			return err
+		}
+		return uc.publisher.PublishProductCreated(ctx, msg.SkuIDs)
+	default:
+	}
+	return fmt.Errorf("unknown event type %q", message.EventType)
+}
+
+func (uc *ProductUsecase) buildDispatchFunc() outbox.DispatchFunc {
+	return func(ctx context.Context, message *outbox.OutboxMessage) error {
+		return uc.dispatchOutboxMessage(ctx, message)
+	}
 }
 
 func (uc *ProductUsecase) BatchUpdateProducts(

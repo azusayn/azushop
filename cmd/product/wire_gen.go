@@ -36,7 +36,8 @@ func wireApp(cd *conf.Data, cs *conf.Server) (*App, func(), error) {
 	}
 	productPublisher := data.NewProductPublisher(kafkaProducer)
 	openAIClient := llm.NewOpenAIClient(cd)
-	productUsecase := biz.NewProductUsecase(productRepo, productPublisher, openAIClient)
+	transaction := db.NewTransaction(postgres)
+	productUsecase := biz.NewProductUsecase(productRepo, productPublisher, openAIClient, transaction, cd)
 	productService := service.NewProductService(productUsecase, cd)
 	productServiceConnectHandler := service.NewProductServiceConnectHandler(productService)
 	textMapPropagator := telemetry.NewTextMapPropagator()
@@ -46,11 +47,12 @@ func wireApp(cd *conf.Data, cs *conf.Server) (*App, func(), error) {
 	}
 	connectServer := server.NewConnectServer(connectServerConfig)
 	metricsServer := server.NewMetricsServer(cs)
-	app := newApp(connectServer, metricsServer)
+	productRunner := server.NewProductRunner(productUsecase)
+	app := newApp(connectServer, metricsServer, productRunner)
 	return app, func() {
 	}, nil
 }
 
 // wire.go:
 
-var wireProviders = wire.NewSet(telemetry.NewTextMapPropagator, data.ProductDataProviderSet, biz.NewProductUsecase, llm.NewOpenAIClient, service.NewProductService, service.NewProductServiceConnectHandler, newConnectServerConfig, server.NewConnectServer, server.NewMetricsServer, newApp)
+var wireProviders = wire.NewSet(telemetry.NewTextMapPropagator, data.ProductDataProviderSet, biz.NewProductUsecase, llm.NewOpenAIClient, service.NewProductService, service.NewProductServiceConnectHandler, server.NewProductRunner, newConnectServerConfig, server.NewConnectServer, server.NewMetricsServer, newApp)

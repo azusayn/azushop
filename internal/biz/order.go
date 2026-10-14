@@ -9,6 +9,7 @@ import (
 	"uuid"
 
 	"connectrpc.com/connect"
+	"github.com/azusayn/azushop/internal/pkg/db"
 	"github.com/azusayn/azushop/internal/pkg/kafka"
 	"github.com/azusayn/azushop/internal/pkg/kafka/delay"
 	"github.com/azusayn/azushop/internal/pkg/kafka/retry"
@@ -43,7 +44,7 @@ type OrderPublisher interface {
 
 type OrderUsecase struct {
 	repo        OrderRepo
-	tx          Transaction
+	tx          *db.Transaction
 	subscriber  OrderSubscriber
 	publisher   OrderPublisher
 	inventory   inventoryv1connect.InventoryServiceClient
@@ -56,7 +57,7 @@ func NewOrderUsecase(
 	repo OrderRepo,
 	subscriber OrderSubscriber,
 	publisher OrderPublisher,
-	tx Transaction,
+	tx *db.Transaction,
 	inventory inventoryv1connect.InventoryServiceClient,
 	config *conf.Data,
 ) (*OrderUsecase, error) {

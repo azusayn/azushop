@@ -25,6 +25,7 @@ var wireProviders = wire.NewSet(
 	llm.NewOpenAIClient,
 	service.NewProductService,
 	service.NewProductServiceConnectHandler,
+	server.NewProductRunner,
 	newConnectServerConfig,
 	server.NewConnectServer,
 	server.NewMetricsServer,

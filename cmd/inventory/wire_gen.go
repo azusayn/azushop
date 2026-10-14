@@ -30,7 +30,7 @@ func wireApp(cd *conf.Data, cs *conf.Server) (*App, func(), error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	inventoryUsecase := biz.NewInventoryUsecase(inventoryRepo, transaction, inventorySubscriber)
+	inventoryUsecase := biz.NewInventoryUsecase(inventoryRepo, transaction, inventorySubscriber, cd)
 	inventoryService := service.NewInventoryService(inventoryUsecase)
 	inventoryServiceConnectHandler := service.NewInventoryServiceConnectHandler(inventoryService)
 	textMapPropagator := telemetry.NewTextMapPropagator()
