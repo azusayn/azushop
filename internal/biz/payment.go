@@ -8,6 +8,8 @@ import (
 	"log/slog"
 	"strconv"
 
+	"github.com/azusayn/azushop/internal/pkg/db"
+	"github.com/azusayn/azushop/internal/pkg/outbox"
 	"github.com/azusayn/azushop/internal/pkg/telemetry"
 	"github.com/azusayn/azushop/proto/conf"
 	"github.com/shopspring/decimal"
@@ -31,17 +33,27 @@ type PaymentPublisher interface {
 }
 
 type PaymentUsecase struct {
-	repo      PaymentRepo
-	publisher PaymentPublisher
-	appName   string
+	repo        PaymentRepo
+	publisher   PaymentPublisher
+	serviceName string
+	tx          *db.Transaction
+	outbox      *outbox.Outbox
 }
 
-func NewPaymentUsecase(repo PaymentRepo, publisher PaymentPublisher, config *conf.Data) *PaymentUsecase {
-	return &PaymentUsecase{
-		repo:      repo,
-		publisher: publisher,
-		appName:   config.GetAppName(),
+func NewPaymentUsecase(
+	repo PaymentRepo,
+	publisher PaymentPublisher,
+	tx *db.Transaction,
+	config *conf.Data,
+) *PaymentUsecase {
+	uc := &PaymentUsecase{
+		repo:        repo,
+		publisher:   publisher,
+		serviceName: config.GetServiceName(),
+		tx:          tx,
 	}
+	uc.outbox = outbox.NewOutbox(uc.serviceName, uc.buildDispatchFunc(), tx)
+	return uc
 }
 
 type PaymentStatus string
@@ -140,21 +152,50 @@ func (uc *PaymentUsecase) Callback(ctx context.Context, method PaymentMethod, bo
 		return fmt.Errorf("unsupported payment method %q", method)
 	}
 
-	ctx, span := otel.Tracer(uc.appName).Start(ctx, paymentCallbackSpanName)
+	ctx, span := otel.Tracer(uc.serviceName).Start(ctx, paymentCallbackSpanName)
 	defer span.End()
 
-	if err := uc.repo.UpdatePaymentStatusByOrderID(ctx, orderID, paymentStatus); err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
-		return err
-	}
-	// TODO: outbox
-	if err := uc.publisher.PublishPaymentStatus(ctx, orderID, paymentStatus); err != nil {
+	if err := uc.tx.Transaction(ctx, func(ctx context.Context) error {
+		if err := uc.repo.UpdatePaymentStatusByOrderID(ctx, orderID, paymentStatus); err != nil {
+			return err
+		}
+		payload, err := json.Marshal(PaymentStatusMessage{
+			OrderID: orderID,
+			Status:  paymentStatus,
+		})
+		if err != nil {
+			return err
+		}
+		return uc.outbox.Save(ctx, string(outboxEventPaymentStatus), payload)
+	}); err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 		return err
 	}
 	return nil
+}
+
+func (uc *PaymentUsecase) HandleOutboxMessages(ctx context.Context) error {
+	return uc.outbox.Run(ctx)
+}
+
+func (uc *PaymentUsecase) dispatchOutboxMessage(ctx context.Context, message *outbox.OutboxMessage) error {
+	switch OutboxEventType(message.EventType) {
+	case outboxEventPaymentStatus:
+		var msg PaymentStatusMessage
+		if err := json.Unmarshal(message.Payload, &msg); err != nil {
+			return err
+		}
+		return uc.publisher.PublishPaymentStatus(ctx, msg.OrderID, msg.Status)
+	default:
+	}
+	return fmt.Errorf("unknown event type %q", message.EventType)
+}
+
+func (uc *PaymentUsecase) buildDispatchFunc() outbox.DispatchFunc {
+	return func(ctx context.Context, message *outbox.OutboxMessage) error {
+		return uc.dispatchOutboxMessage(ctx, message)
+	}
 }
 
 // createStripePayment creates a Stripe checkout session and return PaymentIntent ID, URL and AmountTotal

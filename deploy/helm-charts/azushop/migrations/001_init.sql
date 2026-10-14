@@ -88,7 +88,41 @@ CREATE TABLE orders (
 CREATE UNIQUE INDEX uk_orders_idempotency_key ON orders(idempotency_key);
 
 -- TODO(4): Debezium CDC.
-CREATE TABLE order_outbox_messages (
+-- pkg/outbox names the table "{service_name}_outbox".
+CREATE TABLE order_outbox (
+  id UUID NOT NULL,
+  event_type VARCHAR(255) NOT NULL,
+  payload JSON NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  retry_count INT NOT NULL DEFAULT 0,
+  headers JSONB,
+  next_retry_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  sent_at TIMESTAMPTZ
+);
+
+CREATE TABLE payment_outbox (
+  id UUID NOT NULL,
+  event_type VARCHAR(255) NOT NULL,
+  payload JSON NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  retry_count INT NOT NULL DEFAULT 0,
+  headers JSONB,
+  next_retry_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  sent_at TIMESTAMPTZ
+);
+
+CREATE TABLE product_outbox (
+  id UUID NOT NULL,
+  event_type VARCHAR(255) NOT NULL,
+  payload JSON NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  retry_count INT NOT NULL DEFAULT 0,
+  headers JSONB,
+  next_retry_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  sent_at TIMESTAMPTZ
+);
+
+CREATE TABLE inventory_outbox (
   id UUID NOT NULL,
   event_type VARCHAR(255) NOT NULL,
   payload JSON NOT NULL,

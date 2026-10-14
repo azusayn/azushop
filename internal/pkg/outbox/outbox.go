@@ -32,7 +32,6 @@ type OutboxMessage struct {
 }
 
 type OutboxStore interface {
-	// order_outbox
 	CreateOutboxMessage(ctx context.Context, eventType string, payload json.RawMessage) error
 	ListDueOutboxMessages(ctx context.Context, limit int) ([]*OutboxMessage, error)
 	MarkOutboxMessagesSent(ctx context.Context, ids []uuid.UUID) error
@@ -56,12 +55,13 @@ type Outbox struct {
 type Option func(*Outbox)
 
 func NewOutbox(
+	scope string,
 	dispatch DispatchFunc,
 	tx OutboxTransaction,
 	opts ...Option,
 ) *Outbox {
 	outbox := &Outbox{
-		store:    newStore(),
+		store:    newStore(scope + "_outbox"),
 		dispatch: dispatch,
 		tx:       tx,
 	}

@@ -167,7 +167,7 @@ type OrderSubscriber struct {
 }
 
 func NewOrderSubscriber(config *conf.Data) (biz.OrderSubscriber, error) {
-	consumerGroup, err := kafka.NewConsumerGroup(config.GetKafka().GetBrokerAddrs(), config.GetAppName())
+	consumerGroup, err := kafka.NewConsumerGroup(config.GetKafka().GetBrokerAddrs(), config.GetServiceName())
 	if err != nil {
 		return nil, err
 	}

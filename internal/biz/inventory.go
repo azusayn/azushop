@@ -7,7 +7,10 @@ import (
 
 	"uuid"
 
+	"github.com/azusayn/azushop/internal/pkg/db"
 	"github.com/azusayn/azushop/internal/pkg/kafka"
+	"github.com/azusayn/azushop/internal/pkg/outbox"
+	"github.com/azusayn/azushop/proto/conf"
 	"github.com/google/wire"
 )
 
@@ -62,16 +65,24 @@ type ProductCreatedMessage struct {
 
 type InventoryUsecase struct {
 	repo       InventoryRepo
-	tx         Transaction
+	tx         *db.Transaction
 	subscriber InventorySubscriber
+	outbox     *outbox.Outbox
 }
 
-func NewInventoryUsecase(repo InventoryRepo, tx Transaction, sub InventorySubscriber) *InventoryUsecase {
-	return &InventoryUsecase{
+func NewInventoryUsecase(
+	repo InventoryRepo,
+	tx *db.Transaction,
+	sub InventorySubscriber,
+	config *conf.Data,
+) *InventoryUsecase {
+	uc := &InventoryUsecase{
 		repo:       repo,
 		tx:         tx,
 		subscriber: sub,
 	}
+	uc.outbox = outbox.NewOutbox(config.GetServiceName(), uc.buildDispatchFunc(), tx)
+	return uc
 }
 
 func (uc *InventoryUsecase) AdjustStock(
@@ -181,14 +192,16 @@ func (uc *InventoryUsecase) HandleKafkaMessages(ctx context.Context) error {
 	return uc.subscriber.Subscribe(ctx)
 }
 
+func (uc *InventoryUsecase) HandleOutboxMessages(ctx context.Context) error {
+	return uc.outbox.Run(ctx)
+}
+
 func (uc *InventoryUsecase) handleProductCreated(ctx context.Context, bytes []byte) error {
 	var msg ProductCreatedMessage
 	if err := json.Unmarshal(bytes, &msg); err != nil {
 		return err
 	}
-	// TODO: outbox
-	_, err := uc.repo.BatchCreateInventoris(ctx, msg.SkuIDs)
-	return err
+	return uc.saveOutbox(ctx, outboxEventInventoryProductCreated, bytes)
 }
 
 func (uc *InventoryUsecase) handleOrderCreated(ctx context.Context, bytes []byte) error {
@@ -196,15 +209,7 @@ func (uc *InventoryUsecase) handleOrderCreated(ctx context.Context, bytes []byte
 	if err := json.Unmarshal(bytes, &msg); err != nil {
 		return err
 	}
-	var orderItems []*OrderItem
-	for _, orderItem := range msg.OrderItems {
-		orderItems = append(orderItems, &OrderItem{
-			SkuID:    orderItem.SkuID,
-			Quantity: orderItem.Quantity,
-		})
-	}
-	// TODO: outbox
-	return uc.ReserveStock(ctx, msg.OrderID, orderItems)
+	return uc.saveOutbox(ctx, outboxEventInventoryOrderCreated, bytes)
 }
 
 func (uc *InventoryUsecase) handlePaymentStatus(ctx context.Context, bytes []byte) error {
@@ -215,6 +220,58 @@ func (uc *InventoryUsecase) handlePaymentStatus(ctx context.Context, bytes []byt
 	if msg.Status != PaymentStatusPaid {
 		return nil
 	}
-	// TODO: outbox
-	return uc.DeductStock(ctx, msg.OrderID)
+	return uc.saveOutbox(ctx, outboxEventInventoryPaymentStatus, bytes)
+}
+
+func (uc *InventoryUsecase) saveOutbox(ctx context.Context, eventType OutboxEventType, payload []byte) error {
+	return uc.tx.Transaction(ctx, func(ctx context.Context) error {
+		return uc.outbox.Save(ctx, string(eventType), payload)
+	})
+}
+
+func (uc *InventoryUsecase) dispatchOutboxMessage(ctx context.Context, message *outbox.OutboxMessage) error {
+	switch OutboxEventType(message.EventType) {
+	case outboxEventInventoryProductCreated:
+		var msg ProductCreatedMessage
+		if err := json.Unmarshal(message.Payload, &msg); err != nil {
+			return err
+		}
+		return uc.tx.Transaction(ctx, func(ctx context.Context) error {
+			_, err := uc.repo.BatchCreateInventoris(ctx, msg.SkuIDs)
+			return err
+		})
+
+	case outboxEventInventoryOrderCreated:
+		var msg OrderCreatedMessage
+		if err := json.Unmarshal(message.Payload, &msg); err != nil {
+			return err
+		}
+		var orderItems []*OrderItem
+		for _, orderItem := range msg.OrderItems {
+			orderItems = append(orderItems, &OrderItem{
+				SkuID:    orderItem.SkuID,
+				Quantity: orderItem.Quantity,
+			})
+		}
+		return uc.ReserveStock(ctx, msg.OrderID, orderItems)
+
+	case outboxEventInventoryPaymentStatus:
+		var msg PaymentStatusMessage
+		if err := json.Unmarshal(message.Payload, &msg); err != nil {
+			return err
+		}
+		if msg.Status != PaymentStatusPaid {
+			return nil
+		}
+		return uc.DeductStock(ctx, msg.OrderID)
+
+	default:
+	}
+	return fmt.Errorf("unknown event type %q", message.EventType)
+}
+
+func (uc *InventoryUsecase) buildDispatchFunc() outbox.DispatchFunc {
+	return func(ctx context.Context, message *outbox.OutboxMessage) error {
+		return uc.dispatchOutboxMessage(ctx, message)
+	}
 }

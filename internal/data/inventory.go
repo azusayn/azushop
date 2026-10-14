@@ -165,7 +165,7 @@ type InventorySubscriber struct {
 
 func NewInventorySubscriber(config *conf.Data) (biz.InventorySubscriber, error) {
 	brokerAddrs := config.GetKafka().GetBrokerAddrs()
-	consumerGroup, err := kafka.NewConsumerGroup(brokerAddrs, config.GetAppName())
+	consumerGroup, err := kafka.NewConsumerGroup(brokerAddrs, config.GetServiceName())
 	if err != nil {
 		return nil, err
 	}
