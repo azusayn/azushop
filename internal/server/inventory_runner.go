@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/azusayn/azushop/internal/biz"
+	"golang.org/x/sync/errgroup"
 )
 
 type InventoryRunner struct {
@@ -15,7 +16,17 @@ func NewInventoryRunner(uc *biz.InventoryUsecase) *InventoryRunner {
 }
 
 func (r *InventoryRunner) Start(ctx context.Context) error {
-	return r.uc.HandleKafkaMessages(ctx)
+	g, ctx := errgroup.WithContext(ctx)
+
+	g.Go(func() error {
+		return r.uc.HandleKafkaMessages(ctx)
+	})
+
+	g.Go(func() error {
+		return r.uc.HandleOutboxMessages(ctx)
+	})
+
+	return g.Wait()
 }
 
 func (r *InventoryRunner) Stop(ctx context.Context) error {

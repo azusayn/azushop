@@ -2,7 +2,8 @@ server:
   connect_server_addr: 0.0.0.0:{{ .Values.services.service.targetPort }}
   metrics_server_addr: 0.0.0.0:9090
 data:
-  app_name: "azushop.inventory"
+  app_name: "azushop"
+  service_name: "inventory"
   database:
     driver: pgx
     source: postgres://{{ .Values.postgres.auth.username }}:{{ .Values.postgres.auth.password }}@{{ .Values.postgres.service.name }}:{{ .Values.postgres.service.port }}/{{ .Values.postgres.auth.database }}?sslmode=disable

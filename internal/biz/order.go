@@ -3,25 +3,26 @@ package biz
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"log/slog"
 	"time"
 
 	"uuid"
 
 	"connectrpc.com/connect"
-	"github.com/azusayn/azushop/internal/pkg/telemetry"
+	"github.com/azusayn/azushop/internal/pkg/db"
+	"github.com/azusayn/azushop/internal/pkg/kafka"
+	"github.com/azusayn/azushop/internal/pkg/kafka/delay"
+	"github.com/azusayn/azushop/internal/pkg/kafka/retry"
+	"github.com/azusayn/azushop/internal/pkg/outbox"
 	inventorypb "github.com/azusayn/azushop/proto/api/inventory/v1"
 	inventoryv1connect "github.com/azusayn/azushop/proto/api/inventory/v1/v1connect"
+	"github.com/azusayn/azushop/proto/conf"
 	"github.com/shopspring/decimal"
 )
 
 const (
-	OutboxBatchSize           int = 100
-	OutboxMaxRetryCount       int = 5
-	OrderTimeout                  = time.Second * 30
-	MaxMessageQueueRetryCount int = 3
+	OrderTimeout           = time.Second * 30
+	retryEventReleaseStock = "mq.retry.event.release_stock"
 )
 
 type OrderRepo interface {
@@ -32,43 +33,53 @@ type OrderRepo interface {
 	UpdateOrderStatus(ctx context.Context, orderID int64, status OrderStatus) error
 	DeleteOrder(ctx context.Context, orderID int64) error
 	CancelOrder(ctx context.Context, orderID int64) error
-	// order_outbox
-	CreateOutboxMessage(ctx context.Context, eventType OutboxEventType, payload json.RawMessage) error
-	ListOutboxMessages(ctx context.Context, limit int) ([]*OrderOutboxMessage, error)
-	MarkOutboxMessagesSent(ctx context.Context, ids []uuid.UUID) error
-	MarkOutboxMessagesFailed(ctx context.Context, ids []uuid.UUID) error
 }
 type OrderSubscriber interface {
-	RegisterHandler(topic KafkaTopicType, handler func(context.Context, []byte) error)
-	Subscribe(ctx context.Context) error
+	Subscribe(ctx context.Context, handlers map[kafka.TopicType]kafka.HandlerFunc) error
 }
 
 type OrderPublisher interface {
-	SendMessagaes(ctx context.Context, messages []*KafkaMessage) error
+	SendMessages(ctx context.Context, messages []*kafka.Message) error
 }
 
 type OrderUsecase struct {
-	repo       OrderRepo
-	tx         Transaction
-	subscriber OrderSubscriber
-	publisher  OrderPublisher
-	inventory  inventoryv1connect.InventoryServiceClient
+	repo        OrderRepo
+	tx          *db.Transaction
+	subscriber  OrderSubscriber
+	publisher   OrderPublisher
+	inventory   inventoryv1connect.InventoryServiceClient
+	retrier     *retry.Retrier
+	delayWorker *delay.Worker
+	outbox      *outbox.Outbox
 }
 
 func NewOrderUsecase(
 	repo OrderRepo,
 	subscriber OrderSubscriber,
 	publisher OrderPublisher,
-	tx Transaction,
+	tx *db.Transaction,
 	inventory inventoryv1connect.InventoryServiceClient,
-) *OrderUsecase {
-	return &OrderUsecase{
+	config *conf.Data,
+) (*OrderUsecase, error) {
+	scope := config.GetServiceName()
+	consumerGroup, err := kafka.NewConsumerGroup(config.GetKafka().GetBrokerAddrs(), scope)
+	if err != nil {
+		return nil, err
+	}
+
+	uc := &OrderUsecase{
 		repo:       repo,
 		tx:         tx,
 		subscriber: subscriber,
 		publisher:  publisher,
 		inventory:  inventory,
+		// TODO: DI.
+		retrier:     retry.NewRetrier(scope, publisher, subscriber),
+		delayWorker: delay.NewWorker(scope, publisher, consumerGroup),
 	}
+	uc.outbox = outbox.NewOutbox(scope, uc.buildDispatchFunc(), tx)
+
+	return uc, nil
 }
 
 type OrderStatus string
@@ -97,16 +108,6 @@ type Order struct {
 	Status         OrderStatus     `gorm:"column:status"`
 	OrderItems     json.RawMessage `gorm:"column:order_items"`
 	CreatedAt      time.Time       `gorm:"column:created_at"`
-}
-
-type OrderOutboxMessage struct {
-	ID         uuid.UUID       `gorm:"column:id"`
-	EventType  OutboxEventType `gorm:"column:event_type"`
-	Payload    json.RawMessage `gorm:"column:payload"`
-	RetryCount int             `gorm:"column:retry_count"`
-	CreatedAt  time.Time       `gorm:"column:created_at"`
-	Headers    json.RawMessage `gorm:"column:headers"`
-	SentAt     *time.Time      `gorm:"column:sent_at"`
 }
 
 // retrieves orders by user ID, filtered by order status.
@@ -142,11 +143,13 @@ func (uc *OrderUsecase) CreateOrder(
 		if err != nil {
 			return err
 		}
-		err = uc.repo.CreateOutboxMessage(ctx, OutboxEventOrderCreated, payload)
+
+		err = uc.outbox.Save(ctx, string(outboxEventOrderCreated), payload)
 		if err != nil {
 			return err
 		}
-		return uc.repo.CreateOutboxMessage(ctx, OutboxEventOrderCancelledDelay, payload)
+
+		return uc.outbox.Save(ctx, string(outboxEventOrderCancelledDelay), payload)
 	})
 	if err != nil {
 		return nil, err
@@ -166,7 +169,7 @@ func (uc *OrderUsecase) CancelOrder(ctx context.Context, orderID int64) error {
 		if err != nil {
 			return err
 		}
-		return uc.repo.CreateOutboxMessage(ctx, OutboxEventOrderCancelled, bytes)
+		return uc.outbox.Save(ctx, string(outboxEventOrderCancelled), bytes)
 	})
 }
 
@@ -179,31 +182,18 @@ func (uc *OrderUsecase) GetOrder(ctx context.Context, orderID int64) (*Order, er
 }
 
 func (uc *OrderUsecase) HandleKafkaMessages(ctx context.Context) error {
-	uc.subscriber.RegisterHandler(KafkaTopicOrderCancelled, uc.handleOrderCancelled)
-	uc.subscriber.RegisterHandler(KafkaTopicPaymentStatus, uc.handlePaymentStatus)
-	uc.subscriber.RegisterHandler(KafkaTopicRetryQueue, uc.handleRetryQueueMessages)
-	return uc.subscriber.Subscribe(ctx)
+	return uc.subscriber.Subscribe(ctx, map[kafka.TopicType]kafka.HandlerFunc{
+		KafkaTopicOrderCancelled: uc.handleOrderCancelled,
+		KafkaTopicPaymentStatus:  uc.handlePaymentStatus,
+	})
 }
 
-func (uc *OrderUsecase) handleRetryQueueMessages(ctx context.Context, bytes []byte) error {
-	var retryMessage RetryQueueMessage
-	if err := json.Unmarshal(bytes, &retryMessage); err != nil {
-		return err
-	}
+func (uc *OrderUsecase) HandleRetryMessages(ctx context.Context) error {
+	return uc.retrier.Run(ctx)
+}
 
-	eventType := retryMessage.EventType
-	switch eventType {
-	case RetryQueueEventTypeReleaseStock:
-		v, ok := retryMessage.Message.(ReleaseStockMessage)
-		if !ok {
-			return errors.New("failed to convert any to ReleaseStockMessage")
-		}
-		return uc.releaseStock(ctx, &v, retryMessage.RetryCount)
-
-	default:
-	}
-	return fmt.Errorf("unknown event %q", eventType)
-
+func (uc *OrderUsecase) HandleOutboxMessages(ctx context.Context) error {
+	return uc.outbox.Run(ctx)
 }
 
 func (uc *OrderUsecase) handlePaymentStatus(ctx context.Context, bytes []byte) error {
@@ -218,6 +208,10 @@ func (uc *OrderUsecase) handlePaymentStatus(ctx context.Context, bytes []byte) e
 		return fmt.Errorf("invalid status %q", msg.Status)
 	}
 	return uc.repo.UpdateOrderStatus(ctx, msg.OrderID, OrderStatusConfirmed)
+}
+
+type OrderCancelledMessage struct {
+	OrderID int64
 }
 
 func (uc *OrderUsecase) handleOrderCancelled(ctx context.Context, bytes []byte) error {
@@ -235,68 +229,40 @@ func (uc *OrderUsecase) handleOrderCancelled(ctx context.Context, bytes []byte) 
 	return uc.repo.UpdateOrderStatus(ctx, msg.OrderID, OrderStatusCancelled)
 }
 
-func (uc *OrderUsecase) ProcessOutboxMessages(ctx context.Context) error {
-	messages, err := uc.repo.ListOutboxMessages(ctx, OutboxBatchSize)
-	if err != nil {
-		return err
-	}
-
-	sentIDs := make([]uuid.UUID, 0)
-	failedIDs := make([]uuid.UUID, 0)
-
-	for _, message := range messages {
-		msgCtx, err := telemetry.InjectTraceHeaderBytes(ctx, message.Headers)
-		if err != nil {
-			slog.ErrorContext(ctx, "failed to inject headers into context", slog.Any("message_id", message.ID), slog.Any("err", err))
-			failedIDs = append(failedIDs, message.ID)
-			continue
-		}
-		if err := uc.dispatchOutboxMessage(msgCtx, message); err != nil {
-			slog.ErrorContext(msgCtx, "failed to send outbox message", slog.Any("msg", message), slog.Any("err", err))
-			failedIDs = append(failedIDs, message.ID)
-			continue
-		}
-		sentIDs = append(sentIDs, message.ID)
-	}
-
-	return errors.Join(
-		uc.repo.MarkOutboxMessagesFailed(ctx, failedIDs),
-		uc.repo.MarkOutboxMessagesSent(ctx, sentIDs),
-	)
-}
-
 // dispatchOutboxMessages dispatches an outbox message to the appropriate handler
 // based on its event type.
-func (uc *OrderUsecase) dispatchOutboxMessage(ctx context.Context, message *OrderOutboxMessage) error {
+func (uc *OrderUsecase) dispatchOutboxMessage(ctx context.Context, message *outbox.OutboxMessage) error {
 	// TODO(3): batch messages by topic
-	eventType := message.EventType
+	eventType := OutboxEventType(message.EventType)
 	switch eventType {
-	case OutboxEventOrderCreated:
+	case outboxEventOrderCreated:
 		msg, err := toOrderCreatedMessage(message)
 		if err != nil {
 			return err
 		}
-		return uc.publisher.SendMessagaes(ctx, []*KafkaMessage{{
-			Topic: string(KafkaTopicOrderCreated),
+		return uc.publisher.SendMessages(ctx, []*kafka.Message{{
+			Topic: KafkaTopicOrderCreated,
 			Value: msg,
 		}})
 
-	case OutboxEventOrderCancelledDelay:
-		msg, err := toOrderCancelledMsg(message)
-		if err != nil {
+	case outboxEventOrderCancelledDelay:
+		var order Order
+		if err := json.Unmarshal(message.Payload, &order); err != nil {
 			return err
 		}
-		return uc.publisher.SendMessagaes(ctx, []*KafkaMessage{{
-			Topic: string(KafkaTopicOrderCancelledDelay),
-			Value: msg,
-		}})
+		return uc.delayWorker.SendMessage(ctx, kafka.Message{
+			Topic: KafkaTopicOrderCancelled,
+			Value: OrderCancelledMessage{
+				OrderID: order.ID,
+			},
+		})
 
-	case OutboxEventOrderCancelled:
+	case outboxEventOrderCancelled:
 		var msg ReleaseStockMessage
 		if err := json.Unmarshal(message.Payload, &msg); err != nil {
 			return err
 		}
-		return uc.releaseStock(ctx, &msg, 0)
+		return uc.releaseStock(ctx, &msg)
 
 	default:
 	}
@@ -304,17 +270,22 @@ func (uc *OrderUsecase) dispatchOutboxMessage(ctx context.Context, message *Orde
 	return fmt.Errorf("unknown event type %q", eventType)
 }
 
+func (uc *OrderUsecase) buildDispatchFunc() outbox.DispatchFunc {
+	return func(ctx context.Context, message *outbox.OutboxMessage) error {
+		return uc.dispatchOutboxMessage(ctx, message)
+	}
+}
+
 func (uc *OrderUsecase) releaseStock(
 	ctx context.Context,
 	msg *ReleaseStockMessage,
-	retryCount int,
 ) error {
-	retryMsg := &RetryQueueMessage{
-		EventType:  RetryQueueEventTypeReleaseStock,
-		Message:    msg,
-		RetryCount: retryCount,
+	retryMsg := &retry.Message{
+		EventType: retryEventReleaseStock,
+		Message:   msg,
 	}
-	return uc.retry(ctx, retryMsg, func(ctx context.Context) error {
+
+	fn := func(ctx context.Context) error {
 		req := connect.NewRequest(&inventorypb.ReleaseStockRequest{
 			OrderId: msg.OrderID,
 		})
@@ -322,35 +293,9 @@ func (uc *OrderUsecase) releaseStock(
 			return fmt.Errorf("failed to release stock for order %d", msg.OrderID)
 		}
 		return nil
-	})
-}
-
-func (uc *OrderUsecase) retry(
-	ctx context.Context,
-	msg *RetryQueueMessage,
-	fn func(context.Context) error,
-) error {
-	if err := fn(ctx); err == nil {
-		return nil
 	}
 
-	if msg.RetryCount > MaxMessageQueueRetryCount {
-		slog.ErrorContext(ctx, fmt.Sprintf("max retries (%d) exceeded", MaxMessageQueueRetryCount))
-		if err := uc.publisher.SendMessagaes(ctx, []*KafkaMessage{{
-			Topic: string(KafkaTopicDeadLetterQueue),
-			Value: msg,
-		}}); err != nil {
-			slog.ErrorContext(ctx, "failed to send message to dead letter queue", slog.Any("msg", msg))
-		}
-		return nil
-	}
-
-	msg.RetryCount++
-
-	return uc.publisher.SendMessagaes(ctx, []*KafkaMessage{{
-		Topic: string(KafkaTopicRetryQueue),
-		Value: msg,
-	}})
+	return uc.retrier.Submit(ctx, retryMsg, fn)
 }
 
 type OrderCreatedMessage struct {
@@ -358,7 +303,7 @@ type OrderCreatedMessage struct {
 	OrderItems []*OrderItem
 }
 
-func toOrderCreatedMessage(message *OrderOutboxMessage) (*OrderCreatedMessage, error) {
+func toOrderCreatedMessage(message *outbox.OutboxMessage) (*OrderCreatedMessage, error) {
 	var order Order
 	if err := json.Unmarshal(message.Payload, &order); err != nil {
 		return nil, err
@@ -379,21 +324,4 @@ func toOrderCreatedMessage(message *OrderOutboxMessage) (*OrderCreatedMessage, e
 		OrderItems: orderItems,
 	}
 	return orderCreatedMsg, nil
-}
-
-type OrderCancelledMessage struct {
-	OrderID     int64
-	ExpiredTime time.Time
-}
-
-func toOrderCancelledMsg(message *OrderOutboxMessage) (*OrderCancelledMessage, error) {
-	var order Order
-	if err := json.Unmarshal(message.Payload, &order); err != nil {
-		return nil, err
-	}
-	orderCancelledMsg := &OrderCancelledMessage{
-		OrderID:     order.ID,
-		ExpiredTime: time.Now().Add(OrderTimeout),
-	}
-	return orderCancelledMsg, nil
 }

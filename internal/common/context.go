@@ -15,9 +15,6 @@ const (
 	UserIDCtxKey         ContextKey = 1001
 	UserRoleCtxKey       ContextKey = 1002
 	IdempotencyKeyCtxKey ContextKey = 1003
-
-	// 1100+
-	TransactionCtxKey ContextKey = 1101
 )
 
 func WithServiceInnerToken(ctx *context.Context, token string) {

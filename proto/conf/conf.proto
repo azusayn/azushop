@@ -60,6 +60,7 @@ message Data {
   Payment      payment           = 4;
   Kafka        kafka             = 5;
   string       app_name          = 6;
+  string       service_name      = 10;
   Auth         auth              = 7;
   string       otlp_grpc_address = 8;
   EmbeddingAPI embedding_api     = 9;

@@ -24,6 +24,7 @@ var wireProviders = wire.NewSet(
 	service.NewPaymentService,
 	service.NewPaymentServiceConnectHandler,
 	service.NewPaymentCallbackHandler,
+	server.NewPaymentRunner,
 	newConnectServerConfig,
 	server.NewConnectServer,
 	server.NewMetricsServer,

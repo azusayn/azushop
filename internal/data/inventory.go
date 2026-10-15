@@ -6,6 +6,8 @@ import (
 	"fmt"
 
 	"github.com/azusayn/azushop/internal/biz"
+	"github.com/azusayn/azushop/internal/pkg/db"
+	"github.com/azusayn/azushop/internal/pkg/kafka"
 	"github.com/azusayn/azushop/proto/conf"
 
 	"uuid"
@@ -13,28 +15,27 @@ import (
 	"github.com/IBM/sarama"
 	"github.com/google/wire"
 	"github.com/pkg/errors"
-	"github.com/samber/lo"
 	"gorm.io/gorm"
 )
 
 var InventoryDataProviderSet = wire.NewSet(
-	NewPostgres,
-	NewTransaction,
+	db.NewPostgres,
+	db.NewTransaction,
 	NewInventoryRepo,
 	NewInventorySubscriber,
 )
 
 type InventoryRepo struct {
-	postgres *Postgres
+	postgres *db.Postgres
 }
 
-func NewInventoryRepo(postgres *Postgres) biz.InventoryRepo {
+func NewInventoryRepo(postgres *db.Postgres) biz.InventoryRepo {
 	return &InventoryRepo{postgres: postgres}
 }
 
 // updates the same set of fields (defined by paths) for each inventory.
 func (repo *InventoryRepo) UpdateInventories(ctx context.Context, inventories []*biz.Inventory, paths []string) error {
-	client := GetTransaction(ctx)
+	client := db.GetTransaction(ctx)
 	if client == nil {
 		client = repo.postgres.GormClient
 	}
@@ -60,7 +61,7 @@ func (repo *InventoryRepo) BatchGetInventories(ctx context.Context, skuIDs []uui
 }
 
 func (repo *InventoryRepo) UpdateDeltaQuantity(ctx context.Context, inventories []*biz.Inventory, paths []string) error {
-	gormClient := GetTransaction(ctx)
+	gormClient := db.GetTransaction(ctx)
 	if gormClient == nil {
 		gormClient = repo.postgres.GormClient
 	}
@@ -88,7 +89,7 @@ func (repo *InventoryRepo) UpdateDeltaQuantity(ctx context.Context, inventories 
 }
 
 func (repo *InventoryRepo) GetInventoryLock(ctx context.Context, orderID int64) (*biz.InventoryLock, error) {
-	gormClient := GetTransaction(ctx)
+	gormClient := db.GetTransaction(ctx)
 	if gormClient == nil {
 		gormClient = repo.postgres.GormClient
 	}
@@ -105,7 +106,7 @@ func (repo *InventoryRepo) CreateInventoryLock(
 	orderItems []*biz.OrderItem,
 	status biz.InventoryLockStatus,
 ) error {
-	gormClient := GetTransaction(ctx)
+	gormClient := db.GetTransaction(ctx)
 	if gormClient == nil {
 		gormClient = repo.postgres.GormClient
 	}
@@ -122,7 +123,7 @@ func (repo *InventoryRepo) CreateInventoryLock(
 }
 
 func (repo *InventoryRepo) UpdateInventoryLock(ctx context.Context, inventoryLocks []*biz.InventoryLock, paths []string) error {
-	client := GetTransaction(ctx)
+	client := db.GetTransaction(ctx)
 	if client == nil {
 		client = repo.postgres.GormClient
 	}
@@ -139,7 +140,7 @@ func (repo *InventoryRepo) UpdateInventoryLock(ctx context.Context, inventoryLoc
 }
 
 func (repo *InventoryRepo) BatchCreateInventoris(ctx context.Context, skuIDs []uuid.UUID) ([]*biz.Inventory, error) {
-	client := GetTransaction(ctx)
+	client := db.GetTransaction(ctx)
 	if client == nil {
 		client = repo.postgres.GormClient
 	}
@@ -158,25 +159,28 @@ func (repo *InventoryRepo) BatchCreateInventoris(ctx context.Context, skuIDs []u
 }
 
 type InventorySubscriber struct {
-	handlers      map[string]func(context.Context, []byte) error
+	handlers      map[kafka.TopicType]kafka.HandlerFunc
 	consumerGroup sarama.ConsumerGroup
 }
 
 func NewInventorySubscriber(config *conf.Data) (biz.InventorySubscriber, error) {
 	brokerAddrs := config.GetKafka().GetBrokerAddrs()
-	consumerGroup, err := NewConsumerGroup(brokerAddrs, config.GetAppName())
+	consumerGroup, err := kafka.NewConsumerGroup(brokerAddrs, config.GetServiceName())
 	if err != nil {
 		return nil, err
 	}
 	return &InventorySubscriber{
-		handlers:      make(map[string]func(context.Context, []byte) error),
+		handlers:      make(map[kafka.TopicType]kafka.HandlerFunc),
 		consumerGroup: consumerGroup,
 	}, nil
 }
 
 func (s *InventorySubscriber) Subscribe(ctx context.Context) error {
-	consumerHandler := NewConsumerHandler(s.handlers)
-	topics := lo.Keys(s.handlers)
+	consumerHandler := kafka.NewConsumerHandler(s.handlers)
+	topics := make([]string, 0, len(s.handlers))
+	for topic := range s.handlers {
+		topics = append(topics, string(topic))
+	}
 	for {
 		err := s.consumerGroup.Consume(ctx, topics, consumerHandler)
 		if err != nil {
@@ -188,6 +192,6 @@ func (s *InventorySubscriber) Subscribe(ctx context.Context) error {
 	}
 }
 
-func (s *InventorySubscriber) RegisterHandler(topic biz.KafkaTopicType, handler func(context.Context, []byte) error) {
-	s.handlers[string(topic)] = handler
+func (s *InventorySubscriber) RegisterHandler(topic kafka.TopicType, handler func(context.Context, []byte) error) {
+	s.handlers[topic] = handler
 }

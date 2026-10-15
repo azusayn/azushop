@@ -1,46 +1,28 @@
 package biz
 
 import (
-	"context"
+	"github.com/azusayn/azushop/internal/pkg/kafka"
 )
-
-type KafkaTopicType string
 
 const (
-	KafkaTopicPaymentStatus  KafkaTopicType = "payment.status"
-	KafkaTopicProductCreated KafkaTopicType = "product.created"
-	KafkaTopicOrderCreated   KafkaTopicType = "order.created"
-	// "order.cancelled.delay" is an intermediate topic
-	// used by the delay runner to defer delivery to "order.cancelled"
-	KafkaTopicOrderCancelledDelay KafkaTopicType = "order.cancelled.delay"
-	KafkaTopicOrderCancelled      KafkaTopicType = "order.cancelled"
-	KafkaTopicRetryQueue          KafkaTopicType = "order.retry_queue"
-	KafkaTopicDeadLetterQueue     KafkaTopicType = "order.dead_letter_queue"
+	KafkaTopicPaymentStatus  kafka.TopicType = "payment.status"
+	KafkaTopicProductCreated kafka.TopicType = "product.created"
+	KafkaTopicOrderCreated   kafka.TopicType = "order.created"
+	KafkaTopicOrderCancelled kafka.TopicType = "order.cancelled"
 )
-
-type KafkaMessage struct {
-	Topic string
-	Value any
-}
-
-type RetryQueueMessage struct {
-	EventType  RetryQueueEventType
-	RetryCount int
-	Message    any
-}
 
 type OutboxEventType string
 
 const (
-	OutboxEventOrderCreated        OutboxEventType = "outbox.event.order.created"
-	OutboxEventOrderCancelled      OutboxEventType = "outbox.event.order.cancelled"
-	OutboxEventOrderCancelledDelay OutboxEventType = "outbox.event.order.cancelled_delay"
-)
+	outboxEventOrderCreated        OutboxEventType = "outbox.event.order.created"
+	outboxEventOrderCancelled      OutboxEventType = "outbox.event.order.cancelled"
+	outboxEventOrderCancelledDelay OutboxEventType = "outbox.event.order.cancelled_delay"
+	outboxEventPaymentStatus       OutboxEventType = "outbox.event.payment.status"
+	outboxEventProductCreated      OutboxEventType = "outbox.event.product.created"
 
-type RetryQueueEventType string
-
-const (
-	RetryQueueEventTypeReleaseStock RetryQueueEventType = "mq.retry.event.release_stock"
+	outboxEventInventoryProductCreated OutboxEventType = "outbox.event.inventory.product_created"
+	outboxEventInventoryOrderCreated   OutboxEventType = "outbox.event.inventory.order_created"
+	outboxEventInventoryPaymentStatus  OutboxEventType = "outbox.event.inventory.payment_status"
 )
 
 // TODO(3): decouple these outgoing message structs from their corresponding outbox payloads.
@@ -51,8 +33,4 @@ type PaymentStatusMessage struct {
 
 type ReleaseStockMessage struct {
 	OrderID int64
-}
-
-type Transaction interface {
-	Transaction(ctx context.Context, f func(ctx context.Context) error) error
 }

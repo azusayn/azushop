@@ -12,6 +12,7 @@ import (
 
 	"github.com/IBM/sarama"
 	"github.com/azusayn/azushop/internal/biz"
+	"github.com/azusayn/azushop/internal/pkg/db"
 	"github.com/azusayn/azushop/internal/pkg/str"
 	"github.com/azusayn/azutils/sql"
 	"github.com/dnwe/otelsarama"
@@ -22,7 +23,8 @@ import (
 )
 
 var ProductDataProviderSet = wire.NewSet(
-	NewPostgres,
+	db.NewPostgres,
+	db.NewTransaction,
 	NewRedis,
 	NewProductRepo,
 	NewKafkaProducer,
@@ -38,11 +40,11 @@ const (
 )
 
 type ProductRepo struct {
-	postgres *Postgres
+	postgres *db.Postgres
 	redis    *Redis
 }
 
-func NewProductRepo(postgres *Postgres, redis *Redis) biz.ProductRepo {
+func NewProductRepo(postgres *db.Postgres, redis *Redis) biz.ProductRepo {
 	return &ProductRepo{
 		postgres: postgres,
 		redis:    redis,
@@ -173,15 +175,16 @@ func delProductCaches(ctx context.Context, r *Redis, setKeys []string) {
 }
 
 func (repo *ProductRepo) BatchCreateProducts(ctx context.Context, products []*biz.Product) ([]*biz.Product, error) {
-	client := repo.postgres.Conn
+	tx := db.GetTransaction(ctx)
+	if tx == nil {
+		return nil, errors.New("missing transaction")
+	}
 
-	ss := str.NewStringSet()
 	productsColNames := []string{"id", "product_name", "description", "seller_id", "status", "embedding"}
 	productsRowValues := make([][]any, 0, len(products))
 	skusColNames := []string{"id", "product_id", "attrs", "unit_price"}
 	skusRowValues := make([][]any, 0)
 	for _, p := range products {
-		ss.Insert(cacheKeyProductSet(p.SellerID))
 		productID := uuid.NewV7()
 		p.ID = productID
 		var embeddingVal any
@@ -197,26 +200,23 @@ func (repo *ProductRepo) BatchCreateProducts(ctx context.Context, products []*bi
 		}
 	}
 
-	tx, err := client.BeginTx(ctx, nil)
-	if err != nil {
-		return nil, err
-	}
-	//nolint:errcheck
-	defer tx.Rollback()
 	stmtP, valuesP := sql.BuildBatchInsertSQL("products", productsColNames, productsRowValues)
-	if _, err := tx.ExecContext(ctx, stmtP, valuesP...); err != nil {
+	if err := tx.Exec(stmtP, valuesP...).Error; err != nil {
 		return nil, err
 	}
 	stmtS, valuesS := sql.BuildBatchInsertSQL("skus", skusColNames, skusRowValues)
-	if _, err := tx.ExecContext(ctx, stmtS, valuesS...); err != nil {
+	if err := tx.Exec(stmtS, valuesS...).Error; err != nil {
 		return nil, err
 	}
-	if err := tx.Commit(); err != nil {
-		return nil, err
-	}
-
-	delProductCaches(ctx, repo.redis, ss.ToSlice())
 	return products, nil
+}
+
+func (repo *ProductRepo) ClearSellerProductCaches(ctx context.Context, sellerIDs []int32) {
+	ss := str.NewStringSet()
+	for _, sellerID := range sellerIDs {
+		ss.Insert(cacheKeyProductSet(sellerID))
+	}
+	delProductCaches(ctx, repo.redis, ss.ToSlice())
 }
 
 func (repo *ProductRepo) BatchUpdateProducts(ctx context.Context, products []*biz.Product, paths []string) error {

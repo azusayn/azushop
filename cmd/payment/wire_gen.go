@@ -9,6 +9,7 @@ package main
 import (
 	"github.com/azusayn/azushop/internal/biz"
 	"github.com/azusayn/azushop/internal/data"
+	"github.com/azusayn/azushop/internal/pkg/db"
 	"github.com/azusayn/azushop/internal/pkg/telemetry"
 	"github.com/azusayn/azushop/internal/server"
 	"github.com/azusayn/azushop/internal/service"
@@ -19,7 +20,7 @@ import (
 // Injectors from wire.go:
 
 func wireApp(cd *conf.Data, cs *conf.Server) (*App, func(), error) {
-	postgres, err := data.NewPostgres(cd)
+	postgres, err := db.NewPostgres(cd)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -33,7 +34,8 @@ func wireApp(cd *conf.Data, cs *conf.Server) (*App, func(), error) {
 		return nil, nil, err
 	}
 	paymentPublisher := data.NewPaymentPublisher(kafkaProducer)
-	paymentUsecase := biz.NewPaymentUsecase(paymentRepo, paymentPublisher, cd)
+	transaction := db.NewTransaction(postgres)
+	paymentUsecase := biz.NewPaymentUsecase(paymentRepo, paymentPublisher, transaction, cd)
 	textMapPropagator := telemetry.NewTextMapPropagator()
 	orderServiceClient, err := data.NewOrderClient(cd, textMapPropagator)
 	if err != nil {
@@ -51,11 +53,12 @@ func wireApp(cd *conf.Data, cs *conf.Server) (*App, func(), error) {
 	}
 	connectServer := server.NewConnectServer(connectServerConfig)
 	metricsServer := server.NewMetricsServer(cs)
-	app := newApp(connectServer, metricsServer)
+	paymentRunner := server.NewPaymentRunner(paymentUsecase)
+	app := newApp(connectServer, metricsServer, paymentRunner)
 	return app, func() {
 	}, nil
 }
 
 // wire.go:
 
-var wireProviders = wire.NewSet(telemetry.NewTextMapPropagator, data.PaymentDataProviderSet, biz.NewPaymentUsecase, service.NewPaymentService, service.NewPaymentServiceConnectHandler, service.NewPaymentCallbackHandler, newConnectServerConfig, server.NewConnectServer, server.NewMetricsServer, newApp)
+var wireProviders = wire.NewSet(telemetry.NewTextMapPropagator, data.PaymentDataProviderSet, biz.NewPaymentUsecase, service.NewPaymentService, service.NewPaymentServiceConnectHandler, service.NewPaymentCallbackHandler, server.NewPaymentRunner, newConnectServerConfig, server.NewConnectServer, server.NewMetricsServer, newApp)

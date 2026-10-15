@@ -1,11 +1,9 @@
-package data
+package db
 
 import (
 	"context"
 	"database/sql"
 
-	"github.com/azusayn/azushop/internal/biz"
-	"github.com/azusayn/azushop/internal/common"
 	"github.com/azusayn/azushop/proto/conf"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/pkg/errors"
@@ -60,11 +58,17 @@ func NewPostgres(config *conf.Data) (*Postgres, error) {
 	}, nil
 }
 
+type transactionContextKey string
+
+const (
+	txCtxKey transactionContextKey = "transaction"
+)
+
 type Transaction struct {
 	postgres *Postgres
 }
 
-func NewTransaction(postgres *Postgres) biz.Transaction {
+func NewTransaction(postgres *Postgres) *Transaction {
 	return &Transaction{postgres: postgres}
 }
 
@@ -80,17 +84,18 @@ func (tx *Transaction) Transaction(ctx context.Context, fn func(ctx context.Cont
 	}
 	gormClient = gormClient.WithContext(ctx).Begin()
 	defer gormClient.Rollback()
-	ctx = context.WithValue(ctx, common.TransactionCtxKey, gormClient)
+	ctx = context.WithValue(ctx, txCtxKey, gormClient)
 	if err := fn(ctx); err != nil {
 		return err
 	}
 	return gormClient.Commit().Error
 }
 
+// TODO: nil tx fallback to postgres client.
 func GetTransaction(ctx context.Context) *gorm.DB {
-	tx, ok := ctx.Value(common.TransactionCtxKey).(*gorm.DB)
+	tx, ok := ctx.Value(txCtxKey).(*gorm.DB)
 	if !ok || tx == nil {
-		return tx
+		return nil
 	}
 	return tx
 }
