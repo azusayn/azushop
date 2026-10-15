@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -19,6 +20,7 @@ import (
 	"github.com/google/wire"
 	"github.com/pgvector/pgvector-go"
 	"go.opentelemetry.io/otel"
+	"golang.org/x/sync/singleflight"
 	"gorm.io/gorm"
 )
 
@@ -40,8 +42,9 @@ const (
 )
 
 type ProductRepo struct {
-	postgres *db.Postgres
-	redis    *Redis
+	postgres     *db.Postgres
+	redis        *Redis
+	singleFlight singleflight.Group
 }
 
 func NewProductRepo(postgres *db.Postgres, redis *Redis) biz.ProductRepo {
@@ -94,9 +97,11 @@ func (repo *ProductRepo) ListProductsBySellerID(
 		return cachedProducts, nil
 	}
 
-	query := repo.postgres.GormClient.WithContext(ctx).
-		Table("products AS p").
-		Select(`
+	sfKey := strconv.FormatInt(int64(sellerID), 10)
+	v, err, _ := repo.singleFlight.Do(sfKey, func() (any, error) {
+		query := repo.postgres.GormClient.WithContext(ctx).
+			Table("products AS p").
+			Select(`
 			p.id,
 			p.product_name,
 			p.status,
@@ -104,17 +109,28 @@ func (repo *ProductRepo) ListProductsBySellerID(
 			s.attrs,
 			s.unit_price
 		`).
-		Joins("JOIN skus AS s ON s.product_id = p.id").
-		Where("p.id > ? AND p.seller_id = ?", pageToken, sellerID).
-		Order("p.id").
-		Limit(int(pageSize))
-	if productStatus != biz.ProductStatusUnspecified {
-		query = query.Where("p.status = ?", productStatus)
-	}
-	var sellerProducts []sellerProducts
-	if err := query.Scan(&sellerProducts).Error; err != nil {
+			Joins("JOIN skus AS s ON s.product_id = p.id").
+			Where("p.id > ? AND p.seller_id = ?", pageToken, sellerID).
+			Order("p.id").
+			Limit(int(pageSize))
+		if productStatus != biz.ProductStatusUnspecified {
+			query = query.Where("p.status = ?", productStatus)
+		}
+		var products []sellerProducts
+		if err := query.Scan(&products).Error; err != nil {
+			return nil, err
+		}
+		return products, nil
+	})
+	if err != nil {
 		return nil, err
 	}
+
+	sellerProducts, ok := v.([]sellerProducts)
+	if !ok {
+		return nil, errors.New("failed to convert type any to type sellerProduct")
+	}
+
 	products := convertToBizProducts(sellerID, sellerProducts)
 
 	SetCache(ctx, repo.redis, resultKey, products, productCacheTTL)
