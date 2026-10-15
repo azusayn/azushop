@@ -9,13 +9,17 @@ import (
 
 	"github.com/IBM/sarama"
 	"github.com/azusayn/azushop/internal/biz"
+	"github.com/azusayn/azushop/internal/pkg/cache"
 	"github.com/azusayn/azushop/internal/pkg/db"
+	"github.com/azusayn/azushop/internal/pkg/grpcclient"
 	"github.com/azusayn/azushop/internal/pkg/kafka"
+	orderv1connect "github.com/azusayn/azushop/proto/api/order/v1/v1connect"
 	"github.com/azusayn/azushop/proto/conf"
 	"github.com/dnwe/otelsarama"
 	"github.com/google/wire"
 	"github.com/shopspring/decimal"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/propagation"
 	"gorm.io/gorm"
 )
 
@@ -27,7 +31,7 @@ const (
 var OrderDataProviderSet = wire.NewSet(
 	db.NewTransaction,
 	db.NewPostgres,
-	NewRedis,
+	cache.NewRedis,
 	NewOrderRepo,
 	NewOrderSubscriber,
 	NewKafkaProducer,
@@ -38,14 +42,26 @@ var OrderDataProviderSet = wire.NewSet(
 
 type OrderRepo struct {
 	postgres *db.Postgres
-	redis    *Redis
+	redis    *cache.Redis
 }
 
-func NewOrderRepo(postgres *db.Postgres, redis *Redis) biz.OrderRepo {
+func NewOrderRepo(postgres *db.Postgres, redis *cache.Redis) biz.OrderRepo {
 	return &OrderRepo{
 		postgres: postgres,
 		redis:    redis,
 	}
+}
+
+func NewOrderClient(config *conf.Data, propagator propagation.TextMapPropagator) (orderv1connect.OrderServiceClient, error) {
+	opts, err := grpcclient.NewAuthenticatedClientOptions(propagator)
+	if err != nil {
+		return nil, err
+	}
+	return grpcclient.NewServiceClient(
+		orderv1connect.NewOrderServiceClient,
+		config.GetServiceAddr().GetOrder(),
+		opts,
+	), nil
 }
 
 func (repo *OrderRepo) ListOrders(
@@ -81,7 +97,7 @@ func (repo *OrderRepo) CreateOrder(
 ) (*biz.Order, error) {
 	// An idempotency key not found in the cache would be passed to the database.
 	cacheKey := cacheKeyIdempotencyKey(idempotencyKey)
-	if _, ok := GetCache[int](ctx, repo.redis, idempotencyKey); ok {
+	if _, ok := cache.GetCache[int](ctx, repo.redis, idempotencyKey); ok {
 		return nil, errors.New("duplicate orders")
 	}
 
@@ -104,7 +120,7 @@ func (repo *OrderRepo) CreateOrder(
 		return nil, err
 	}
 
-	SetCache(ctx, repo.redis, cacheKey, idempotencyKeyExist, createOrderIdempotencyCacheTime)
+	cache.SetCache(ctx, repo.redis, cacheKey, idempotencyKeyExist, createOrderIdempotencyCacheTime)
 
 	return order, nil
 }

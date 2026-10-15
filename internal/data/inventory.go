@@ -7,7 +7,9 @@ import (
 
 	"github.com/azusayn/azushop/internal/biz"
 	"github.com/azusayn/azushop/internal/pkg/db"
+	"github.com/azusayn/azushop/internal/pkg/grpcclient"
 	"github.com/azusayn/azushop/internal/pkg/kafka"
+	inventoryv1connect "github.com/azusayn/azushop/proto/api/inventory/v1/v1connect"
 	"github.com/azusayn/azushop/proto/conf"
 
 	"uuid"
@@ -15,6 +17,7 @@ import (
 	"github.com/IBM/sarama"
 	"github.com/google/wire"
 	"github.com/pkg/errors"
+	"go.opentelemetry.io/otel/propagation"
 	"gorm.io/gorm"
 )
 
@@ -31,6 +34,18 @@ type InventoryRepo struct {
 
 func NewInventoryRepo(postgres *db.Postgres) biz.InventoryRepo {
 	return &InventoryRepo{postgres: postgres}
+}
+
+func NewInventoryClient(config *conf.Data, propagator propagation.TextMapPropagator) (inventoryv1connect.InventoryServiceClient, error) {
+	opts, err := grpcclient.NewAuthenticatedClientOptions(propagator)
+	if err != nil {
+		return nil, err
+	}
+	return grpcclient.NewServiceClient(
+		inventoryv1connect.NewInventoryServiceClient,
+		config.GetServiceAddr().GetInventory(),
+		opts,
+	), nil
 }
 
 // updates the same set of fields (defined by paths) for each inventory.

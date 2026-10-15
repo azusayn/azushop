@@ -9,6 +9,7 @@ package main
 import (
 	"github.com/azusayn/azushop/internal/biz"
 	"github.com/azusayn/azushop/internal/data"
+	"github.com/azusayn/azushop/internal/pkg/cache"
 	"github.com/azusayn/azushop/internal/pkg/db"
 	"github.com/azusayn/azushop/internal/pkg/llm"
 	"github.com/azusayn/azushop/internal/pkg/telemetry"
@@ -25,7 +26,7 @@ func wireApp(cd *conf.Data, cs *conf.Server) (*App, func(), error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	redis, err := data.NewRedis(cd)
+	redis, err := cache.NewRedis(cd)
 	if err != nil {
 		return nil, nil, err
 	}

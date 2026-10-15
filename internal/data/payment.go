@@ -9,11 +9,16 @@ import (
 
 	"github.com/IBM/sarama"
 	"github.com/azusayn/azushop/internal/biz"
+	"github.com/azusayn/azushop/internal/pkg/cache"
 	"github.com/azusayn/azushop/internal/pkg/db"
+	"github.com/azusayn/azushop/internal/pkg/grpcclient"
+	paymentv1connect "github.com/azusayn/azushop/proto/api/payment/v1/v1connect"
+	"github.com/azusayn/azushop/proto/conf"
 	"github.com/dnwe/otelsarama"
 	"github.com/google/wire"
 	"github.com/shopspring/decimal"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/propagation"
 	"gorm.io/gorm"
 )
 
@@ -24,7 +29,7 @@ const (
 var PaymentDataProviderSet = wire.NewSet(
 	db.NewPostgres,
 	db.NewTransaction,
-	NewRedis,
+	cache.NewRedis,
 	NewPaymentRepo,
 	NewKafkaProducer,
 	NewPaymentPublisher,
@@ -33,14 +38,26 @@ var PaymentDataProviderSet = wire.NewSet(
 
 type PaymentRepo struct {
 	postgres *db.Postgres
-	redis    *Redis
+	redis    *cache.Redis
 }
 
-func NewPaymentRepo(postgres *db.Postgres, redis *Redis) biz.PaymentRepo {
+func NewPaymentRepo(postgres *db.Postgres, redis *cache.Redis) biz.PaymentRepo {
 	return &PaymentRepo{
 		postgres: postgres,
 		redis:    redis,
 	}
+}
+
+func NewPaymentClient(config *conf.Data, propagator propagation.TextMapPropagator) (paymentv1connect.PaymentServiceClient, error) {
+	opts, err := grpcclient.NewAuthenticatedClientOptions(propagator)
+	if err != nil {
+		return nil, err
+	}
+	return grpcclient.NewServiceClient(
+		paymentv1connect.NewPaymentServiceClient,
+		config.GetServiceAddr().GetPayment(),
+		opts,
+	), nil
 }
 
 func (repo *PaymentRepo) CreatePayment(
@@ -58,7 +75,7 @@ func (repo *PaymentRepo) CreatePayment(
 		client = repo.postgres.GormClient.WithContext(ctx)
 	}
 
-	if _, ok := GetCache[int](ctx, repo.redis, idempotencyKey); ok {
+	if _, ok := cache.GetCache[int](ctx, repo.redis, idempotencyKey); ok {
 		return nil, errors.New("duplicate payments")
 	}
 
@@ -74,7 +91,7 @@ func (repo *PaymentRepo) CreatePayment(
 		return nil, err
 	}
 
-	SetCache(ctx, repo.redis, idempotencyKey, idempotencyKeyExist, createPaymentIdempotencyCacheTime)
+	cache.SetCache(ctx, repo.redis, idempotencyKey, idempotencyKeyExist, createPaymentIdempotencyCacheTime)
 
 	return payment, nil
 }

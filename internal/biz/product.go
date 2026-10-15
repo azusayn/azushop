@@ -45,18 +45,18 @@ type SkuDetail struct {
 }
 
 type Product struct {
-	ID            uuid.UUID
-	ProductName   string
-	SellerID      int32
-	ProductStatus ProductStatus
-	Skus          []*Sku
-	Description   string
-	Embedding     pgvector.Vector
+	ID          uuid.UUID
+	ProductName string
+	SellerID    int32
+	Status      ProductStatus
+	Skus        []*Sku
+	Description string
+	Embedding   pgvector.Vector
 }
 
 type ProductRepo interface {
 	SearchProductsByKeyword(ctx context.Context, embedding []float32, maxDistance float32) ([]*Product, error)
-	ListProductsBySellerId(ctx context.Context, sellerID int32, pageToken uuid.UUID, pageSize int32, productStatus ProductStatus) ([]*Product, error)
+	ListProductsBySellerID(ctx context.Context, sellerID int32, pageToken uuid.UUID, pageSize int32, productStatus ProductStatus) ([]*Product, error)
 	BatchCreateProducts(ctx context.Context, product []*Product) ([]*Product, error)
 	BatchUpdateProducts(ctx context.Context, product []*Product, paths []string) error
 	BatchGetSkuDetails(ctx context.Context, skuIDs []uuid.UUID, pageToken uuid.UUID, pageSize int32) ([]*SkuDetail, error)
@@ -145,7 +145,7 @@ func (uc *ProductUsecase) ListSellerProducts(
 	userRole UserRole,
 ) ([]*Product, error) {
 	productStatus = productStatusFilter(productStatus, sellerID, userID, userRole)
-	products, err := uc.repo.ListProductsBySellerId(ctx, sellerID, pageToken, pageSize, productStatus)
+	products, err := uc.repo.ListProductsBySellerID(ctx, sellerID, pageToken, pageSize, productStatus)
 	if err != nil {
 		return nil, err
 	}
@@ -160,7 +160,7 @@ func productsFilter(products []*Product, userID int32, role UserRole) ([]*Produc
 	case UserRoleMerchant:
 		for _, p := range products {
 			p.SellerID = userID
-			p.ProductStatus = ProductStatusOffline
+			p.Status = ProductStatusOffline
 		}
 		return products, nil
 	default:

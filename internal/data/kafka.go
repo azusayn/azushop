@@ -7,17 +7,6 @@ import (
 	"github.com/azusayn/azushop/proto/conf"
 )
 
-type PaymentStatus string
-
-const (
-	PaymentStatusUnspecified PaymentStatus = "unspecified"
-	PaymentStatusPending     PaymentStatus = "pending"
-	PaymentStatusCancelled   PaymentStatus = "cancelled"
-	PaymentStatusPaid        PaymentStatus = "paid"
-	PaymentStatusRefunding   PaymentStatus = "refunding"
-	PaymentStatusRefunded    PaymentStatus = "refunded"
-)
-
 type KafkaProducer struct {
 	syncProducer sarama.SyncProducer
 }
