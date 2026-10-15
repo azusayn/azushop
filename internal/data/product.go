@@ -73,7 +73,7 @@ func (repo *ProductRepo) SearchProductsByKeyword(ctx context.Context, embedding 
 	return products, nil
 }
 
-func (repo *ProductRepo) ListProductsBySellerId(
+func (repo *ProductRepo) ListProductsBySellerID(
 	ctx context.Context,
 	sellerID int32,
 	pageToken uuid.UUID,
