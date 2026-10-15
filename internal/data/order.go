@@ -9,6 +9,7 @@ import (
 
 	"github.com/IBM/sarama"
 	"github.com/azusayn/azushop/internal/biz"
+	"github.com/azusayn/azushop/internal/pkg/cache"
 	"github.com/azusayn/azushop/internal/pkg/db"
 	"github.com/azusayn/azushop/internal/pkg/kafka"
 	"github.com/azusayn/azushop/proto/conf"
@@ -27,7 +28,7 @@ const (
 var OrderDataProviderSet = wire.NewSet(
 	db.NewTransaction,
 	db.NewPostgres,
-	NewRedis,
+	cache.NewRedis,
 	NewOrderRepo,
 	NewOrderSubscriber,
 	NewKafkaProducer,
@@ -38,10 +39,10 @@ var OrderDataProviderSet = wire.NewSet(
 
 type OrderRepo struct {
 	postgres *db.Postgres
-	redis    *Redis
+	redis    *cache.Redis
 }
 
-func NewOrderRepo(postgres *db.Postgres, redis *Redis) biz.OrderRepo {
+func NewOrderRepo(postgres *db.Postgres, redis *cache.Redis) biz.OrderRepo {
 	return &OrderRepo{
 		postgres: postgres,
 		redis:    redis,
@@ -81,7 +82,7 @@ func (repo *OrderRepo) CreateOrder(
 ) (*biz.Order, error) {
 	// An idempotency key not found in the cache would be passed to the database.
 	cacheKey := cacheKeyIdempotencyKey(idempotencyKey)
-	if _, ok := GetCache[int](ctx, repo.redis, idempotencyKey); ok {
+	if _, ok := cache.GetCache[int](ctx, repo.redis, idempotencyKey); ok {
 		return nil, errors.New("duplicate orders")
 	}
 
@@ -104,7 +105,7 @@ func (repo *OrderRepo) CreateOrder(
 		return nil, err
 	}
 
-	SetCache(ctx, repo.redis, cacheKey, idempotencyKeyExist, createOrderIdempotencyCacheTime)
+	cache.SetCache(ctx, repo.redis, cacheKey, idempotencyKeyExist, createOrderIdempotencyCacheTime)
 
 	return order, nil
 }

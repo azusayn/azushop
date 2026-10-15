@@ -9,6 +9,7 @@ import (
 
 	"github.com/IBM/sarama"
 	"github.com/azusayn/azushop/internal/biz"
+	"github.com/azusayn/azushop/internal/pkg/cache"
 	"github.com/azusayn/azushop/internal/pkg/db"
 	"github.com/dnwe/otelsarama"
 	"github.com/google/wire"
@@ -24,7 +25,7 @@ const (
 var PaymentDataProviderSet = wire.NewSet(
 	db.NewPostgres,
 	db.NewTransaction,
-	NewRedis,
+	cache.NewRedis,
 	NewPaymentRepo,
 	NewKafkaProducer,
 	NewPaymentPublisher,
@@ -33,10 +34,10 @@ var PaymentDataProviderSet = wire.NewSet(
 
 type PaymentRepo struct {
 	postgres *db.Postgres
-	redis    *Redis
+	redis    *cache.Redis
 }
 
-func NewPaymentRepo(postgres *db.Postgres, redis *Redis) biz.PaymentRepo {
+func NewPaymentRepo(postgres *db.Postgres, redis *cache.Redis) biz.PaymentRepo {
 	return &PaymentRepo{
 		postgres: postgres,
 		redis:    redis,
@@ -58,7 +59,7 @@ func (repo *PaymentRepo) CreatePayment(
 		client = repo.postgres.GormClient.WithContext(ctx)
 	}
 
-	if _, ok := GetCache[int](ctx, repo.redis, idempotencyKey); ok {
+	if _, ok := cache.GetCache[int](ctx, repo.redis, idempotencyKey); ok {
 		return nil, errors.New("duplicate payments")
 	}
 
@@ -74,7 +75,7 @@ func (repo *PaymentRepo) CreatePayment(
 		return nil, err
 	}
 
-	SetCache(ctx, repo.redis, idempotencyKey, idempotencyKeyExist, createPaymentIdempotencyCacheTime)
+	cache.SetCache(ctx, repo.redis, idempotencyKey, idempotencyKeyExist, createPaymentIdempotencyCacheTime)
 
 	return payment, nil
 }

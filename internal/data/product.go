@@ -13,6 +13,7 @@ import (
 
 	"github.com/IBM/sarama"
 	"github.com/azusayn/azushop/internal/biz"
+	"github.com/azusayn/azushop/internal/pkg/cache"
 	"github.com/azusayn/azushop/internal/pkg/db"
 	"github.com/azusayn/azushop/internal/pkg/str"
 	"github.com/azusayn/azutils/sql"
@@ -27,7 +28,7 @@ import (
 var ProductDataProviderSet = wire.NewSet(
 	db.NewPostgres,
 	db.NewTransaction,
-	NewRedis,
+	cache.NewRedis,
 	NewProductRepo,
 	NewKafkaProducer,
 	NewProductPublisher,
@@ -43,11 +44,11 @@ const (
 
 type ProductRepo struct {
 	postgres     *db.Postgres
-	redis        *Redis
+	redis        *cache.Redis
 	singleFlight singleflight.Group
 }
 
-func NewProductRepo(postgres *db.Postgres, redis *Redis) biz.ProductRepo {
+func NewProductRepo(postgres *db.Postgres, redis *cache.Redis) biz.ProductRepo {
 	return &ProductRepo{
 		postgres: postgres,
 		redis:    redis,
@@ -93,7 +94,7 @@ func (repo *ProductRepo) ListProductsBySellerID(
 	productStatus biz.ProductStatus,
 ) ([]*biz.Product, error) {
 	resultKey := cacheKeyListProductRes(sellerID, pageToken, pageSize, productStatus)
-	if cachedProducts, found := GetCache[[]*biz.Product](ctx, repo.redis, resultKey); found {
+	if cachedProducts, found := cache.GetCache[[]*biz.Product](ctx, repo.redis, resultKey); found {
 		return cachedProducts, nil
 	}
 
@@ -133,8 +134,8 @@ func (repo *ProductRepo) ListProductsBySellerID(
 
 	products := convertToBizProducts(sellerID, sellerProducts)
 
-	SetCache(ctx, repo.redis, resultKey, products, productCacheTTL)
-	SetCacheSAdd(ctx, repo.redis, cacheKeySellerProductSet(sellerID), resultKey)
+	cache.SetCache(ctx, repo.redis, resultKey, products, productCacheTTL)
+	cache.SetCacheSAdd(ctx, repo.redis, cacheKeySellerProductSet(sellerID), resultKey)
 
 	return products, nil
 }
@@ -169,14 +170,14 @@ func convertToBizProducts(sellerID int32, sellerProducts []sellerProducts) []*bi
 
 // TODO(2): instead of invalidating all caches for a seller, use cache versioning
 // strategy so old entries expire naturally after TTL.
-func delProductCaches(ctx context.Context, r *Redis, setKeys []string) {
+func delProductCaches(ctx context.Context, r *cache.Redis, setKeys []string) {
 	for _, setKey := range setKeys {
-		mems, ok := GetCacheSMembers(ctx, r, setKey)
+		mems, ok := cache.GetCacheSMembers(ctx, r, setKey)
 		if !ok {
 			continue
 		}
-		DelCache(ctx, r, mems...)
-		DelCache(ctx, r, setKey)
+		cache.DelCache(ctx, r, mems...)
+		cache.DelCache(ctx, r, setKey)
 	}
 }
 
