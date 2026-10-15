@@ -11,10 +11,14 @@ import (
 	"github.com/azusayn/azushop/internal/biz"
 	"github.com/azusayn/azushop/internal/pkg/cache"
 	"github.com/azusayn/azushop/internal/pkg/db"
+	"github.com/azusayn/azushop/internal/pkg/grpcclient"
+	paymentv1connect "github.com/azusayn/azushop/proto/api/payment/v1/v1connect"
+	"github.com/azusayn/azushop/proto/conf"
 	"github.com/dnwe/otelsarama"
 	"github.com/google/wire"
 	"github.com/shopspring/decimal"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/propagation"
 	"gorm.io/gorm"
 )
 
@@ -42,6 +46,18 @@ func NewPaymentRepo(postgres *db.Postgres, redis *cache.Redis) biz.PaymentRepo {
 		postgres: postgres,
 		redis:    redis,
 	}
+}
+
+func NewPaymentClient(config *conf.Data, propagator propagation.TextMapPropagator) (paymentv1connect.PaymentServiceClient, error) {
+	opts, err := grpcclient.NewAuthenticatedClientOptions(propagator)
+	if err != nil {
+		return nil, err
+	}
+	return grpcclient.NewServiceClient(
+		paymentv1connect.NewPaymentServiceClient,
+		config.GetServiceAddr().GetPayment(),
+		opts,
+	), nil
 }
 
 func (repo *PaymentRepo) CreatePayment(

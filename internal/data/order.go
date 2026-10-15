@@ -11,12 +11,15 @@ import (
 	"github.com/azusayn/azushop/internal/biz"
 	"github.com/azusayn/azushop/internal/pkg/cache"
 	"github.com/azusayn/azushop/internal/pkg/db"
+	"github.com/azusayn/azushop/internal/pkg/grpcclient"
 	"github.com/azusayn/azushop/internal/pkg/kafka"
+	orderv1connect "github.com/azusayn/azushop/proto/api/order/v1/v1connect"
 	"github.com/azusayn/azushop/proto/conf"
 	"github.com/dnwe/otelsarama"
 	"github.com/google/wire"
 	"github.com/shopspring/decimal"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/propagation"
 	"gorm.io/gorm"
 )
 
@@ -47,6 +50,18 @@ func NewOrderRepo(postgres *db.Postgres, redis *cache.Redis) biz.OrderRepo {
 		postgres: postgres,
 		redis:    redis,
 	}
+}
+
+func NewOrderClient(config *conf.Data, propagator propagation.TextMapPropagator) (orderv1connect.OrderServiceClient, error) {
+	opts, err := grpcclient.NewAuthenticatedClientOptions(propagator)
+	if err != nil {
+		return nil, err
+	}
+	return grpcclient.NewServiceClient(
+		orderv1connect.NewOrderServiceClient,
+		config.GetServiceAddr().GetOrder(),
+		opts,
+	), nil
 }
 
 func (repo *OrderRepo) ListOrders(

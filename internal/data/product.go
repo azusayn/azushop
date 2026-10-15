@@ -15,12 +15,16 @@ import (
 	"github.com/azusayn/azushop/internal/biz"
 	"github.com/azusayn/azushop/internal/pkg/cache"
 	"github.com/azusayn/azushop/internal/pkg/db"
+	"github.com/azusayn/azushop/internal/pkg/grpcclient"
 	"github.com/azusayn/azushop/internal/pkg/str"
+	productv1connect "github.com/azusayn/azushop/proto/api/product/v1/v1connect"
+	"github.com/azusayn/azushop/proto/conf"
 	"github.com/azusayn/azutils/sql"
 	"github.com/dnwe/otelsarama"
 	"github.com/google/wire"
 	"github.com/pgvector/pgvector-go"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/propagation"
 	"golang.org/x/sync/singleflight"
 	"gorm.io/gorm"
 )
@@ -53,6 +57,18 @@ func NewProductRepo(postgres *db.Postgres, redis *cache.Redis) biz.ProductRepo {
 		postgres: postgres,
 		redis:    redis,
 	}
+}
+
+func NewProductClient(config *conf.Data, propagator propagation.TextMapPropagator) (productv1connect.ProductServiceClient, error) {
+	opts, err := grpcclient.NewAuthenticatedClientOptions(propagator)
+	if err != nil {
+		return nil, err
+	}
+	return grpcclient.NewServiceClient(
+		productv1connect.NewProductServiceClient,
+		config.GetServiceAddr().GetProduct(),
+		opts,
+	), nil
 }
 
 func cacheKeyListProductRes(sellerID int32, pageToken uuid.UUID, pageSize int32, productStatus biz.ProductStatus) string {

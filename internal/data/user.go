@@ -3,9 +3,15 @@ package data
 import (
 	"context"
 
+	"connectrpc.com/connect"
+	"connectrpc.com/otelconnect"
 	"github.com/azusayn/azushop/internal/biz"
 	"github.com/azusayn/azushop/internal/pkg/db"
+	"github.com/azusayn/azushop/internal/pkg/grpcclient"
+	authv1connect "github.com/azusayn/azushop/proto/api/auth/v1/v1connect"
+	"github.com/azusayn/azushop/proto/conf"
 	"github.com/google/wire"
+	"go.opentelemetry.io/otel/propagation"
 )
 
 var AuthDataProviderSet = wire.NewSet(
@@ -22,6 +28,23 @@ func NewUserRepo(postgres *db.Postgres) biz.UserRepo {
 	return &UserRepo{
 		postgres: postgres,
 	}
+}
+
+func NewAuthClient(config *conf.Data, propagator propagation.TextMapPropagator) (authv1connect.AuthServiceClient, error) {
+	otelInterceptor, err := otelconnect.NewInterceptor(
+		otelconnect.WithPropagator(propagator),
+	)
+	if err != nil {
+		return nil, err
+	}
+	return grpcclient.NewServiceClient(
+		authv1connect.NewAuthServiceClient,
+		config.GetServiceAddr().GetAuth(),
+		[]connect.ClientOption{
+			connect.WithInterceptors(otelInterceptor),
+			connect.WithGRPC(),
+		},
+	), nil
 }
 
 func (repo *UserRepo) FindByName(ctx context.Context, name string) (*biz.User, error) {
