@@ -36,7 +36,7 @@ type ProductCreatedMessage struct {
 }
 
 const (
-	productCacheTime = time.Minute
+	productCacheTTL = time.Minute
 )
 
 type ProductRepo struct {
@@ -51,11 +51,11 @@ func NewProductRepo(postgres *db.Postgres, redis *Redis) biz.ProductRepo {
 	}
 }
 
-func cacheKeyProduct(sellerID int32, pageToken uuid.UUID, pageSize int32, productStatus biz.ProductStatus) string {
+func cacheKeyListProductRes(sellerID int32, pageToken uuid.UUID, pageSize int32, productStatus biz.ProductStatus) string {
 	return fmt.Sprintf("product:%d:%s:%d:%s", sellerID, pageToken.String(), pageSize, productStatus)
 }
 
-func cacheKeyProductSet(sellerID int32) string {
+func cacheKeySellerProductSet(sellerID int32) string {
 	return fmt.Sprintf("product:%d", sellerID)
 }
 
@@ -73,6 +73,15 @@ func (repo *ProductRepo) SearchProductsByKeyword(ctx context.Context, embedding 
 	return products, nil
 }
 
+type sellerProducts struct {
+	ID          uuid.UUID       `gorm:"column:id"`
+	ProductName string          `gorm:"column:product_name"`
+	Status      string          `gorm:"column:status"`
+	SkuID       uuid.UUID       `gorm:"column:sku_id"`
+	Attrs       json.RawMessage `gorm:"column:attrs"`
+	UnitPrice   string          `gorm:"column:unit_price"`
+}
+
 func (repo *ProductRepo) ListProductsBySellerID(
 	ctx context.Context,
 	sellerID int32,
@@ -80,89 +89,70 @@ func (repo *ProductRepo) ListProductsBySellerID(
 	pageSize int32,
 	productStatus biz.ProductStatus,
 ) ([]*biz.Product, error) {
-	fullKey := cacheKeyProduct(sellerID, pageToken, pageSize, productStatus)
-	if cachedProducts, found := GetCache[[]*biz.Product](ctx, repo.redis, fullKey); found {
+	resultKey := cacheKeyListProductRes(sellerID, pageToken, pageSize, productStatus)
+	if cachedProducts, found := GetCache[[]*biz.Product](ctx, repo.redis, resultKey); found {
 		return cachedProducts, nil
 	}
 
-	client := repo.postgres.Conn
-
-	stmt := `
-		SELECT p.id, p.product_name, p.status,
-			s.id, s.attrs, s.unit_price
-		FROM products p
-		JOIN skus s ON p.id=s.product_id
-		WHERE p.id > $1 AND p.seller_id = $2 %s
-		ORDER BY p.id LIMIT $3
-	`
-	args := []any{pageToken, sellerID, pageSize}
+	query := repo.postgres.GormClient.WithContext(ctx).
+		Table("products AS p").
+		Select(`
+			p.id,
+			p.product_name,
+			p.status,
+			s.id AS sku_id,
+			s.attrs,
+			s.unit_price
+		`).
+		Joins("JOIN skus AS s ON s.product_id = p.id").
+		Where("p.id > ? AND p.seller_id = ?", pageToken, sellerID).
+		Order("p.id").
+		Limit(int(pageSize))
 	if productStatus != biz.ProductStatusUnspecified {
-		stmt = fmt.Sprintf(stmt, "AND status=$4")
-		args = append(args, productStatus)
-	} else {
-		stmt = fmt.Sprintf(stmt, "")
+		query = query.Where("p.status = ?", productStatus)
 	}
-	rows, err := client.QueryContext(ctx, stmt, args...)
-	if err != nil {
+	var sellerProducts []sellerProducts
+	if err := query.Scan(&sellerProducts).Error; err != nil {
 		return nil, err
 	}
-	defer func() { _ = rows.Close() }()
+	products := convertToBizProducts(sellerID, sellerProducts)
 
-	// mapping frop product ID to its SKUs.
-	m := make(map[uuid.UUID][]*biz.Sku)
-	var products []*biz.Product
-	for rows.Next() {
-		var (
-			productID     uuid.UUID
-			productName   string
-			productStatus string
-			skuID         uuid.UUID
-			attrs         json.RawMessage
-			unitPrice     string
-		)
-		if err := rows.Scan(
-			&productID,
-			&productName,
-			&productStatus,
-			&skuID,
-			&attrs,
-			&unitPrice,
-		); err != nil {
-			return nil, err
-		}
-		sku := &biz.Sku{
-			ID:        skuID,
-			Attrs:     attrs,
-			UnitPrice: biz.Numeric(unitPrice),
-			ProductID: productID,
-		}
-		if skus, ok := m[productID]; ok {
-			m[productID] = append(skus, sku)
-			continue
-		}
-		products = append(products, &biz.Product{
-			ID:            productID,
-			ProductName:   productName,
-			SellerID:      sellerID,
-			ProductStatus: biz.ProductStatus(productStatus),
-		})
-		m[productID] = []*biz.Sku{sku}
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	for _, p := range products {
-		p.Skus = m[p.ID]
-	}
-
-	SetCache(ctx, repo.redis, fullKey, products, productCacheTime)
-	setKey := cacheKeyProductSet(sellerID)
-	SetCacheSAdd(ctx, repo.redis, setKey, fullKey)
+	SetCache(ctx, repo.redis, resultKey, products, productCacheTTL)
+	SetCacheSAdd(ctx, repo.redis, cacheKeySellerProductSet(sellerID), resultKey)
 
 	return products, nil
 }
 
-// TODO(2): use version.
+func convertToBizProducts(sellerID int32, sellerProducts []sellerProducts) []*biz.Product {
+	m := make(map[uuid.UUID][]*biz.Sku)
+	var products []*biz.Product
+	for _, row := range sellerProducts {
+		sku := &biz.Sku{
+			ID:        row.SkuID,
+			Attrs:     row.Attrs,
+			UnitPrice: biz.Numeric(row.UnitPrice),
+			ProductID: row.ID,
+		}
+		if skus, ok := m[row.ID]; ok {
+			m[row.ID] = append(skus, sku)
+			continue
+		}
+		products = append(products, &biz.Product{
+			ID:          row.ID,
+			ProductName: row.ProductName,
+			SellerID:    sellerID,
+			Status:      biz.ProductStatus(row.Status),
+		})
+		m[row.ID] = []*biz.Sku{sku}
+	}
+	for _, p := range products {
+		p.Skus = m[p.ID]
+	}
+	return products
+}
+
+// TODO(2): instead of invalidating all caches for a seller, use cache versioning
+// strategy so old entries expire naturally after TTL.
 func delProductCaches(ctx context.Context, r *Redis, setKeys []string) {
 	for _, setKey := range setKeys {
 		mems, ok := GetCacheSMembers(ctx, r, setKey)
@@ -192,7 +182,7 @@ func (repo *ProductRepo) BatchCreateProducts(ctx context.Context, products []*bi
 			v := p.Embedding
 			embeddingVal = &v
 		}
-		productsRowValues = append(productsRowValues, []any{productID, p.ProductName, p.Description, p.SellerID, p.ProductStatus, embeddingVal})
+		productsRowValues = append(productsRowValues, []any{productID, p.ProductName, p.Description, p.SellerID, p.Status, embeddingVal})
 		for _, s := range p.Skus {
 			skuID := uuid.NewV7()
 			s.ID = skuID
@@ -214,7 +204,7 @@ func (repo *ProductRepo) BatchCreateProducts(ctx context.Context, products []*bi
 func (repo *ProductRepo) ClearSellerProductCaches(ctx context.Context, sellerIDs []int32) {
 	ss := str.NewStringSet()
 	for _, sellerID := range sellerIDs {
-		ss.Insert(cacheKeyProductSet(sellerID))
+		ss.Insert(cacheKeySellerProductSet(sellerID))
 	}
 	delProductCaches(ctx, repo.redis, ss.ToSlice())
 }
@@ -236,7 +226,7 @@ func (repo *ProductRepo) BatchUpdateProducts(ctx context.Context, products []*bi
 
 	for _, product := range products {
 		productIds = append(productIds, product.ID)
-		ss.Insert(cacheKeyProductSet(product.SellerID))
+		ss.Insert(cacheKeySellerProductSet(product.SellerID))
 		for _, path := range paths {
 			switch path {
 			case "product_name":

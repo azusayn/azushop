@@ -45,13 +45,13 @@ type SkuDetail struct {
 }
 
 type Product struct {
-	ID            uuid.UUID
-	ProductName   string
-	SellerID      int32
-	ProductStatus ProductStatus
-	Skus          []*Sku
-	Description   string
-	Embedding     pgvector.Vector
+	ID          uuid.UUID
+	ProductName string
+	SellerID    int32
+	Status      ProductStatus
+	Skus        []*Sku
+	Description string
+	Embedding   pgvector.Vector
 }
 
 type ProductRepo interface {
@@ -160,7 +160,7 @@ func productsFilter(products []*Product, userID int32, role UserRole) ([]*Produc
 	case UserRoleMerchant:
 		for _, p := range products {
 			p.SellerID = userID
-			p.ProductStatus = ProductStatusOffline
+			p.Status = ProductStatusOffline
 		}
 		return products, nil
 	default:

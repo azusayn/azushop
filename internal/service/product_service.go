@@ -296,7 +296,7 @@ func convertToPbProducts(products []*biz.Product) ([]*pb.Product, error) {
 			Id:            p.ID.String(),
 			ProductName:   p.ProductName,
 			SellerId:      p.SellerID,
-			ProductStatus: convertToPbProductStatus(&p.ProductStatus),
+			ProductStatus: convertToPbProductStatus(&p.Status),
 			Skus:          pbSkus,
 		})
 	}
@@ -315,12 +315,12 @@ func convertToBizProducts(pbProducts []*pb.Product) ([]*biz.Product, error) {
 			return nil, err
 		}
 		products = append(products, &biz.Product{
-			ID:            bytesUuid,
-			ProductName:   p.ProductName,
-			SellerID:      p.SellerId,
-			Description:   p.Description,
-			ProductStatus: convertToBizProductStatus(&p.ProductStatus),
-			Skus:          skus,
+			ID:          bytesUuid,
+			ProductName: p.ProductName,
+			SellerID:    p.SellerId,
+			Description: p.Description,
+			Status:      convertToBizProductStatus(&p.ProductStatus),
+			Skus:        skus,
 		})
 	}
 	return products, nil
