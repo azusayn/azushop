@@ -48,20 +48,19 @@ jobs:
           [System.IO.File]::AppendAllText($env:GITHUB_OUTPUT, "image=$image$([Environment]::NewLine)")
           Write-Host "Deploying $image on runner=${{ inputs.runner }}"
 
-      - name: Ensure minikube is running
+      - name: Ensure k3s cluster is ready
         run: |
-          minikube status
+          kubectl get nodes
           if ($LASTEXITCODE -ne 0) {
-            Write-Host "minikube not ready; starting..."
-            minikube start
-            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            Write-Host "k3s cluster not reachable"
+            exit $LASTEXITCODE
           }
 
-      - name: Pull image into minikube
+      - name: Pull image into k3s
         env:
           IMAGE: ${{ steps.meta.outputs.image }}
         run: |
-          minikube image pull $env:IMAGE
+          k3s ctr images pull $env:IMAGE
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Helm upgrade --install
