@@ -45,17 +45,12 @@ jobs:
           } >> "$GITHUB_OUTPUT"
           echo "Deploying ${image} on runner=${{ inputs.runner }}"
 
-      - name: Ensure minikube is running
+      - name: Ensure k3s cluster is ready
         run: |
-          if ! minikube status; then
-            echo "minikube not ready; starting..."
-            minikube start
+          if ! kubectl get nodes; then
+            echo "k3s cluster not reachable"
+            exit 1
           fi
-
-      - name: Pull image into minikube
-        env:
-          IMAGE: ${{ steps.meta.outputs.image }}
-        run: minikube image pull "$IMAGE"
 
       - name: Helm upgrade --install
         env:
@@ -67,7 +62,7 @@ jobs:
             --create-namespace \
             --reuse-values \
             --set "services.image=${IMAGE}" \
-            --set "services.imagePullPolicy=IfNotPresent" \
+            --set "services.imagePullPolicy=Always" \
             --set "stripe.secretKey=${STRIPE_SECRET_KEY}"
 
       - name: Wait for business deployments

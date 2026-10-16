@@ -48,21 +48,13 @@ jobs:
           [System.IO.File]::AppendAllText($env:GITHUB_OUTPUT, "image=$image$([Environment]::NewLine)")
           Write-Host "Deploying $image on runner=${{ inputs.runner }}"
 
-      - name: Ensure minikube is running
+      - name: Ensure k3s cluster is ready
         run: |
-          minikube status
+          kubectl get nodes
           if ($LASTEXITCODE -ne 0) {
-            Write-Host "minikube not ready; starting..."
-            minikube start
-            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            Write-Host "k3s cluster not reachable"
+            exit $LASTEXITCODE
           }
-
-      - name: Pull image into minikube
-        env:
-          IMAGE: ${{ steps.meta.outputs.image }}
-        run: |
-          minikube image pull $env:IMAGE
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Helm upgrade --install
         env:
@@ -74,7 +66,7 @@ jobs:
             --create-namespace `
             --reuse-values `
             --set "services.image=$($env:IMAGE)" `
-            --set "services.imagePullPolicy=IfNotPresent" `
+            --set "services.imagePullPolicy=Always" `
             --set "stripe.secretKey=$($env:STRIPE_SECRET_KEY)"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
@@ -83,7 +75,18 @@ jobs:
           foreach ($svc in @("auth", "inventory", "order", "payment", "product")) {
             Write-Host "=== rollout status $svc ==="
             kubectl rollout status "deploy/$svc" -n azushop --timeout=300s
-            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            if ($LASTEXITCODE -ne 0) {
+              Write-Host "=== diagnose $svc ==="
+              kubectl get pods -n azushop -l "app=$svc" -o wide
+              kubectl describe deploy/$svc -n azushop
+              $pod = kubectl get pods -n azushop -l "app=$svc" -o jsonpath='{.items[0].metadata.name}' 2>$null
+              if ($pod) {
+                kubectl describe pod $pod -n azushop
+                kubectl logs $pod -n azushop --all-containers --tail=80
+              }
+              kubectl get events -n azushop --sort-by='.lastTimestamp' | Select-Object -Last 40
+              exit $LASTEXITCODE
+            }
           }
 
       - name: Show deploy status
