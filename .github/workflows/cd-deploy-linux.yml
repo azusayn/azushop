@@ -62,7 +62,7 @@ jobs:
             --create-namespace \
             --reuse-values \
             --set "services.image=${IMAGE}" \
-            --set "services.imagePullPolicy=IfNotPresent" \
+            --set "services.imagePullPolicy=Always" \
             --set "stripe.secretKey=${STRIPE_SECRET_KEY}"
 
       - name: Wait for business deployments
