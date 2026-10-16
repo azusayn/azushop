@@ -56,13 +56,6 @@ jobs:
             exit $LASTEXITCODE
           }
 
-      - name: Pull image into k3s
-        env:
-          IMAGE: ${{ steps.meta.outputs.image }}
-        run: |
-          k3s ctr images pull $env:IMAGE
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
       - name: Helm upgrade --install
         env:
           IMAGE: ${{ steps.meta.outputs.image }}

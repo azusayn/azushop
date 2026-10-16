@@ -52,11 +52,6 @@ jobs:
             exit 1
           fi
 
-      - name: Pull image into k3s
-        env:
-          IMAGE: ${{ steps.meta.outputs.image }}
-        run: sudo k3s ctr images pull "$IMAGE"
-
       - name: Helm upgrade --install
         env:
           IMAGE: ${{ steps.meta.outputs.image }}
