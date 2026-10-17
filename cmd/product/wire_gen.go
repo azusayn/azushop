@@ -11,7 +11,6 @@ import (
 	"github.com/azusayn/azushop/internal/data"
 	"github.com/azusayn/azushop/internal/pkg/cache"
 	"github.com/azusayn/azushop/internal/pkg/db"
-	"github.com/azusayn/azushop/internal/pkg/llm"
 	"github.com/azusayn/azushop/internal/pkg/telemetry"
 	"github.com/azusayn/azushop/internal/server"
 	"github.com/azusayn/azushop/internal/service"
@@ -36,9 +35,8 @@ func wireApp(cd *conf.Data, cs *conf.Server) (*App, func(), error) {
 		return nil, nil, err
 	}
 	productPublisher := data.NewProductPublisher(kafkaProducer)
-	openAIClient := llm.NewOpenAIClient(cd)
 	transaction := db.NewTransaction(postgres)
-	productUsecase := biz.NewProductUsecase(productRepo, productPublisher, openAIClient, transaction, cd)
+	productUsecase := biz.NewProductUsecase(productRepo, productPublisher, transaction, cd)
 	productService := service.NewProductService(productUsecase, cd)
 	productServiceConnectHandler := service.NewProductServiceConnectHandler(productService)
 	textMapPropagator := telemetry.NewTextMapPropagator()
@@ -56,4 +54,4 @@ func wireApp(cd *conf.Data, cs *conf.Server) (*App, func(), error) {
 
 // wire.go:
 
-var wireProviders = wire.NewSet(telemetry.NewTextMapPropagator, data.ProductDataProviderSet, biz.NewProductUsecase, llm.NewOpenAIClient, service.NewProductService, service.NewProductServiceConnectHandler, server.NewProductRunner, newConnectServerConfig, server.NewConnectServer, server.NewMetricsServer, newApp)
+var wireProviders = wire.NewSet(telemetry.NewTextMapPropagator, data.ProductDataProviderSet, biz.NewProductUsecase, service.NewProductService, service.NewProductServiceConnectHandler, server.NewProductRunner, newConnectServerConfig, server.NewConnectServer, server.NewMetricsServer, newApp)

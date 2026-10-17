@@ -6,7 +6,6 @@ package main
 import (
 	"github.com/azusayn/azushop/internal/biz"
 	"github.com/azusayn/azushop/internal/data"
-	"github.com/azusayn/azushop/internal/pkg/llm"
 	"github.com/azusayn/azushop/internal/pkg/telemetry"
 	"github.com/azusayn/azushop/internal/server"
 	"github.com/azusayn/azushop/internal/service"
@@ -22,7 +21,6 @@ var wireProviders = wire.NewSet(
 	telemetry.NewTextMapPropagator,
 	data.ProductDataProviderSet,
 	biz.NewProductUsecase,
-	llm.NewOpenAIClient,
 	service.NewProductService,
 	service.NewProductServiceConnectHandler,
 	server.NewProductRunner,
