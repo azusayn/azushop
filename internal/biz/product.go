@@ -8,9 +8,9 @@ import (
 	"uuid"
 
 	"github.com/azusayn/azushop/internal/pkg/db"
-	"github.com/azusayn/azushop/internal/pkg/llm"
 	"github.com/azusayn/azushop/internal/pkg/outbox"
 	"github.com/azusayn/azushop/proto/conf"
+	"github.com/azusayn/azutils/aigateway"
 	"github.com/azusayn/azutils/validate"
 	"github.com/pgvector/pgvector-go"
 	"github.com/pkg/errors"
@@ -68,25 +68,31 @@ type ProductPublisher interface {
 }
 
 type ProductUsecase struct {
-	repo            ProductRepo
-	publisher       ProductPublisher
-	embeddingClient *llm.OpenAIClient
-	tx              *db.Transaction
-	outbox          *outbox.Outbox
+	repo             ProductRepo
+	publisher        ProductPublisher
+	embeddingService aigateway.EmbeddingService
+	embeddingModel   string
+	tx               *db.Transaction
+	outbox           *outbox.Outbox
 }
 
 func NewProductUsecase(
 	repo ProductRepo,
 	publisher ProductPublisher,
-	openaiClient *llm.OpenAIClient,
 	tx *db.Transaction,
 	config *conf.Data,
 ) *ProductUsecase {
+	embeddingAPI := config.GetEmbeddingApi()
+	provider := aigateway.NewOpenAICompatibleProvider(aigateway.BaseProvider{
+		BaseURL: embeddingAPI.GetEndpoint(),
+		APIKey:  embeddingAPI.GetSecret(),
+	})
 	uc := &ProductUsecase{
-		repo:            repo,
-		publisher:       publisher,
-		embeddingClient: openaiClient,
-		tx:              tx,
+		repo:             repo,
+		publisher:        publisher,
+		embeddingService: aigateway.NewOpenAICompatileClient(provider).Embedding,
+		embeddingModel:   embeddingAPI.GetModel(),
+		tx:               tx,
 	}
 	uc.outbox = outbox.NewOutbox(config.GetServiceName(), uc.buildDispatchFunc(), tx)
 	return uc
@@ -168,8 +174,26 @@ func productsFilter(products []*Product, userID int32, role UserRole) ([]*Produc
 	return nil, fmt.Errorf("role %q doesn't have the permissions to operate products", role)
 }
 
+func (uc *ProductUsecase) createEmbeddings(ctx context.Context, texts []string) ([]pgvector.Vector, error) {
+	resp, err := uc.embeddingService.Create(ctx, aigateway.CreateEmbeddingRequest{
+		Model: uc.embeddingModel,
+		Input: texts,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if resp == nil {
+		return nil, nil
+	}
+	vectors := make([]pgvector.Vector, len(resp.Embeddings))
+	for i, item := range resp.Embeddings {
+		vectors[i] = pgvector.NewVector(item.Vector)
+	}
+	return vectors, nil
+}
+
 func (uc *ProductUsecase) SearchProducts(ctx context.Context, keyword string, maxDistance float32, pageToken uuid.UUID, pageSize int32) ([]*Product, error) {
-	embeddings, err := uc.embeddingClient.CreateEmbeddings(ctx, []string{keyword})
+	embeddings, err := uc.createEmbeddings(ctx, []string{keyword})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create embeddings")
 	}
@@ -195,7 +219,7 @@ func (uc *ProductUsecase) BatchCreateProducts(
 	})
 
 	// generate embedding by product names.
-	embeddings, err := uc.embeddingClient.CreateEmbeddings(ctx, embeddingInputs)
+	embeddings, err := uc.createEmbeddings(ctx, embeddingInputs)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create embeddings")
 	}
