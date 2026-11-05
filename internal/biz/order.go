@@ -44,7 +44,7 @@ type OrderPublisher interface {
 
 type OrderUsecase struct {
 	repo        OrderRepo
-	tx          *db.Transaction
+	db          *db.Client
 	subscriber  OrderSubscriber
 	publisher   OrderPublisher
 	inventory   inventoryv1connect.InventoryServiceClient
@@ -57,7 +57,7 @@ func NewOrderUsecase(
 	repo OrderRepo,
 	subscriber OrderSubscriber,
 	publisher OrderPublisher,
-	tx *db.Transaction,
+	db *db.Client,
 	inventory inventoryv1connect.InventoryServiceClient,
 	config *conf.Data,
 ) (*OrderUsecase, error) {
@@ -69,7 +69,7 @@ func NewOrderUsecase(
 
 	uc := &OrderUsecase{
 		repo:       repo,
-		tx:         tx,
+		db:         db,
 		subscriber: subscriber,
 		publisher:  publisher,
 		inventory:  inventory,
@@ -77,7 +77,7 @@ func NewOrderUsecase(
 		retrier:     retry.NewRetrier(scope, publisher, subscriber),
 		delayWorker: delay.NewWorker(scope, publisher, consumerGroup),
 	}
-	uc.outbox = outbox.NewOutbox(scope, uc.buildDispatchFunc(), tx)
+	uc.outbox = outbox.NewOutbox(scope, uc.buildDispatchFunc(), db)
 
 	return uc, nil
 }
@@ -134,7 +134,7 @@ func (uc *OrderUsecase) CreateOrder(
 	}
 	var createdOrder *Order
 	var err error
-	err = uc.tx.Transaction(ctx, func(ctx context.Context) error {
+	err = uc.db.Transaction(ctx, func(ctx context.Context) error {
 		createdOrder, err = uc.repo.CreateOrder(ctx, idempotencyKey, orderItems, total, OrderStatusPending, userID)
 		if err != nil {
 			return err
@@ -158,7 +158,7 @@ func (uc *OrderUsecase) CreateOrder(
 }
 
 func (uc *OrderUsecase) CancelOrder(ctx context.Context, orderID int64) error {
-	return uc.tx.Transaction(ctx, func(ctx context.Context) error {
+	return uc.db.Transaction(ctx, func(ctx context.Context) error {
 		if err := uc.repo.CancelOrder(ctx, orderID); err != nil {
 			return err
 		}

@@ -30,8 +30,7 @@ import (
 )
 
 var ProductDataProviderSet = wire.NewSet(
-	db.NewPostgres,
-	db.NewTransaction,
+	db.NewClient,
 	cache.NewRedis,
 	NewProductRepo,
 	NewKafkaProducer,
@@ -47,15 +46,15 @@ const (
 )
 
 type ProductRepo struct {
-	postgres     *db.Postgres
+	db           *db.Client
 	redis        *cache.Redis
 	singleFlight singleflight.Group
 }
 
-func NewProductRepo(postgres *db.Postgres, redis *cache.Redis) biz.ProductRepo {
+func NewProductRepo(db *db.Client, redis *cache.Redis) biz.ProductRepo {
 	return &ProductRepo{
-		postgres: postgres,
-		redis:    redis,
+		db:    db,
+		redis: redis,
 	}
 }
 
@@ -82,7 +81,7 @@ func cacheKeySellerProductSet(sellerID int32) string {
 func (repo *ProductRepo) SearchProductsByKeyword(ctx context.Context, embedding []float32, maxDistance float32) ([]*biz.Product, error) {
 	v := pgvector.NewVector(embedding)
 	var products []*biz.Product
-	if err := repo.postgres.GormClient.
+	if err := repo.db.GetTransaction(ctx).
 		WithContext(ctx).
 		Model(&biz.Product{}).
 		Where("embedding <=> ? < ?", v, maxDistance).
@@ -116,7 +115,7 @@ func (repo *ProductRepo) ListProductsBySellerID(
 
 	sfKey := strconv.FormatInt(int64(sellerID), 10)
 	v, err, _ := repo.singleFlight.Do(sfKey, func() (any, error) {
-		query := repo.postgres.GormClient.WithContext(ctx).
+		query := repo.db.GetTransaction(ctx).WithContext(ctx).
 			Table("products AS p").
 			Select(`
 			p.id,
@@ -198,11 +197,6 @@ func delProductCaches(ctx context.Context, r *cache.Redis, setKeys []string) {
 }
 
 func (repo *ProductRepo) BatchCreateProducts(ctx context.Context, products []*biz.Product) ([]*biz.Product, error) {
-	tx := db.GetTransaction(ctx)
-	if tx == nil {
-		return nil, errors.New("missing transaction")
-	}
-
 	productsColNames := []string{"id", "product_name", "description", "seller_id", "status", "embedding"}
 	productsRowValues := make([][]any, 0, len(products))
 	skusColNames := []string{"id", "product_id", "attrs", "unit_price"}
@@ -224,11 +218,11 @@ func (repo *ProductRepo) BatchCreateProducts(ctx context.Context, products []*bi
 	}
 
 	stmtP, valuesP := sql.BuildBatchInsertSQL("products", productsColNames, productsRowValues)
-	if err := tx.Exec(stmtP, valuesP...).Error; err != nil {
+	if err := repo.db.GetTransaction(ctx).Exec(stmtP, valuesP...).Error; err != nil {
 		return nil, err
 	}
 	stmtS, valuesS := sql.BuildBatchInsertSQL("skus", skusColNames, skusRowValues)
-	if err := tx.Exec(stmtS, valuesS...).Error; err != nil {
+	if err := repo.db.GetTransaction(ctx).Exec(stmtS, valuesS...).Error; err != nil {
 		return nil, err
 	}
 	return products, nil
@@ -247,7 +241,6 @@ func (repo *ProductRepo) BatchUpdateProducts(ctx context.Context, products []*bi
 		return nil
 	}
 
-	client := repo.postgres.Conn
 	ss := str.NewStringSet()
 
 	lenPaths := len(paths)
@@ -277,48 +270,42 @@ func (repo *ProductRepo) BatchUpdateProducts(ctx context.Context, products []*bi
 		}
 	}
 
-	tx, err := client.BeginTx(ctx, nil)
-	if err != nil {
-		return err
-	}
-	//nolint:errcheck
-	defer tx.Rollback()
-
-	// table 'products'
-	productColNames := make([]string, 0, lenPaths+1)
-	productColVals := make([][]any, 0, lenPaths+1)
-	productColTypes := []string{"::UUID"}
-	productColNames = append(productColNames, "id")
-	productColVals = append(productColVals, productIds)
-	if len(productNames) != 0 {
-		productColNames = append(productColNames, "product_name")
-		productColVals = append(productColVals, productNames)
-		productColTypes = append(productColTypes, "")
-	}
-	if len(productColNames) != 0 {
-		stmt, values := sql.BuildBatchUpdateSQL("products", productColNames, productColTypes, productColVals)
-		if _, err := tx.ExecContext(ctx, stmt, values...); err != nil {
-			return err
+	if err := repo.db.Transaction(ctx, func(ctx context.Context) error {
+		// table 'products'
+		productColNames := make([]string, 0, lenPaths+1)
+		productColVals := make([][]any, 0, lenPaths+1)
+		productColTypes := []string{"::UUID"}
+		productColNames = append(productColNames, "id")
+		productColVals = append(productColVals, productIds)
+		if len(productNames) != 0 {
+			productColNames = append(productColNames, "product_name")
+			productColVals = append(productColVals, productNames)
+			productColTypes = append(productColTypes, "")
 		}
-	}
-
-	// table skus
-	skuColNames := []string{"id"}
-	skuColTypes := []string{"::UUID"}
-	skuColVals := [][]any{skuIDs}
-	if len(attrs) != 0 && len(unitPrices) != 0 {
-		skuColNames = append(skuColNames, "attrs", "unit_price")
-		skuColVals = append(skuColVals, attrs, unitPrices)
-		skuColTypes = append(skuColTypes, "::JSON", "::NUMERIC(10,2)")
-	}
-	if len(skuColNames) != 0 {
-		stmt, values := sql.BuildBatchUpdateSQL("skus", skuColNames, skuColTypes, skuColVals)
-		if _, err := tx.ExecContext(ctx, stmt, values...); err != nil {
-			return err
+		if len(productColNames) != 0 {
+			stmt, values := sql.BuildBatchUpdateSQL("products", productColNames, productColTypes, productColVals)
+			if err := repo.db.GetTransaction(ctx).Exec(stmt, values...).Error; err != nil {
+				return err
+			}
 		}
-	}
 
-	if err := tx.Commit(); err != nil {
+		// table skus
+		skuColNames := []string{"id"}
+		skuColTypes := []string{"::UUID"}
+		skuColVals := [][]any{skuIDs}
+		if len(attrs) != 0 && len(unitPrices) != 0 {
+			skuColNames = append(skuColNames, "attrs", "unit_price")
+			skuColVals = append(skuColVals, attrs, unitPrices)
+			skuColTypes = append(skuColTypes, "::JSON", "::NUMERIC(10,2)")
+		}
+		if len(skuColNames) != 0 {
+			stmt, values := sql.BuildBatchUpdateSQL("skus", skuColNames, skuColTypes, skuColVals)
+			if err := repo.db.GetTransaction(ctx).Exec(stmt, values...).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	}); err != nil {
 		return err
 	}
 
@@ -332,7 +319,6 @@ func (repo *ProductRepo) BatchGetSkuDetails(
 	pageToken uuid.UUID,
 	pageSize int32,
 ) ([]*biz.SkuDetail, error) {
-	client := repo.postgres.Conn
 	stmt := `
 		SELECT
 			p.product_name,
@@ -353,7 +339,7 @@ func (repo *ProductRepo) BatchGetSkuDetails(
 		values = append(values, skuID)
 	}
 	stmt = fmt.Sprintf(stmt, strings.Join(args, ","))
-	rows, err := client.QueryContext(ctx, stmt, values...)
+	rows, err := repo.db.GetTransaction(ctx).WithContext(ctx).Raw(stmt, values...).Rows()
 	if err != nil {
 		return nil, err
 	}

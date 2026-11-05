@@ -19,7 +19,6 @@ import (
 	"github.com/shopspring/decimal"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
-	"gorm.io/gorm"
 )
 
 const (
@@ -27,8 +26,7 @@ const (
 )
 
 var PaymentDataProviderSet = wire.NewSet(
-	db.NewPostgres,
-	db.NewTransaction,
+	db.NewClient,
 	cache.NewRedis,
 	NewPaymentRepo,
 	NewKafkaProducer,
@@ -37,14 +35,14 @@ var PaymentDataProviderSet = wire.NewSet(
 )
 
 type PaymentRepo struct {
-	postgres *db.Postgres
-	redis    *cache.Redis
+	db    *db.Client
+	redis *cache.Redis
 }
 
-func NewPaymentRepo(postgres *db.Postgres, redis *cache.Redis) biz.PaymentRepo {
+func NewPaymentRepo(db *db.Client, redis *cache.Redis) biz.PaymentRepo {
 	return &PaymentRepo{
-		postgres: postgres,
-		redis:    redis,
+		db:    db,
+		redis: redis,
 	}
 }
 
@@ -70,11 +68,6 @@ func (repo *PaymentRepo) CreatePayment(
 	status biz.PaymentStatus,
 	externalID string,
 ) (*biz.Payment, error) {
-	var client *gorm.DB
-	if client = db.GetTransaction(ctx); client == nil {
-		client = repo.postgres.GormClient.WithContext(ctx)
-	}
-
 	if _, ok := cache.GetCache[int](ctx, repo.redis, idempotencyKey); ok {
 		return nil, errors.New("duplicate payments")
 	}
@@ -87,7 +80,7 @@ func (repo *PaymentRepo) CreatePayment(
 		Status:      status,
 		AmountTotal: total,
 	}
-	if err := client.Create(payment).Error; err != nil {
+	if err := repo.db.GetTransaction(ctx).WithContext(ctx).Create(payment).Error; err != nil {
 		return nil, err
 	}
 
@@ -97,11 +90,7 @@ func (repo *PaymentRepo) CreatePayment(
 }
 
 func (repo *PaymentRepo) UpdatePaymentStatusByOrderID(ctx context.Context, orderID int64, status biz.PaymentStatus) error {
-	client := db.GetTransaction(ctx)
-	if client == nil {
-		client = repo.postgres.GormClient.WithContext(ctx)
-	}
-	return client.
+	return repo.db.GetTransaction(ctx).
 		WithContext(ctx).
 		Model(&biz.Payment{}).
 		Where("order_id = ?", orderID).
@@ -110,10 +99,6 @@ func (repo *PaymentRepo) UpdatePaymentStatusByOrderID(ctx context.Context, order
 }
 
 func (repo *PaymentRepo) UpdatePaymentByID(ctx context.Context, payment *biz.Payment, paths []string) error {
-	client := db.GetTransaction(ctx)
-	if client == nil {
-		client = repo.postgres.GormClient.WithContext(ctx)
-	}
 	m := make(map[string]any, len(paths))
 	for _, path := range paths {
 		switch path {
@@ -123,7 +108,7 @@ func (repo *PaymentRepo) UpdatePaymentByID(ctx context.Context, payment *biz.Pay
 			return fmt.Errorf("invalid update path %q", path)
 		}
 	}
-	return client.Where("id = ?", payment.ID).Updates(m).Error
+	return repo.db.GetTransaction(ctx).WithContext(ctx).Where("id = ?", payment.ID).Updates(m).Error
 }
 
 type PaymentPublisher struct {

@@ -36,23 +36,23 @@ type PaymentUsecase struct {
 	repo        PaymentRepo
 	publisher   PaymentPublisher
 	serviceName string
-	tx          *db.Transaction
+	db          *db.Client
 	outbox      *outbox.Outbox
 }
 
 func NewPaymentUsecase(
 	repo PaymentRepo,
 	publisher PaymentPublisher,
-	tx *db.Transaction,
+	db *db.Client,
 	config *conf.Data,
 ) *PaymentUsecase {
 	uc := &PaymentUsecase{
 		repo:        repo,
 		publisher:   publisher,
 		serviceName: config.GetServiceName(),
-		tx:          tx,
+		db:          db,
 	}
-	uc.outbox = outbox.NewOutbox(uc.serviceName, uc.buildDispatchFunc(), tx)
+	uc.outbox = outbox.NewOutbox(uc.serviceName, uc.buildDispatchFunc(), db)
 	return uc
 }
 
@@ -155,7 +155,7 @@ func (uc *PaymentUsecase) Callback(ctx context.Context, method PaymentMethod, bo
 	ctx, span := otel.Tracer(uc.serviceName).Start(ctx, paymentCallbackSpanName)
 	defer span.End()
 
-	if err := uc.tx.Transaction(ctx, func(ctx context.Context) error {
+	if err := uc.db.Transaction(ctx, func(ctx context.Context) error {
 		if err := uc.repo.UpdatePaymentStatusByOrderID(ctx, orderID, paymentStatus); err != nil {
 			return err
 		}

@@ -72,14 +72,14 @@ type ProductUsecase struct {
 	publisher        ProductPublisher
 	embeddingService aigateway.EmbeddingService
 	embeddingModel   string
-	tx               *db.Transaction
+	db               *db.Client
 	outbox           *outbox.Outbox
 }
 
 func NewProductUsecase(
 	repo ProductRepo,
 	publisher ProductPublisher,
-	tx *db.Transaction,
+	db *db.Client,
 	config *conf.Data,
 ) *ProductUsecase {
 	embeddingAPI := config.GetEmbeddingApi()
@@ -92,9 +92,9 @@ func NewProductUsecase(
 		publisher:        publisher,
 		embeddingService: aigateway.NewOpenAICompatileClient(provider).Embedding,
 		embeddingModel:   embeddingAPI.GetModel(),
-		tx:               tx,
+		db:               db,
 	}
-	uc.outbox = outbox.NewOutbox(config.GetServiceName(), uc.buildDispatchFunc(), tx)
+	uc.outbox = outbox.NewOutbox(config.GetServiceName(), uc.buildDispatchFunc(), db)
 	return uc
 }
 
@@ -228,7 +228,7 @@ func (uc *ProductUsecase) BatchCreateProducts(
 	}
 
 	var createdProds []*Product
-	err = uc.tx.Transaction(ctx, func(ctx context.Context) error {
+	err = uc.db.Transaction(ctx, func(ctx context.Context) error {
 		var err error
 		createdProds, err = uc.repo.BatchCreateProducts(ctx, products)
 		if err != nil {

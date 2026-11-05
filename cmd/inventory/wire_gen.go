@@ -20,17 +20,16 @@ import (
 // Injectors from wire.go:
 
 func wireApp(cd *conf.Data, cs *conf.Server) (*App, func(), error) {
-	postgres, err := db.NewPostgres(cd)
+	client, err := db.NewClient(cd)
 	if err != nil {
 		return nil, nil, err
 	}
-	inventoryRepo := data.NewInventoryRepo(postgres)
-	transaction := db.NewTransaction(postgres)
+	inventoryRepo := data.NewInventoryRepo(client)
 	inventorySubscriber, err := data.NewInventorySubscriber(cd)
 	if err != nil {
 		return nil, nil, err
 	}
-	inventoryUsecase := biz.NewInventoryUsecase(inventoryRepo, transaction, inventorySubscriber, cd)
+	inventoryUsecase := biz.NewInventoryUsecase(inventoryRepo, client, inventorySubscriber, cd)
 	inventoryService := service.NewInventoryService(inventoryUsecase)
 	inventoryServiceConnectHandler := service.NewInventoryServiceConnectHandler(inventoryService)
 	textMapPropagator := telemetry.NewTextMapPropagator()
