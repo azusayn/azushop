@@ -20,7 +20,6 @@ import (
 	"github.com/shopspring/decimal"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
-	"gorm.io/gorm"
 )
 
 const (
@@ -29,8 +28,7 @@ const (
 )
 
 var OrderDataProviderSet = wire.NewSet(
-	db.NewTransaction,
-	db.NewPostgres,
+	db.NewClient,
 	cache.NewRedis,
 	NewOrderRepo,
 	NewOrderSubscriber,
@@ -41,14 +39,14 @@ var OrderDataProviderSet = wire.NewSet(
 )
 
 type OrderRepo struct {
-	postgres *db.Postgres
-	redis    *cache.Redis
+	db    *db.Client
+	redis *cache.Redis
 }
 
-func NewOrderRepo(postgres *db.Postgres, redis *cache.Redis) biz.OrderRepo {
+func NewOrderRepo(db *db.Client, redis *cache.Redis) biz.OrderRepo {
 	return &OrderRepo{
-		postgres: postgres,
-		redis:    redis,
+		db:    db,
+		redis: redis,
 	}
 }
 
@@ -71,9 +69,8 @@ func (repo *OrderRepo) ListOrders(
 	pageToken int64,
 	pageSize int32,
 ) ([]*biz.Order, error) {
-	client := repo.postgres.GormClient
+	client := repo.db.GetTransaction(ctx).WithContext(ctx).Where("user_id = ?", userID).Where("id > ?", pageToken)
 	var orders []*biz.Order
-	client = client.WithContext(ctx).Where("user_id = ?", userID).Where("id > ?", pageToken)
 	if status != biz.OrderStatusUnspecified {
 		client = client.Where("status = ?", status)
 	}
@@ -101,10 +98,6 @@ func (repo *OrderRepo) CreateOrder(
 		return nil, errors.New("duplicate orders")
 	}
 
-	var client *gorm.DB
-	if client = db.GetTransaction(ctx); client == nil {
-		client = repo.postgres.GormClient
-	}
 	itemsJson, err := json.Marshal(orderItems)
 	if err != nil {
 		return nil, err
@@ -116,7 +109,7 @@ func (repo *OrderRepo) CreateOrder(
 		OrderItems:     itemsJson,
 		Total:          total,
 	}
-	if err := client.WithContext(ctx).Create(order).Error; err != nil {
+	if err := repo.db.GetTransaction(ctx).WithContext(ctx).Create(order).Error; err != nil {
 		return nil, err
 	}
 
@@ -126,20 +119,11 @@ func (repo *OrderRepo) CreateOrder(
 }
 
 func (repo *OrderRepo) DeleteOrder(ctx context.Context, orderID int64) error {
-	gormClient := db.GetTransaction(ctx)
-	if gormClient == nil {
-		gormClient = repo.postgres.GormClient
-	}
-	return gormClient.WithContext(ctx).Where("id = ?", orderID).Delete(&biz.Order{}).Error
+	return repo.db.GetTransaction(ctx).WithContext(ctx).Where("id = ?", orderID).Delete(&biz.Order{}).Error
 }
 
 func (repo *OrderRepo) CancelOrder(ctx context.Context, orderID int64) error {
-	client := db.GetTransaction(ctx)
-	if client == nil {
-		client = repo.postgres.GormClient
-	}
-
-	result := client.
+	result := repo.db.GetTransaction(ctx).
 		WithContext(ctx).
 		Model(&biz.Order{}).
 		Where("id = ?", orderID).
@@ -157,21 +141,15 @@ func (repo *OrderRepo) CancelOrder(ctx context.Context, orderID int64) error {
 }
 
 func (repo *OrderRepo) GetOrder(ctx context.Context, orderID int64) (*biz.Order, error) {
-	client := repo.postgres.GormClient
 	var order biz.Order
-	if err := client.WithContext(ctx).Where("id = ?", orderID).Find(&order).Error; err != nil {
+	if err := repo.db.GetTransaction(ctx).WithContext(ctx).Where("id = ?", orderID).Find(&order).Error; err != nil {
 		return nil, err
 	}
 	return &order, nil
 }
 
 func (repo *OrderRepo) UpdateOrderStatus(ctx context.Context, orderID int64, status biz.OrderStatus) error {
-	client := db.GetTransaction(ctx)
-	if client == nil {
-		client = repo.postgres.GormClient
-	}
-
-	return client.
+	return repo.db.GetTransaction(ctx).
 		WithContext(ctx).
 		Model(&biz.Order{}).
 		Where("id = ?", orderID).

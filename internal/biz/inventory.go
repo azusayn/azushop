@@ -65,23 +65,23 @@ type ProductCreatedMessage struct {
 
 type InventoryUsecase struct {
 	repo       InventoryRepo
-	tx         *db.Transaction
+	db         *db.Client
 	subscriber InventorySubscriber
 	outbox     *outbox.Outbox
 }
 
 func NewInventoryUsecase(
 	repo InventoryRepo,
-	tx *db.Transaction,
+	db *db.Client,
 	sub InventorySubscriber,
 	config *conf.Data,
 ) *InventoryUsecase {
 	uc := &InventoryUsecase{
 		repo:       repo,
-		tx:         tx,
+		db:         db,
 		subscriber: sub,
 	}
-	uc.outbox = outbox.NewOutbox(config.GetServiceName(), uc.buildDispatchFunc(), tx)
+	uc.outbox = outbox.NewOutbox(config.GetServiceName(), uc.buildDispatchFunc(), db)
 	return uc
 }
 
@@ -97,7 +97,7 @@ func (uc *InventoryUsecase) AdjustStock(
 	}}
 	paths := []string{"stock_quantity"}
 
-	err := uc.tx.Transaction(ctx, func(ctx context.Context) error {
+	err := uc.db.Transaction(ctx, func(ctx context.Context) error {
 		return uc.repo.UpdateInventories(ctx, inventories, paths)
 	})
 	return err
@@ -116,7 +116,7 @@ func (uc *InventoryUsecase) ReserveStock(ctx context.Context, orderID int64, ord
 		})
 	}
 	paths := []string{"reserved_quantity"}
-	return uc.tx.Transaction(ctx, func(ctx context.Context) error {
+	return uc.db.Transaction(ctx, func(ctx context.Context) error {
 		if err := uc.repo.UpdateDeltaQuantity(ctx, inventoryDeltas, paths); err != nil {
 			return err
 		}
@@ -125,7 +125,7 @@ func (uc *InventoryUsecase) ReserveStock(ctx context.Context, orderID int64, ord
 }
 
 func (uc *InventoryUsecase) ReleaseStock(ctx context.Context, orderID int64) error {
-	return uc.tx.Transaction(ctx, func(ctx context.Context) error {
+	return uc.db.Transaction(ctx, func(ctx context.Context) error {
 		inventoryLock, err := uc.repo.GetInventoryLock(ctx, orderID)
 		if err != nil {
 			return err
@@ -153,7 +153,7 @@ func (uc *InventoryUsecase) ReleaseStock(ctx context.Context, orderID int64) err
 }
 
 func (uc *InventoryUsecase) DeductStock(ctx context.Context, orderID int64) error {
-	return uc.tx.Transaction(ctx, func(ctx context.Context) error {
+	return uc.db.Transaction(ctx, func(ctx context.Context) error {
 		inventoryLock, err := uc.repo.GetInventoryLock(ctx, orderID)
 		if err != nil {
 			return err
@@ -224,7 +224,7 @@ func (uc *InventoryUsecase) handlePaymentStatus(ctx context.Context, bytes []byt
 }
 
 func (uc *InventoryUsecase) saveOutbox(ctx context.Context, eventType OutboxEventType, payload []byte) error {
-	return uc.tx.Transaction(ctx, func(ctx context.Context) error {
+	return uc.db.Transaction(ctx, func(ctx context.Context) error {
 		return uc.outbox.Save(ctx, string(eventType), payload)
 	})
 }
@@ -236,7 +236,7 @@ func (uc *InventoryUsecase) dispatchOutboxMessage(ctx context.Context, message *
 		if err := json.Unmarshal(message.Payload, &msg); err != nil {
 			return err
 		}
-		return uc.tx.Transaction(ctx, func(ctx context.Context) error {
+		return uc.db.Transaction(ctx, func(ctx context.Context) error {
 			_, err := uc.repo.BatchCreateInventoris(ctx, msg.SkuIDs)
 			return err
 		})

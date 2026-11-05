@@ -20,11 +20,11 @@ import (
 // Injectors from wire.go:
 
 func wireApp(cd *conf.Data, cs *conf.Server) (*App, func(), error) {
-	postgres, err := db.NewPostgres(cd)
+	client, err := db.NewClient(cd)
 	if err != nil {
 		return nil, nil, err
 	}
-	userRepo := data.NewUserRepo(postgres)
+	userRepo := data.NewUserRepo(client)
 	userUsecase := biz.NewUserUsecase(userRepo)
 	authService, err := service.NewAuthService(userUsecase, cd)
 	if err != nil {

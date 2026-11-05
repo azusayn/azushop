@@ -22,18 +22,17 @@ import (
 )
 
 var InventoryDataProviderSet = wire.NewSet(
-	db.NewPostgres,
-	db.NewTransaction,
+	db.NewClient,
 	NewInventoryRepo,
 	NewInventorySubscriber,
 )
 
 type InventoryRepo struct {
-	postgres *db.Postgres
+	db *db.Client
 }
 
-func NewInventoryRepo(postgres *db.Postgres) biz.InventoryRepo {
-	return &InventoryRepo{postgres: postgres}
+func NewInventoryRepo(db *db.Client) biz.InventoryRepo {
+	return &InventoryRepo{db: db}
 }
 
 func NewInventoryClient(config *conf.Data, propagator propagation.TextMapPropagator) (inventoryv1connect.InventoryServiceClient, error) {
@@ -50,12 +49,8 @@ func NewInventoryClient(config *conf.Data, propagator propagation.TextMapPropaga
 
 // updates the same set of fields (defined by paths) for each inventory.
 func (repo *InventoryRepo) UpdateInventories(ctx context.Context, inventories []*biz.Inventory, paths []string) error {
-	client := db.GetTransaction(ctx)
-	if client == nil {
-		client = repo.postgres.GormClient
-	}
 	for _, inv := range inventories {
-		if err := client.WithContext(ctx).Model(inv).Select(paths).Updates(inv).Error; err != nil {
+		if err := repo.db.GetTransaction(ctx).WithContext(ctx).Model(inv).Select(paths).Updates(inv).Error; err != nil {
 			return err
 		}
 	}
@@ -66,9 +61,8 @@ func (repo *InventoryRepo) BatchGetInventories(ctx context.Context, skuIDs []uui
 	if len(skuIDs) == 0 {
 		return nil, errors.New("empty skuIDs")
 	}
-	gormClient := repo.postgres.GormClient
 	var inventories []*biz.Inventory
-	err := gormClient.WithContext(ctx).Where("sku_id IN ?", skuIDs).Find(&inventories).Error
+	err := repo.db.GetTransaction(ctx).WithContext(ctx).Where("sku_id IN ?", skuIDs).Find(&inventories).Error
 	if err != nil {
 		return nil, err
 	}
@@ -76,10 +70,6 @@ func (repo *InventoryRepo) BatchGetInventories(ctx context.Context, skuIDs []uui
 }
 
 func (repo *InventoryRepo) UpdateDeltaQuantity(ctx context.Context, inventories []*biz.Inventory, paths []string) error {
-	gormClient := db.GetTransaction(ctx)
-	if gormClient == nil {
-		gormClient = repo.postgres.GormClient
-	}
 	for _, inventory := range inventories {
 		m := make(map[string]any)
 		for _, path := range paths {
@@ -92,7 +82,7 @@ func (repo *InventoryRepo) UpdateDeltaQuantity(ctx context.Context, inventories 
 				return fmt.Errorf("invalid path %q", path)
 			}
 		}
-		if err := gormClient.
+		if err := repo.db.GetTransaction(ctx).
 			WithContext(ctx).
 			Model(&biz.Inventory{}).
 			Where("sku_id = ?", inventory.SkuID).
@@ -104,12 +94,8 @@ func (repo *InventoryRepo) UpdateDeltaQuantity(ctx context.Context, inventories 
 }
 
 func (repo *InventoryRepo) GetInventoryLock(ctx context.Context, orderID int64) (*biz.InventoryLock, error) {
-	gormClient := db.GetTransaction(ctx)
-	if gormClient == nil {
-		gormClient = repo.postgres.GormClient
-	}
 	var inventoryLock biz.InventoryLock
-	if err := gormClient.WithContext(ctx).Where("order_id = ?", orderID).Find(&inventoryLock).Error; err != nil {
+	if err := repo.db.GetTransaction(ctx).WithContext(ctx).Where("order_id = ?", orderID).Find(&inventoryLock).Error; err != nil {
 		return nil, err
 	}
 	return &inventoryLock, nil
@@ -121,10 +107,6 @@ func (repo *InventoryRepo) CreateInventoryLock(
 	orderItems []*biz.OrderItem,
 	status biz.InventoryLockStatus,
 ) error {
-	gormClient := db.GetTransaction(ctx)
-	if gormClient == nil {
-		gormClient = repo.postgres.GormClient
-	}
 	payload, err := json.Marshal(orderItems)
 	if err != nil {
 		return err
@@ -134,16 +116,12 @@ func (repo *InventoryRepo) CreateInventoryLock(
 		Payload: payload,
 		Status:  status,
 	}
-	return gormClient.WithContext(ctx).Table("inventory_locks").Create(lock).Error
+	return repo.db.GetTransaction(ctx).WithContext(ctx).Table("inventory_locks").Create(lock).Error
 }
 
 func (repo *InventoryRepo) UpdateInventoryLock(ctx context.Context, inventoryLocks []*biz.InventoryLock, paths []string) error {
-	client := db.GetTransaction(ctx)
-	if client == nil {
-		client = repo.postgres.GormClient
-	}
 	for _, invLock := range inventoryLocks {
-		if err := client.
+		if err := repo.db.GetTransaction(ctx).
 			WithContext(ctx).
 			Model(invLock).
 			Select(paths).
@@ -155,10 +133,6 @@ func (repo *InventoryRepo) UpdateInventoryLock(ctx context.Context, inventoryLoc
 }
 
 func (repo *InventoryRepo) BatchCreateInventoris(ctx context.Context, skuIDs []uuid.UUID) ([]*biz.Inventory, error) {
-	client := db.GetTransaction(ctx)
-	if client == nil {
-		client = repo.postgres.GormClient
-	}
 	var inventories []*biz.Inventory
 	for _, skuID := range skuIDs {
 		inventories = append(inventories, &biz.Inventory{
@@ -167,7 +141,7 @@ func (repo *InventoryRepo) BatchCreateInventoris(ctx context.Context, skuIDs []u
 			ReservedQuantity: 0,
 		})
 	}
-	if err := client.WithContext(ctx).Create(&inventories).Error; err != nil {
+	if err := repo.db.GetTransaction(ctx).WithContext(ctx).Create(&inventories).Error; err != nil {
 		return nil, err
 	}
 	return inventories, nil

@@ -9,6 +9,7 @@ import (
 	"time"
 	"uuid"
 
+	"github.com/azusayn/azushop/internal/pkg/db"
 	"github.com/azusayn/azushop/internal/pkg/telemetry"
 )
 
@@ -57,13 +58,13 @@ type Option func(*Outbox)
 func NewOutbox(
 	scope string,
 	dispatch DispatchFunc,
-	tx OutboxTransaction,
+	client *db.Client,
 	opts ...Option,
 ) *Outbox {
 	outbox := &Outbox{
-		store:    newStore(scope + "_outbox"),
+		store:    newStore(scope+"_outbox", client),
 		dispatch: dispatch,
-		tx:       tx,
+		tx:       client,
 	}
 
 	for _, opt := range opts {

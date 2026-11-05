@@ -15,18 +15,17 @@ import (
 )
 
 var AuthDataProviderSet = wire.NewSet(
-	db.NewPostgres,
-	db.NewTransaction,
+	db.NewClient,
 	NewUserRepo,
 )
 
 type UserRepo struct {
-	postgres *db.Postgres
+	db *db.Client
 }
 
-func NewUserRepo(postgres *db.Postgres) biz.UserRepo {
+func NewUserRepo(db *db.Client) biz.UserRepo {
 	return &UserRepo{
-		postgres: postgres,
+		db: db,
 	}
 }
 
@@ -48,10 +47,9 @@ func NewAuthClient(config *conf.Data, propagator propagation.TextMapPropagator) 
 }
 
 func (repo *UserRepo) FindByName(ctx context.Context, name string) (*biz.User, error) {
-	client := repo.postgres.Conn
 	var user biz.User
 	stmt := "select id, username, password_hash, salt, role from users where username=$1"
-	row := client.QueryRowContext(ctx, stmt, name)
+	row := repo.db.GetTransaction(ctx).WithContext(ctx).Raw(stmt, name).Row()
 	if err := row.Scan(&user.ID, &user.Name, &user.PasswordHash, &user.Salt, &user.Role); err != nil {
 		return nil, err
 	}
@@ -59,8 +57,6 @@ func (repo *UserRepo) FindByName(ctx context.Context, name string) (*biz.User, e
 }
 
 func (repo *UserRepo) Save(ctx context.Context, user *biz.User) error {
-	client := repo.postgres.Conn
 	stmt := "insert into users(username, password_hash, salt, role) values($1, $2, $3, $4)"
-	_, err := client.ExecContext(ctx, stmt, user.Name, user.PasswordHash, user.Salt, user.Role)
-	return err
+	return repo.db.GetTransaction(ctx).WithContext(ctx).Exec(stmt, user.Name, user.PasswordHash, user.Salt, user.Role).Error
 }

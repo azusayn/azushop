@@ -25,10 +25,11 @@ type gormOutboxMessage struct {
 
 type store struct {
 	tableName string
+	client    *db.Client
 }
 
-func newStore(tableName string) *store {
-	return &store{tableName: tableName}
+func newStore(tableName string, client *db.Client) *store {
+	return &store{tableName: tableName, client: client}
 }
 
 func (s *store) TableName() string {
@@ -51,7 +52,7 @@ func (s *store) CreateOutboxMessage(ctx context.Context, eventType string, paylo
 	// TODO(4): metrics.
 	ctx = telemetry.WithUnsampledSpanContext(ctx)
 
-	return db.GetTransaction(ctx).WithContext(ctx).Table(s.TableName()).Create(outboxMsg).Error
+	return s.client.GetTransaction(ctx).WithContext(ctx).Table(s.TableName()).Create(outboxMsg).Error
 }
 
 // returns messages that are eligible for processing.
@@ -61,7 +62,7 @@ func (s *store) ListDueOutboxMessages(ctx context.Context, limit int) ([]*Outbox
 
 	// TODO(4): composite index?
 	var rows []*gormOutboxMessage
-	if err := db.
+	if err := s.client.
 		GetTransaction(ctx).
 		WithContext(ctx).
 		Table(s.TableName()).
@@ -89,7 +90,8 @@ func (s *store) MarkOutboxMessagesSent(ctx context.Context, ids []uuid.UUID) err
 	// TODO(4): metrics.
 	ctx = telemetry.WithUnsampledSpanContext(ctx)
 
-	if err := db.GetTransaction(ctx).
+	if err := s.client.
+		GetTransaction(ctx).
 		WithContext(ctx).
 		Table(s.TableName()).
 		Where("id IN ?", ids).
@@ -109,7 +111,8 @@ func (s *store) MarkOutboxMessagesFailed(ctx context.Context, ids []uuid.UUID) e
 	// TODO(4): metrics.
 	ctx = telemetry.WithUnsampledSpanContext(ctx)
 
-	if err := db.GetTransaction(ctx).
+	if err := s.client.
+		GetTransaction(ctx).
 		WithContext(ctx).
 		Table(s.TableName()).
 		Where("id IN ?", ids).

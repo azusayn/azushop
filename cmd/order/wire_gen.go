@@ -21,7 +21,7 @@ import (
 // Injectors from wire.go:
 
 func wireApp(cd *conf.Data, cs *conf.Server) (*App, func(), error) {
-	postgres, err := db.NewPostgres(cd)
+	client, err := db.NewClient(cd)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -29,7 +29,7 @@ func wireApp(cd *conf.Data, cs *conf.Server) (*App, func(), error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	orderRepo := data.NewOrderRepo(postgres, redis)
+	orderRepo := data.NewOrderRepo(client, redis)
 	orderSubscriber, err := data.NewOrderSubscriber(cd)
 	if err != nil {
 		return nil, nil, err
@@ -39,13 +39,12 @@ func wireApp(cd *conf.Data, cs *conf.Server) (*App, func(), error) {
 		return nil, nil, err
 	}
 	orderPublisher := data.NewOrderPublisher(kafkaProducer)
-	transaction := db.NewTransaction(postgres)
 	textMapPropagator := telemetry.NewTextMapPropagator()
 	inventoryServiceClient, err := data.NewInventoryClient(cd, textMapPropagator)
 	if err != nil {
 		return nil, nil, err
 	}
-	orderUsecase, err := biz.NewOrderUsecase(orderRepo, orderSubscriber, orderPublisher, transaction, inventoryServiceClient, cd)
+	orderUsecase, err := biz.NewOrderUsecase(orderRepo, orderSubscriber, orderPublisher, client, inventoryServiceClient, cd)
 	if err != nil {
 		return nil, nil, err
 	}
