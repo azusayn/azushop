@@ -23,20 +23,23 @@ type gormOutboxMessage struct {
 	SentAt      *time.Time      `gorm:"column:sent_at"`
 }
 
-type store struct {
+type Store struct {
 	tableName string
-	client    *db.Client
+	*db.Client
 }
 
-func newStore(tableName string, client *db.Client) *store {
-	return &store{tableName: tableName, client: client}
+func NewOutboxStore(scope string, client *db.Client) OutboxStore {
+	return &Store{
+		tableName: fmt.Sprintf("%s_outbox", scope),
+		Client:    client,
+	}
 }
 
-func (s *store) TableName() string {
+func (s *Store) TableName() string {
 	return s.tableName
 }
 
-func (s *store) CreateOutboxMessage(ctx context.Context, eventType string, payload json.RawMessage) error {
+func (s *Store) CreateOutboxMessage(ctx context.Context, eventType string, payload json.RawMessage) error {
 	traceBytes, err := telemetry.ExtractTraceHeaderBytes(ctx)
 	if err != nil {
 		return err
@@ -52,17 +55,17 @@ func (s *store) CreateOutboxMessage(ctx context.Context, eventType string, paylo
 	// TODO(4): metrics.
 	ctx = telemetry.WithUnsampledSpanContext(ctx)
 
-	return s.client.GetTransaction(ctx).WithContext(ctx).Table(s.TableName()).Create(outboxMsg).Error
+	return s.Client.GetTransaction(ctx).WithContext(ctx).Table(s.TableName()).Create(outboxMsg).Error
 }
 
 // returns messages that are eligible for processing.
-func (s *store) ListDueOutboxMessages(ctx context.Context, limit int) ([]*OutboxMessage, error) {
+func (s *Store) ListDueOutboxMessages(ctx context.Context, limit int) ([]*OutboxMessage, error) {
 	// TODO(4): metrics.
 	ctx = telemetry.WithUnsampledSpanContext(ctx)
 
 	// TODO(4): composite index?
 	var rows []*gormOutboxMessage
-	if err := s.client.
+	if err := s.Client.
 		GetTransaction(ctx).
 		WithContext(ctx).
 		Table(s.TableName()).
@@ -82,7 +85,7 @@ func (s *store) ListDueOutboxMessages(ctx context.Context, limit int) ([]*Outbox
 	return messages, nil
 }
 
-func (s *store) MarkOutboxMessagesSent(ctx context.Context, ids []uuid.UUID) error {
+func (s *Store) MarkOutboxMessagesSent(ctx context.Context, ids []uuid.UUID) error {
 	if len(ids) == 0 {
 		return nil
 	}
@@ -90,7 +93,7 @@ func (s *store) MarkOutboxMessagesSent(ctx context.Context, ids []uuid.UUID) err
 	// TODO(4): metrics.
 	ctx = telemetry.WithUnsampledSpanContext(ctx)
 
-	if err := s.client.
+	if err := s.Client.
 		GetTransaction(ctx).
 		WithContext(ctx).
 		Table(s.TableName()).
@@ -103,7 +106,7 @@ func (s *store) MarkOutboxMessagesSent(ctx context.Context, ids []uuid.UUID) err
 	return nil
 }
 
-func (s *store) MarkOutboxMessagesFailed(ctx context.Context, ids []uuid.UUID) error {
+func (s *Store) MarkOutboxMessagesFailed(ctx context.Context, ids []uuid.UUID) error {
 	if len(ids) == 0 {
 		return nil
 	}
@@ -111,7 +114,7 @@ func (s *store) MarkOutboxMessagesFailed(ctx context.Context, ids []uuid.UUID) e
 	// TODO(4): metrics.
 	ctx = telemetry.WithUnsampledSpanContext(ctx)
 
-	if err := s.client.
+	if err := s.Client.
 		GetTransaction(ctx).
 		WithContext(ctx).
 		Table(s.TableName()).

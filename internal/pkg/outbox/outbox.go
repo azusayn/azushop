@@ -33,15 +33,11 @@ type OutboxMessage struct {
 }
 
 type OutboxStore interface {
+	db.Transaction
 	CreateOutboxMessage(ctx context.Context, eventType string, payload json.RawMessage) error
 	ListDueOutboxMessages(ctx context.Context, limit int) ([]*OutboxMessage, error)
 	MarkOutboxMessagesSent(ctx context.Context, ids []uuid.UUID) error
 	MarkOutboxMessagesFailed(ctx context.Context, ids []uuid.UUID) error
-}
-
-// TODO(1): the outbox package should own the transaction.
-type OutboxTransaction interface {
-	Transaction(ctx context.Context, fn func(ctx context.Context) error) error
 }
 
 type DispatchFunc func(ctx context.Context, message *OutboxMessage) error
@@ -50,21 +46,18 @@ type Outbox struct {
 	store    OutboxStore
 	dispatch DispatchFunc
 	logger   *slog.Logger
-	tx       OutboxTransaction
 }
 
 type Option func(*Outbox)
 
 func NewOutbox(
-	scope string,
 	dispatch DispatchFunc,
-	client *db.Client,
+	store OutboxStore,
 	opts ...Option,
 ) *Outbox {
 	outbox := &Outbox{
-		store:    newStore(scope+"_outbox", client),
+		store:    store,
 		dispatch: dispatch,
-		tx:       client,
 	}
 
 	for _, opt := range opts {
@@ -84,7 +77,7 @@ func (o *Outbox) Run(ctx context.Context) error {
 	for {
 		select {
 		case <-ticker.C:
-			if err := o.tx.Transaction(ctx, func(ctx context.Context) error {
+			if err := o.store.Transaction(ctx, func(ctx context.Context) error {
 				return o.processOutboxMessages(ctx)
 			}); err != nil {
 				slog.Warn("failed to process outbox messages", slog.Any("err", err))

@@ -81,7 +81,10 @@ func NewInventoryUsecase(
 		db:         db,
 		subscriber: sub,
 	}
-	uc.outbox = outbox.NewOutbox(config.GetServiceName(), uc.buildDispatchFunc(), db)
+	uc.outbox = outbox.NewOutbox(
+		uc.buildDispatchFunc(),
+		outbox.NewOutboxStore(config.GetServiceName(), db),
+	)
 	return uc
 }
 

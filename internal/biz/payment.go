@@ -52,7 +52,10 @@ func NewPaymentUsecase(
 		serviceName: config.GetServiceName(),
 		db:          db,
 	}
-	uc.outbox = outbox.NewOutbox(uc.serviceName, uc.buildDispatchFunc(), db)
+	uc.outbox = outbox.NewOutbox(
+		uc.buildDispatchFunc(),
+		outbox.NewOutboxStore(config.GetServiceName(), db),
+	)
 	return uc
 }
 
