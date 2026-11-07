@@ -17,7 +17,6 @@ const (
 )
 
 type Client struct {
-	// TODO: make it unexported.
 	DB *gorm.DB
 }
 
@@ -64,6 +63,10 @@ func NewClient(config *conf.Data) (*Client, error) {
 	return &Client{
 		DB: gormDB,
 	}, nil
+}
+
+type Transaction interface {
+	Transaction(ctx context.Context, fn func(ctx context.Context) error) error
 }
 
 type transactionContextKey string

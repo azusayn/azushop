@@ -77,7 +77,10 @@ func NewOrderUsecase(
 		retrier:     retry.NewRetrier(scope, publisher, subscriber),
 		delayWorker: delay.NewWorker(scope, publisher, consumerGroup),
 	}
-	uc.outbox = outbox.NewOutbox(scope, uc.buildDispatchFunc(), db)
+	uc.outbox = outbox.NewOutbox(
+		uc.buildDispatchFunc(),
+		outbox.NewOutboxStore(scope, db),
+	)
 
 	return uc, nil
 }
